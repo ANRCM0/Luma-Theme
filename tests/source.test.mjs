@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const app=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');
+test('all five main routes exist',()=>{for(const route of ['dashboard','shop','profile','ticket','menu'])assert.ok(app.includes(`route==='${route}'`),route)});
+test('sensitive live subscription data is not embedded',()=>{assert.ok(app.includes('example.invalid'));assert.ok(!app.includes('viaspeed.shop/api/'));assert.ok(!app.includes('localStorage.getItem(\'token\')'))});
+test('ticket description is captured and validated',()=>{assert.ok(app.includes('name="description"'));assert.ok(app.includes('if(!title||!description)'))});
+test('demo theme persists',()=>{assert.ok(app.includes("viaspeed-demo-theme"))});
+test('mobile layout exists',()=>{assert.ok(css.includes('.mobile-nav'));assert.ok(css.includes('@media'))});
+test('login route and logout navigation are consistent',()=>{assert.ok(app.includes("location.hash!=='#/login'"));assert.ok(app.includes("id==='logout'?go('login')"));assert.ok(app.includes("setAuth(next!=='login')"))});
+test('demo tickets persist and corrupted storage is handled',()=>{assert.ok(app.includes('viaspeed-demo-tickets'));assert.ok(app.includes('Array.isArray(data)?data:[]'))});
+test('dialog and toast expose accessible roles',()=>{assert.ok(app.includes('role="dialog"'));assert.ok(app.includes('aria-modal="true"'));assert.ok(app.includes('aria-live="polite"'))});
+test('narrow screen and reduced motion styles exist',()=>{assert.ok(css.includes('max-width:390px'));assert.ok(css.includes('prefers-reduced-motion:reduce'))});
