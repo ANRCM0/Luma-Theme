@@ -54,5 +54,5 @@ test('Luma menu reads authenticated TXBoard paths without original SPA redirects
    '/api/v1/user/knowledge/fetch?language=zh-CN','/api/v1/user/comm/config'
   ]);
   assert.ok(seen.every(x=>x.options.headers.Authorization==='Bearer menu-token'));
- }finally{globalThis.fetch=before;globalThis.localStorage=storage;clearToken()}
+ }finally{clearToken();globalThis.fetch=before;globalThis.localStorage=storage}
 });
