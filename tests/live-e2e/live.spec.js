@@ -525,12 +525,15 @@ test('subscription center shows verified usage, OS import choices and manual cre
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('subscriber@example.test');
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
+ await page.locator('.live-subscription-extra summary').click();
  const summary=page.getByRole('region',{name:'订阅概览'});
  await expect(summary).toContainText('高级订阅');
  await expect(summary).toContainText('65.00 GB');
  await expect(summary.getByRole('progressbar',{name:'流量使用比例'})).toHaveAttribute('aria-valuenow','35');
  await expect(summary).toContainText('约 5 天后');
  const importer=page.getByRole('region',{name:'客户端与订阅导入'});
+ await expect(page.getByRole('region',{name:'已购套餐'})).toContainText('高级订阅');
+ await expect(importer.getByRole('img',{name:'订阅二维码'})).toBeVisible();
  await expect(importer).not.toContainText('token=secret');
  await importer.getByRole('button',{name:'显示订阅链接'}).click();
  await expect(importer).toContainText('token=secret');
@@ -582,6 +585,7 @@ test('reset-traffic shortcut requires a server-priced plan and posts reset_price
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('reset@example.test');
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
+ await page.locator('.live-subscription-extra summary').click();
  await page.getByRole('region',{name:'订阅概览'}).getByRole('button',{name:'重置流量'}).click();
  const form=page.getByRole('dialog',{name:'购买 专属套餐'});
  await expect(form).toBeVisible();
@@ -616,6 +620,7 @@ test('expired subscriptions cannot start a traffic reset, and operator can hide 
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('old@example.test');
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
+ await page.locator('.live-subscription-extra summary').click();
  const summary=page.getByRole('region',{name:'订阅概览'});
  await expect(summary).toContainText('已过期');
  await expect(summary.getByRole('button',{name:'重置流量'})).toHaveCount(0);
