@@ -4,6 +4,7 @@
 :root{--vv-live-brand:#84eaee;--vv-live-contrast:#14565c}
 :root[data-vv-accent=blue]{--vv-live-brand:#4e9de9;--vv-live-contrast:#fff}
 :root[data-vv-accent=darkblue]{--vv-live-brand:#477db9;--vv-live-contrast:#fff}
+:root[data-vv-accent=black]{--vv-live-brand:#263746;--vv-live-contrast:#fff}
 .live-portal .primary{background:var(--vv-live-brand);color:var(--vv-live-contrast)}
 .live-portal .primary:hover{filter:brightness(.95);background:var(--vv-live-brand)}
 .live-portal .desktop-nav .selected,.live-portal .desktop-nav button:hover,.live-portal .mobile-nav .selected,.live-portal a{color:var(--vv-live-brand)}
