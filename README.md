@@ -20,6 +20,7 @@ ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**
 - `0.6.0` 新增套餐商店优化：周期价格同步筛选、精选套餐、自选最多三款对比、月付与长周期实际差额、优化的购买确认与优惠码验证；最终支付金额仍来自 TXBoard 订单接口，前端不独立计价或处理信用卡。
 - `0.7.0` 第五阶段：真实订阅管理中心显示流量用量、到期与重置信息；订阅链接默认遮罩，支持二维码及按 Windows/macOS/iOS/Android 的客户端一键导入引导；续费与付费流量重置通过 TXBoard 用户级套餐查询和订单接口，绝不直接篡改流量或价格。
 - `0.8.0` 第六阶段：待支付订单恢复与显式取消确认、支付请求防重复提交、失败后手动重试、支付状态有限轮询及第三方支付弹窗被拦截时的安全链接回退。CI 已统一 Node.js 22，保留所有单元、构建及浏览器回归测试。
+- **`0.9.1` 紧急修复**（[Issue #1](https://github.com/ANRCM0/vv-theme/issues/1)）：修复默认导航项含逗号引发的 Laravel Blade 编译错误／用户前台 500。所有模板 JSON 值改用 HTML 安全的 `json_encode`，并在 ZIP 发布前使用真实 Laravel 12 + PHP 8.2 编译、语法检查、渲染回归。**受影响的 v0.9.0 需升级此版本**。
 - `0.9.0` 主题安全与细节打磨：支付外链 HTTPS 校验、公告及 Logo 图片安全策略、快捷登录一次性参数清理、退出登录时旧会话请求隔离、弹窗键盘焦点和恢复、跳转主要内容入口、移动端安全视口与减少动画选项。跳过主题管理框架改造。
 - 主题独立配置 `theme_color`（青色/蓝色/深蓝色/黑色）、`background_url`、`custom_html`，自定义 HTML 标记为 `public:false`，不随游客配置 API 下发；主题仍从受信任的服务端 Blade 模板注入该 HTML。
 - 站点启用验证码时，安全地跳转 `/user-spa/#/login` 走 TXBoard 原生验证码组件；Stripe 信用卡支付走原生安全组件，避免主题自行处理卡信息。
@@ -36,10 +37,10 @@ ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**
    npm install
    npm test
    TXBOARD_THEME=true npm run build
-   THEME_VERSION=0.9.0 node scripts/package-txboard.mjs
+   THEME_VERSION=0.9.1 node scripts/package-txboard.mjs
    cd theme-package && zip -qr ../vv-theme-txboard.zip .
    ```
-3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。本次使用 `0.9.0`，支持覆盖升级原 `0.1.0`。
+3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。本次使用 `0.9.1`，支持覆盖升级原 `0.1.0`。
 4. 切换 `frontend_theme` 为 `vv-theme`，从无缓存浏览器验证注册、登录、订阅、下单、回调、工单、移动端。未完成真实支付沙箱或实际环境回归前不要直接向用户推广。
 
 回滚：主题管理里切换回 `TXBoard`，默认用户 SPA 立即恢复，无需改 Caddyfile；不必删除已安装主题。
