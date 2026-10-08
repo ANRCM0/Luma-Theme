@@ -27,3 +27,37 @@
 @media(max-width:390px){.product .plan-actions{flex-direction:column}.welcome .stats{gap:8px}.welcome .stats strong{font-size:12px}.finance-summary strong{font-size:16px}.menu-item strong{font-size:12px}}
 @media(hover:hover){.card.menu-item:hover{box-shadow:0 12px 30px rgba(40,123,130,.11)}.product:hover{border-color:#c7e9eb}}
 @media(prefers-reduced-motion:reduce){.primary,.secondary,.field input,.field textarea,.field select{transition:none}}
+
+/* Layout audit: prevent narrow-screen overflow and normalize interactive surfaces */
+html{min-width:320px;scroll-padding-top:90px}
+.app,.container,.dashboard-grid,.content-grid,.profile-grid,.plans,.menu-grid{min-width:0}
+.card,.product,.dialog{min-width:0;overflow-wrap:break-word}
+.product{height:100%}
+.product .plan-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch;gap:10px}
+.product .plan-actions button{width:100%;min-width:0;min-height:44px;margin:0;white-space:normal;line-height:1.4}
+.product .feature{min-width:0}.product .feature span{min-width:0}.product .feature strong{max-width:52%;overflow-wrap:anywhere}
+.finance-summary>div{overflow:hidden}.finance-summary strong{font-variant-numeric:tabular-nums}
+.ticket-toolbar .search{max-width:100%}
+.subscription{max-width:100%;overflow:hidden}.subscription span{min-width:0}
+.dialog{overflow-x:hidden;overscroll-behavior:contain}
+.dialog .field input,.dialog .field textarea,.dialog .field select{max-width:100%}
+.dialog .close{top:14px;right:14px}
+.menu-item{width:100%}
+button:disabled{cursor:not-allowed;opacity:.55;transform:none}
+.mobile-nav button{touch-action:manipulation}
+@media(max-width:720px){
+  .dashboard-grid,.content-grid,.profile-grid,.plans,.menu-grid{width:100%}
+  .welcome .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .welcome .stats>div{min-width:0}.welcome .stats strong{overflow-wrap:anywhere}
+  .finance-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .finance-summary strong{font-size:clamp(14px,4vw,18px)}
+  .mobile-nav button{min-width:0;padding:6px 2px}
+  .mobile-nav button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .dialog .field textarea{max-height:35dvh}
+}
+@media(max-width:390px){
+  .product .plan-actions{grid-template-columns:1fr}
+  .welcome .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .welcome .stats span{font-size:10px}
+  .mobile-nav button{gap:3px}
+}
