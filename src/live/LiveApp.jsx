@@ -3,6 +3,7 @@ import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,E
 import QRCode from 'qrcode';
 import * as tx from './api.js';
 import {clientsFor} from './import.js';
+import {resolveThemeAppearance} from './theme-config.js';
 import './live.css';
 
 const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu]];
@@ -43,7 +44,8 @@ export default function LiveApp(){
  const fail=useCallback(err=>{setError(err?.message||'请求失败')},[]);
  const logo=guest.logo||window.settings?.logo||'';
  const title=guest.app_name||window.settings?.title||'TXBoard';
- const themeColor=window.settings?.theme?.color;
+ const appearance=resolveThemeAppearance(guest,window.settings,location.origin);
+ const themeColor=appearance.color;
  const go=useCallback(next=>{setError('');setDialog(null);setQr(null);location.hash='/'+next;setRoute(next);window.scrollTo({top:0,behavior:'instant'})},[]);
  useEffect(()=>{const cb=()=>{setRoute(routeNow());setError('')};window.addEventListener('hashchange',cb);return()=>window.removeEventListener('hashchange',cb)},[]);
  useEffect(()=>{const expire=()=>{setSession(false);setMe(null);setSubscription(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
@@ -189,7 +191,7 @@ export default function LiveApp(){
  }
  const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions"><button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
- if(!session)return <div className="app live-portal live-login" style={window.settings?.background_url?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(window.settings.background_url)+")",backgroundSize:"cover"}:{}}>
+ if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
   {header}
   <main className="login-card live-auth-card" aria-labelledby="live-auth-title">
    <div className="live-auth-intro">
