@@ -1,30 +1,82 @@
-name: Build TXBoard Theme Package
+name: Build & Release TXBoard Theme
+
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Theme version for a manual package build (no Release)'
+        required: true
+        type: string
+        default: '0.9.1'
+
+# Publishing a release needs contents:write. No personal access token is required.
 permissions:
-  contents: read
+  contents: write
+
+# Never cancel an in-progress release. A tag should only be published once.
+concurrency:
+  group: vv-theme-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   package:
+    name: Validate, package and publish
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Resolve version from tag
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.ref_name }}
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            if [[ ! "$TAG_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?)$ ]]; then
+              echo "::error::Expected a version tag such as v0.9.2 or v1.0.0-beta.1"
+              exit 1
+            fi
+            version="${BASH_REMATCH[1]}"
+          else
+            version="$MANUAL_VERSION"
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::The manual build version must be a valid version without a v prefix"
+              exit 1
+            fi
+          fi
+          echo "THEME_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Packaging vv-theme version $version"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Run unit tests
+        run: npm test
       - name: Build TXBoard assets
         run: npm run build
         env:
           TXBOARD_THEME: 'true'
       - name: Stage Theme Package v1
         run: node scripts/package-txboard.mjs
-        env:
-          THEME_VERSION: '0.9.1'
+      - name: Check packaged version
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const config = JSON.parse(readFileSync("theme-package/config.json", "utf8"));
+            if (config.name !== "vv-theme" || config.version !== process.env.THEME_VERSION) {
+              throw Error("Theme manifest name/version does not match the release tag");
+            }
+          '
       - name: Set up PHP 8.2 for real Laravel Blade validation
         uses: shivammathur/setup-php@v2
         with:
@@ -39,8 +91,38 @@ jobs:
       - name: Compile and render packaged Blade template
         run: php tests/blade-compile-smoke.php "$RUNNER_TEMP/vv-blade-test/vendor/autoload.php" theme-package/dashboard.blade.php
       - name: Create installable ZIP
-        run: cd theme-package && zip -qr ../vv-theme-txboard.zip .
-      - uses: actions/upload-artifact@v4
+        run: |
+          cd theme-package
+          zip -qr ../vv-theme-txboard.zip .
+      - name: Verify ZIP structure and checksum
+        shell: bash
+        run: |
+          unzip -t vv-theme-txboard.zip
+          for required in config.json dashboard.blade.php; do
+            unzip -Z1 vv-theme-txboard.zip | grep -Fxq "$required"
+          done
+          unzip -Z1 vv-theme-txboard.zip | grep -Eq '^assets/.+\.js$'
+          unzip -Z1 vv-theme-txboard.zip | grep -Eq '^assets/.+\.css$'
+          sha256sum vv-theme-txboard.zip > vv-theme-txboard.zip.sha256
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: vv-theme-txboard
-          path: vv-theme-txboard.zip
+          name: vv-theme-txboard-${{ env.THEME_VERSION }}
+          path: |
+            vv-theme-txboard.zip
+            vv-theme-txboard.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: vv-theme ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            vv-theme-txboard.zip
+            vv-theme-txboard.zip.sha256
