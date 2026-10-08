@@ -209,7 +209,7 @@ test('notification popup and bell can be independently disabled in theme setting
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('disabled@example.test');
  await page.getByLabel('登录密码').fill('valid-password');
  await page.getByRole('button',{name:'登录',exact:true}).click();
- await expect(page.getByText('WELCOME BACK')).toBeVisible();
+ await expect(page.locator('[data-welcome-state="no_plan"]')).toBeVisible();
  await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'查看通知'})).toHaveCount(0);
 });
@@ -287,4 +287,98 @@ test('mobile navigation honors visibility/order and keeps the menu escape hatch'
  await expect(page.getByRole('heading',{name:'全部菜单'})).toBeVisible();
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+
+test('a newly registered user sees onboarding and the configured wallet side card',async({page})=>{
+ const now=Math.floor(Date.now()/1000);
+ await page.setViewportSize({width:390,height:844});
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'欢迎测试',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
+    welcome_enabled:'1',welcome_new_hours:48,welcome_secondary_card:'wallet',notice_popup_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'welcome-session'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{email:'fresh@example.test',created_at:now-3600,plan_id:0,balance:3450},
+   '/api/v1/user/getSubscribe':{plan_id:0,transfer_enable:0,expired_at:0,u:0,d:0},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getStat':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('fresh@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const welcome=page.locator('[data-welcome-state="new"]');
+ await expect(welcome).toBeVisible();
+ await expect(welcome.getByRole('heading',{name:/欢迎加入/})).toBeVisible();
+ await expect(welcome.getByRole('button',{name:/挑选入门套餐/})).toBeVisible();
+ await expect(page.getByRole('region',{name:'账户余额'})).toBeVisible();
+ await expect(welcome.getByText('尚未订阅')).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('subscriptions near expiry use a renewal message and usable traffic metrics',async({page})=>{
+ const now=Math.floor(Date.now()/1000);
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'订阅提醒',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
+    welcome_enabled:'1',welcome_expiry_hours:'72',welcome_secondary_card:'usage',notice_popup_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'welcome-session'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{email:'expiring@example.test',created_at:now-30*86400,plan_id:3},
+   '/api/v1/user/getSubscribe':{plan_id:3,plan:{id:3,name:'高级套餐',transfer_enable:100},
+    transfer_enable:100*1073741824,u:60*1073741824,d:35*1073741824,expired_at:now+36*3600,reset_day:15},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getStat':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('expiring@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const welcome=page.locator('[data-welcome-state="expiring"]');
+ await expect(welcome).toBeVisible();
+ await expect(welcome.getByRole('heading',{name:/订阅即将到期/})).toBeVisible();
+ const usage=page.getByRole('region',{name:'流量用量'});
+ await expect(usage).toBeVisible();
+ await expect(usage.getByRole('progressbar',{name:'流量使用比例'})).toHaveAttribute('aria-valuenow','95');
+ await welcome.getByRole('button',{name:/查看续费方案/}).click();
+ await expect(page.getByRole('heading',{name:'购买套餐'})).toBeVisible();
+});
+
+test('fully depleted plans show an upgrade action before other warnings',async({page})=>{
+ const now=Math.floor(Date.now()/1000);
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'流量提醒',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
+    welcome_enabled:'1',welcome_secondary_card:'recommend',notice_popup_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'welcome-session'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{email:'noquota@example.test',created_at:now-30*86400,plan_id:4},
+   '/api/v1/user/getSubscribe':{plan_id:4,plan:{id:4,name:'普通套餐',transfer_enable:10},
+    transfer_enable:10*1073741824,u:4*1073741824,d:6*1073741824,expired_at:now+48*3600},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getStat':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('noquota@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const welcome=page.locator('[data-welcome-state="exhausted"]');
+ await expect(welcome.getByRole('heading',{name:/流量已用完/})).toBeVisible();
+ await expect(welcome.getByRole('button',{name:/查看升级套餐/})).toBeVisible();
 });
