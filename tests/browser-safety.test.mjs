@@ -8,7 +8,8 @@ test('untrusted outbound URLs reject insecure schemes, credentials, control char
   assert.equal(safeExternal(value),null,String(value));
  }
  assert.equal(safeExternal('https://pay.example.test/order?payment=12'),'https://pay.example.test/order?payment=12');
- assert.equal(safeExternal('http://localhost:5050/checkout'),'http://localhost:5050/checkout');
+ assert.equal(safeExternal('http://localhost:5050/checkout'),null);
+ assert.equal(safeWebUrl('http://localhost:5050/checkout',{origin:'http://localhost:4173',allowHttpLoopback:true}),'http://localhost:5050/checkout');
  assert.equal(safeWebUrl('https://service.example.test/docs',{allowRelative:true}),'https://service.example.test/docs');
 });
 
