@@ -1,6 +1,10 @@
-# vv-theme · TXBoard 用户前台主题
+# Luma Theme
 
-ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**的运行模式：
+**Luma Theme** 是一款为 TXBoard 打造的轻量、清爽的 React 用户前台主题，专注于订阅管理、套餐购买与便捷的客户端导入体验。
+
+> **兼容说明：** 对外品牌及发布安装包使用 **Luma Theme**；主题内部标识仍为 `vv-theme`（包括 `config.json` 的 `name`、资源路径及 TXBoard 的 `frontend_theme` 设置）。**升级现有主题时无需更换内部标识**，避免被识别为全新主题。
+
+仓库提供两个**明确隔离**的运行模式：
 
 | 模式 | 构建命令 | 行为 |
 | --- | --- | --- |
@@ -38,10 +42,10 @@ git tag v0.9.2
 git push origin v0.9.2
 ```
 
-推送后，`Build & Release TXBoard Theme` 工作流会自动运行单元测试、构建生产主题资源、从标签设置 `theme-package/config.json` 的版本、用 PHP 8.2 + Laravel 12 编译和渲染 Blade 模板、验证 ZIP 内容，再发布同名 GitHub Release，并附加：
+推送后，`Build & Release Luma Theme` 工作流会自动运行单元测试、构建生产主题资源、从标签设置 `theme-package/config.json` 的版本、用 PHP 8.2 + Laravel 12 编译和渲染 Blade 模板、验证 ZIP 内容，再发布标题为 **Luma Theme vX.Y.Z** 的 GitHub Release，并附加：
 
-- `vv-theme-txboard.zip`：TXBoard 后台可直接安装的主题包（ZIP 根目录包含 `config.json`、`dashboard.blade.php`、`assets/`）。
-- `vv-theme-txboard.zip.sha256`：对应 ZIP 的 SHA-256 校验值。
+- `luma-theme.zip`：TXBoard 后台可直接安装的主题包（ZIP 根目录包含 `config.json`、`dashboard.blade.php`、`assets/`）。
+- `luma-theme.zip.sha256`：对应 ZIP 的 SHA-256 校验值。
 
 Release 自动生成更新说明。支持 `v1.0.0-beta.1` 等预发布标签，并自动标识为 Pre-release。主题包内的版本号来自标签（例如 `v0.9.2` 对应 `0.9.2`），不再固定为旧版本。构建或 Blade 校验失败时**不会**发布 Release。
 
@@ -52,16 +56,16 @@ Release 自动生成更新说明。支持 `v1.0.0-beta.1` 等预发布标签，�
 需要同时使用包含**动态根路由修复**的 TXBoard 镜像（TXBoard 的 `api/routes/web.php` 和 `api/.docker/caddy/Caddyfile` 已更新）。现在访问 `/` 时由 Laravel 根据 `frontend_theme` 判定：默认 `TXBoard` 仍输出原有 Vue SPA，自定义主题则渲染其 Blade 文件；默认 SPA 不再因启用主题而变成旧的 `umi.js`。
 
 1. 更新并重新部署 TXBoard 镜像，确认新 Caddyfile 与后端生效。
-2. 在 [GitHub Releases](https://github.com/ANRCM0/vv-theme/releases) 下载最新版本的 **`vv-theme-txboard.zip`**（这是可直接安装的主题包，不是 GitHub 自动生成的 Source code ZIP），或者运行：
+2. 在 [Luma Theme Releases](https://github.com/ANRCM0/vv-theme/releases) 下载最新版本的 **`luma-theme.zip`**（这是可直接安装的主题包，不是 GitHub 自动生成的 Source code ZIP），或者运行：
    ```sh
    npm install
    npm test
    TXBOARD_THEME=true npm run build
    THEME_VERSION=0.9.2 node scripts/package-txboard.mjs
-   cd theme-package && zip -qr ../vv-theme-txboard.zip .
+   cd theme-package && zip -qr ../luma-theme.zip .
    ```
    上面的 `0.9.2` 仅为手动打包示例；自动发布时版本始终来自 Git 标签。
-3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。
+3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP（ZIP 文件名是 `luma-theme.zip`，包内技术标识仍为 `vv-theme`）。
 4. 切换 `frontend_theme` 为 `vv-theme`，从无缓存浏览器验证注册、登录、订阅、下单、回调、工单、移动端。未完成真实支付沙箱或实际环境回归前不要直接向用户推广。
 
 回滚：主题管理里切换回 `TXBoard`，默认用户 SPA 立即恢复，无需改 Caddyfile；不必删除已安装主题。
