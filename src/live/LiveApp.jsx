@@ -5,6 +5,8 @@ import * as tx from './api.js';
 import {clientsFor} from './import.js';
 import {resolveThemeAppearance} from './theme-config.js';
 import {resolveNavigationConfig,orderedNavigation,mobileNavigation} from './navigation-config.js';
+import {resolveWelcomeConfig,classifyWelcome} from './welcome-config.js';
+import {WelcomeBanner,WelcomeSecondaryCard} from './WelcomeCards.jsx';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
 import './live.css';
@@ -55,6 +57,7 @@ export default function LiveApp(){
  const themeColor=appearance.color;
  const noticeConfig=resolveNoticeConfig(guest,window.settings);
  const navConfig=resolveNavigationConfig(guest,window.settings);
+ const welcomeConfig=resolveWelcomeConfig(guest,window.settings);
  const sidebarCollapsed=sidebarOverride??navConfig.sidebarCollapsed;
  const visibleNav=orderedNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
  const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
@@ -287,10 +290,11 @@ export default function LiveApp(){
   </main>
   <p className="live-auth-footnote"><ShieldCheck size={15} aria-hidden="true"/> 您的账号信息通过安全连接传输</p>
  </div>;
+ const overview=classifyWelcome(me,subscription,welcomeConfig);
  const planName=subscription?.plan?.name||'Free';
- const used=Number(subscription?.u||me?.u||0)+Number(subscription?.d||me?.d||0);
- const quota=Number(subscription?.transfer_enable||0)||Number(subscription?.plan?.transfer_enable||0)*1073741824||Number(me?.transfer_enable||0);
- const remaining=Math.max(0,quota-used);
+ const used=overview.used;
+ const quota=overview.total;
+ const remaining=overview.remaining;
  const activePlans=offers.filter(p=>p.show!==0&&p.show!==false);
  const featured=activePlans.find(p=>p.month_price>0)||activePlans[0];
  const subUrl=subscription?.subscribe_url;
@@ -307,8 +311,8 @@ export default function LiveApp(){
  {error&&<div className="live-error" role="alert">{error} <button onClick={()=>setError('')}>×</button></div>}
  {route==='dashboard'&&<>
   <div className="dashboard-grid">
-   <div className="welcome card"><div className="welcome-text"><span className="eyebrow">WELCOME BACK</span><h1>Halo, {me?.email?.split('@')[0]||'用户'} 👋</h1><p>欢迎回来，查看你的订阅与流量信息。</p><div className="status-pill">{planName}<span>{subscription?.plan?'当前套餐':'暂无订阅'}</span></div><div className="welcome-actions"><button className="secondary" onClick={()=>go('shop')}>浏览套餐 <ArrowRight size={15}/></button><button className="welcome-help" onClick={()=>go('ticket')}>获取帮助</button></div><div className="stats"><div><span>到期时间</span><strong>{subscription?.expired_at?date(subscription.expired_at).split(' ')[0]:'长期有效'}</strong></div><div><span>流量重置</span><strong>{subscription?.reset_day?subscription.reset_day+' 天':'—'}</strong></div><div><span>剩余流量</span><strong>{tx.bytes(remaining)}</strong></div></div></div><div className="welcome-decor"><Wifi size={108} strokeWidth={1.1}/></div></div>
-   <div className="dashboard-side"><Card className="recommend-card"><div className="small-label">为你推荐</div>{featured?<><div className="plan-side"><div><strong>{featured.name}</strong><p>{featured.transfer_enable} GB 流量</p></div><div className="price">{tx.money(availablePeriods(featured)[0]&&featured[availablePeriods(featured)[0][0]])}</div></div><button className="primary wide" onClick={()=>openBuy(featured)}>查看套餐 <ArrowRight size={16}/></button></>:<p className="muted">暂无在售套餐</p>}</Card></div>
+   <WelcomeBanner user={me} subscription={subscription} overview={overview} config={welcomeConfig} formatBytes={tx.bytes} formatDate={date} onNavigate={go}/>
+   <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go}/></div>
   </div><div className="section-head"><h2>订阅管理</h2><p>管理你的真实订阅信息和客户端</p></div><div className="content-grid"><Card className="subscribe-card"><div className="section-title"><div><ShieldCheck size={21}/><h3>订阅链接</h3></div><button className="link" disabled={!subUrl} onClick={()=>setQr({title:'订阅二维码',value:subUrl})}><QrCode size={16}/> 二维码</button></div><p className="muted">订阅链接属于敏感凭证，请勿公开分享。</p><div className="subscription"><span className="live-break">{subUrl?(visibleSub?subUrl:'https://••••••••••••••••'):'暂无订阅链接'}</span><button aria-label="显示或隐藏订阅链接" onClick={()=>setVisibleSub(v=>!v)} disabled={!subUrl}>{visibleSub?<EyeOff size={17}/>:<Eye size={17}/>}</button><button aria-label="复制订阅链接" onClick={()=>copy(subUrl)} disabled={!subUrl}><Copy size={17}/></button></div><div className="subhint">已用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</div><div className="live-traffic"><div style={{width:(quota?Math.min(100,used/quota*100):0)+'%'}}/></div><h3 className="client-heading">一键导入客户端</h3><div className="clients"><button disabled={!subUrl} onClick={()=>copy(subUrl)}><div className="client-icon"><Copy size={17}/></div><span>复制链接</span></button>{clientsFor(subUrl,title).map((client,i)=><button key={client.name} onClick={()=>{window.location.href=client.href}}><div className={"client-icon icon"+(i%6)}>{client.name.charAt(0)}</div><span>{client.name}</span></button>)}</div></Card><Card className="my-plan"><div className="section-title"><div><Gift size={21}/><h3>我的套餐</h3></div></div>{subscription?.plan?<div className="empty-plan"><ShieldCheck size={36}/><h3>{subscription.plan.name}</h3><p className="muted">到期时间：{date(subscription.expired_at)}</p><p className="muted">已使用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</p><button className="primary" onClick={()=>go('shop')}>续费或升级</button></div>:<div className="empty-plan"><ShoppingBag size={36}/><h3>暂无有效套餐</h3><button className="primary" onClick={()=>go('shop')}>前往购买</button></div>}</Card></div>
  </>}
  {route==='shop'&&<><Heading en="SUBSCRIPTION PLANS" title="购买套餐">以下套餐、价格与销售状态实时读取自 TXBoard。</Heading><div className="filters">{['全部','月付','季付','半年付','年付','一次性'].map(label=><button key={label} className={filter===label?'active':''} onClick={()=>setFilter(label)}>{label}</button>)}</div><div className="plans">{activePlans.flatMap(p=>{const options=availablePeriods(p);const matches=filter==='全部'||options.some(([,label])=>label===filter);return matches?[<Card key={p.id} className="product"><div className="plan-name">{p.name}</div><div className="product-price"><strong>{tx.money(options[0]&&p[options[0][0]])}</strong><span> 起</span></div><p className="muted">{p.transfer_enable} GB · {p.content?String(p.content).replace(/<[^>]+>/g,' ').slice(0,80):'套餐服务'}</p><hr/><div className="feature"><Wifi size={18}/>套餐流量<strong>{p.transfer_enable} GB</strong></div><div className="feature"><RefreshCcw size={18}/>可选周期<strong>{options.length} 种</strong></div><div className="plan-actions"><button className="primary wide" disabled={!options.length} onClick={()=>openBuy(p)}>选择套餐 <ArrowRight size={16}/></button></div></Card>]:[]})}</div>{!activePlans.length&&<Card>当前没有可购买的套餐。</Card>}</>}
