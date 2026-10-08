@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {api,getToken,saveToken,clearToken,login,checkout,plans,createTicket,notices} from '../src/live/api.js';
+import {api,getToken,saveToken,clearToken,login,checkout,plans,createTicket,orderCheck,notices} from '../src/live/api.js';
 
 const values=new Map();
 globalThis.localStorage={getItem:key=>values.get(key)??null,setItem:(key,val)=>values.set(key,String(val)),removeItem:key=>values.delete(key)};
@@ -76,4 +76,17 @@ test('notice history follows TXBoard pagination and stops at server total',async
   assert.equal(all[100].title,'重要提醒');
   assert.deepEqual(requests,[1,2]);
  }finally{globalThis.fetch=originalFetch}
+});
+
+
+test('order status check sends authenticated, read-only trade number to TXBoard',async()=>{
+ let requested;
+ globalThis.fetch=async(url,opts)=>{requested={url,opts};return reply({status:'success',data:3})};
+ try{
+  saveToken('order-check-token');
+  assert.equal(await orderCheck('TN-456'),3);
+  assert.equal(requested.url,'/api/v1/user/order/check?trade_no=TN-456');
+  assert.equal(requested.opts.method,'GET');
+  assert.equal(requested.opts.headers.Authorization,'Bearer order-check-token');
+ }finally{clearToken();globalThis.fetch=originalFetch}
 });
