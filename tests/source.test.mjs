@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const app=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
-const css=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');
+const css=['style.css','components.css','responsive.css'].map(file=>readFileSync(new URL('../src/'+file,import.meta.url),'utf8')).join('\n');
 test('all five main routes exist',()=>{for(const route of ['dashboard','shop','profile','ticket','menu'])assert.ok(app.includes(`route==='${route}'`),route)});
 test('sensitive live subscription data is not embedded',()=>{assert.ok(app.includes('example.invalid'));assert.ok(!app.includes('viaspeed.shop/api/'));assert.ok(!app.includes('localStorage.getItem(\'token\')'))});
 test('ticket description is captured and validated',()=>{assert.ok(app.includes('name="description"'));assert.ok(app.includes('if(!title||!description)'))});
