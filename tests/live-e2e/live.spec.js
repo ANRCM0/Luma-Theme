@@ -213,3 +213,78 @@ test('notification popup and bell can be independently disabled in theme setting
  await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'查看通知'})).toHaveCount(0);
 });
+
+
+test('sidebar layout renders sorted desktop links with collapse control and safe business routing',async({page})=>{
+ await page.setViewportSize({width:1280,height:900});
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'布局测试站',frontend_theme:'vv-theme',theme_config:{
+    layout_mode:'sidebar',sidebar_collapsed_default:'1',
+    nav_items:'ticket,orders,!shop,menu,dashboard,!profile',notice_popup_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'signed-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:701,email:'sidebar@example.test'},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getStat':[],
+   '/api/v1/user/getSubscribe':{},
+   '/api/v1/user/order/fetch':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('sidebar@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ await expect(page.locator('.live-layout-sidebar')).toBeVisible();
+ await expect(page.locator('.live-sidebar-collapsed')).toBeVisible();
+ const side=page.getByRole('navigation',{name:'侧边栏导航'});
+ await expect(side.getByRole('button',{name:'购买套餐'})).toHaveCount(0);
+ await expect(side.getByRole('button',{name:'服务工单'})).toBeVisible();
+ await expect(side.getByRole('button',{name:'我的订单'})).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'主导航'})).toHaveCount(0);
+ await page.getByRole('button',{name:'展开侧边栏'}).click();
+ await expect(page.locator('.live-sidebar-collapsed')).toHaveCount(0);
+ await side.getByRole('button',{name:'我的订单'}).click();
+ await expect(page.getByRole('heading',{name:'我的订单'})).toBeVisible();
+ await expect(side.getByRole('button',{name:'我的订单'})).toHaveClass(/selected/);
+});
+
+test('mobile navigation honors visibility/order and keeps the menu escape hatch',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'移动布局',frontend_theme:'vv-theme',theme_config:{
+    layout_mode:'sidebar',nav_items:'orders,ticket,!shop,!profile,dashboard,menu',notice_popup_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'signed-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:702,email:'mobile@example.test'},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getStat':[],
+   '/api/v1/user/getSubscribe':{},
+   '/api/v1/user/order/fetch':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('mobile@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const nav=page.getByRole('navigation',{name:'移动端导航'});
+ await expect(nav).toBeVisible();
+ await expect(nav.getByRole('button')).toHaveCount(4);
+ await expect(nav.getByRole('button',{name:'购买套餐'})).toHaveCount(0);
+ await expect(nav.getByRole('button',{name:'我的订单'})).toBeVisible();
+ await expect(nav.getByRole('button',{name:'全部菜单'})).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'侧边栏导航'})).toBeHidden();
+ await nav.getByRole('button',{name:'全部菜单'}).click();
+ await expect(page.getByRole('heading',{name:'全部菜单'})).toBeVisible();
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+ expect(overflow).toBeLessThanOrEqual(1);
+});
