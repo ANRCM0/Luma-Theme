@@ -293,3 +293,165 @@
 @media(prefers-reduced-motion:reduce){
  .live-login .live-auth-input-wrap,.live-login .live-auth-submit{transition:none}
 }
+
+
+/* Announcement center replaces the dashboard's permanently pinned notice card. */
+.live-portal .dashboard-side .recommend-card{
+ min-height:320px;
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+}
+.live-portal .live-notice-trigger{position:relative}
+.live-portal .live-notice-indicator{
+ position:absolute;
+ top:4px;
+ right:4px;
+ width:9px;
+ height:9px;
+ background:#f97365;
+ border:2px solid #fff;
+ border-radius:50%;
+ box-sizing:content-box;
+}
+.live-notice-modal{color:#263842}
+.live-notice-intro{
+ color:#687f8b;
+ font-size:13px;
+ line-height:1.75;
+ margin:-3px 0 17px;
+}
+.live-notice-content-grid{
+ display:grid;
+ grid-template-columns:minmax(0,180px) minmax(0,1fr);
+ gap:17px;
+}
+.live-notice-content-grid:has(>.live-notice-article:only-child){grid-template-columns:minmax(0,1fr)}
+.live-notice-list{
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+ max-height:48vh;
+ overflow-y:auto;
+ padding-right:4px;
+ border-right:1px solid #e7eff1;
+}
+.live-notice-list button{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ justify-content:center;
+ gap:5px;
+ width:100%;
+ padding:12px;
+ border:1px solid transparent;
+ border-radius:11px;
+ text-align:left;
+ color:#435862;
+ background:transparent;
+ transition:background .2s ease,border-color .2s ease;
+}
+.live-notice-list button:hover,.live-notice-list button.active{
+ background:#e8f7f8;
+ border-color:#c6e8eb;
+ color:#1f7580;
+}
+.live-notice-list button span{
+ overflow:hidden;
+ text-overflow:ellipsis;
+ white-space:nowrap;
+ max-width:100%;
+ font-size:13px;
+ font-weight:700;
+}
+.live-notice-list button small{
+ font-size:11px;
+ color:#7f929c;
+ text-align:left;
+}
+.live-notice-article{
+ min-width:0;
+ max-height:49vh;
+ overflow-y:auto;
+ padding:4px 8px 10px 1px;
+}
+.live-notice-category{
+ display:flex;
+ align-items:center;
+ gap:7px;
+ font-size:11px;
+ font-weight:800;
+ letter-spacing:.04em;
+ color:#268d99;
+}
+.live-notice-category span{font-weight:500;color:#93a2aa}
+.live-notice-article h3{
+ margin:12px 0 6px;
+ font-size:22px;
+ line-height:1.35;
+ letter-spacing:-.02em;
+ overflow-wrap:anywhere;
+ color:#263842;
+}
+.live-notice-article time{display:block;color:#8b9ca4;font-size:12px}
+.live-notice-body{
+ margin:18px 0 6px;
+ font-size:14px;
+ line-height:1.85;
+ color:#4b606b;
+ overflow-wrap:anywhere;
+ white-space:pre-wrap;
+}
+.live-notice-image{
+ display:block;
+ max-width:100%;
+ max-height:260px;
+ object-fit:contain;
+ border-radius:12px;
+ margin:14px auto 0;
+}
+.live-notice-empty{margin:20px 0;color:#7f929c;text-align:center}
+.live-notice-footer{
+ display:flex;
+ justify-content:flex-end;
+ border-top:1px solid #e7eff1;
+ margin-top:22px;
+ padding-top:16px;
+}
+.live-notice-footer .primary{min-width:112px;min-height:42px;border-radius:10px}
+[data-theme=dark] .live-portal .live-notice-indicator{border-color:#263640}
+[data-theme=dark] .live-portal .live-notice-modal{color:#edf7fa}
+[data-theme=dark] .live-portal .live-notice-intro{color:#adc0c9}
+[data-theme=dark] .live-portal .live-notice-list{border-color:#3c515c}
+[data-theme=dark] .live-portal .live-notice-list button{color:#c4d7df}
+[data-theme=dark] .live-portal .live-notice-list button:hover,
+[data-theme=dark] .live-portal .live-notice-list button.active{background:#264a52;border-color:#3c7580;color:#b0edf2}
+[data-theme=dark] .live-portal .live-notice-list button small{color:#9aafb8}
+[data-theme=dark] .live-portal .live-notice-category{color:#7ed9df}
+[data-theme=dark] .live-portal .live-notice-article h3{color:#e7f4f7}
+[data-theme=dark] .live-portal .live-notice-article time{color:#adc0c9}
+[data-theme=dark] .live-portal .live-notice-body{color:#d2e3e9}
+[data-theme=dark] .live-portal .live-notice-footer{border-color:#3c515c}
+[data-theme=dark] .live-portal .dialog:has(.live-notice-modal){background:#1c2b35;color:#e7f4f7;border:1px solid #3c515c}
+@media(max-width:720px){
+ .live-portal .dashboard-side .recommend-card{min-height:170px}
+ .live-portal .live-notice-trigger{width:36px;height:36px}
+ .live-notice-content-grid{grid-template-columns:minmax(0,1fr);gap:13px}
+ .live-notice-list{
+  display:flex;
+  flex-direction:row;
+  gap:7px;
+  max-height:none;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:0 0 7px;
+  border-right:0;
+  border-bottom:1px solid #e7eff1;
+ }
+ .live-notice-list button{width:154px;min-width:154px;padding:10px}
+ .live-notice-article{max-height:38vh;padding:4px 3px 10px}
+ .live-notice-article h3{font-size:20px}
+ .live-notice-intro{font-size:12px}
+ .live-notice-footer .primary{width:100%}
+}
