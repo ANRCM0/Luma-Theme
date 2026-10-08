@@ -316,9 +316,9 @@ test('a newly registered user sees onboarding and the configured wallet side car
  const welcome=page.locator('[data-welcome-state="new"]');
  await expect(welcome).toBeVisible();
  await expect(welcome.getByRole('heading',{name:/欢迎加入/})).toBeVisible();
- await expect(welcome.getByRole('button',{name:/挑选入门套餐/})).toBeVisible();
+ await expect(welcome.locator('button')).toHaveCount(0);
  await expect(page.getByRole('region',{name:'账户余额'})).toBeVisible();
- await expect(welcome.getByText('尚未订阅')).toBeVisible();
+ await expect(welcome).not.toContainText('剩余流量');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
@@ -351,7 +351,7 @@ test('subscriptions near expiry use a renewal message and usable traffic metrics
  const usage=page.getByRole('region',{name:'流量用量'});
  await expect(usage).toBeVisible();
  await expect(usage.getByRole('progressbar',{name:'流量使用比例'})).toHaveAttribute('aria-valuenow','95');
- await welcome.getByRole('button',{name:/查看续费方案/}).click();
+ await usage.getByRole('button',{name:'查看套餐'}).click();
  await expect(page.getByRole('heading',{name:'购买套餐'})).toBeVisible();
 });
 
@@ -380,7 +380,7 @@ test('fully depleted plans show an upgrade action before other warnings',async({
  await page.getByRole('button',{name:'登录',exact:true}).click();
  const welcome=page.locator('[data-welcome-state="exhausted"]');
  await expect(welcome.getByRole('heading',{name:/流量已用完/})).toBeVisible();
- await expect(welcome.getByRole('button',{name:/查看升级套餐/})).toBeVisible();
+ await expect(page.getByRole('region',{name:'已购套餐'}).getByRole('button',{name:'查看其他套餐'})).toBeVisible();
 });
 
 
@@ -525,14 +525,13 @@ test('subscription center shows verified usage, OS import choices and manual cre
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('subscriber@example.test');
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
- await page.locator('.live-subscription-extra summary').click();
- const summary=page.getByRole('region',{name:'订阅概览'});
+ const summary=page.getByRole('region',{name:'已购套餐'});
  await expect(summary).toContainText('高级订阅');
  await expect(summary).toContainText('65.00 GB');
- await expect(summary.getByRole('progressbar',{name:'流量使用比例'})).toHaveAttribute('aria-valuenow','35');
- await expect(summary).toContainText('约 5 天后');
+ await expect(summary.getByRole('progressbar',{name:'套餐流量使用比例'})).toHaveAttribute('aria-valuenow','35');
+ await expect(summary).toContainText('到期时间');
  const importer=page.getByRole('region',{name:'客户端与订阅导入'});
- await expect(page.getByRole('region',{name:'已购套餐'})).toContainText('高级订阅');
+ await expect(page.getByRole('region',{name:'账户欢迎卡片'})).not.toContainText('剩余流量');
  await expect(importer.getByRole('img',{name:'订阅二维码'})).toBeVisible();
  await expect(importer).not.toContainText('token=secret');
  await importer.getByRole('button',{name:'显示订阅链接'}).click();
@@ -585,8 +584,7 @@ test('reset-traffic shortcut requires a server-priced plan and posts reset_price
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('reset@example.test');
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
- await page.locator('.live-subscription-extra summary').click();
- await page.getByRole('region',{name:'订阅概览'}).getByRole('button',{name:'重置流量'}).click();
+ await page.getByRole('region',{name:'已购套餐'}).getByRole('button',{name:'重置流量'}).click();
  const form=page.getByRole('dialog',{name:'购买 专属套餐'});
  await expect(form).toBeVisible();
  await expect(form).toContainText('不会延长套餐有效期');
@@ -620,9 +618,8 @@ test('expired subscriptions cannot start a traffic reset, and operator can hide 
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('old@example.test');
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
- await page.locator('.live-subscription-extra summary').click();
- const summary=page.getByRole('region',{name:'订阅概览'});
- await expect(summary).toContainText('已过期');
+ const summary=page.getByRole('region',{name:'已购套餐'});
+ await expect(summary).toContainText('已到期');
  await expect(summary.getByRole('button',{name:'重置流量'})).toHaveCount(0);
  await expect(summary.getByRole('button',{name:'续费当前套餐'})).toHaveCount(0);
  await expect(page.getByRole('group',{name:'选择客户端平台'})).toHaveCount(0);
