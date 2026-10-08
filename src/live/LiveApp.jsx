@@ -50,7 +50,7 @@ export default function LiveApp(){
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
  const [blockingOrder,setBlockingOrder]=useState(null),[paying,setPaying]=useState(false),[paymentError,setPaymentError]=useState(''),[paymentLink,setPaymentLink]=useState('');
  const [watchingOrder,setWatchingOrder]=useState(false),[watchExpired,setWatchExpired]=useState(false);
- const createLockRef=useRef(false),payLockRef=useRef(false),orderPollCountRef=useRef({tradeNo:null,attempts:0});
+ const createLockRef=useRef(false),payLockRef=useRef(false),orderPollCountRef=useRef({tradeNo:null,attempts:0}),authEpochRef=useRef(0);
  const [ticket,setTicket]=useState(null),[reply,setReply]=useState(''),[authTab,setAuthTab]=useState(()=>['register','forget'].includes(queryNow().get('tab'))?queryNow().get('tab'):'login');
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[emailCode,setEmailCode]=useState(''),[inviteCode,setInviteCode]=useState(()=>queryNow().get('code')||'');
  const [showAuthPassword,setShowAuthPassword]=useState(false);
@@ -72,14 +72,17 @@ export default function LiveApp(){
  const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
  const go=useCallback(next=>{setError('');setDialog(null);setQr(null);location.hash='/'+next;setRoute(next);window.scrollTo({top:0,behavior:'instant'})},[]);
  useEffect(()=>{const cb=()=>{setRoute(routeNow());setError('')};window.addEventListener('hashchange',cb);return()=>window.removeEventListener('hashchange',cb)},[]);
- useEffect(()=>{const expire=()=>{setSession(false);setMe(null);setSubscription(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
+ useEffect(()=>{const expire=()=>{authEpochRef.current++;setSession(false);setMe(null);setSubscription(null);setNews([]);setInvite(null);setRows([]);setTicketRows([]);setCurrentOrder(null);setQr(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
  useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light';localStorage.setItem('vv-theme-appearance',dark?'dark':'light')},[dark]);
  useEffect(()=>{document.title=title;document.documentElement.dataset.vvAccent=themeColor||'default'},[title,themeColor]);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),4000);return()=>clearTimeout(t)},[toast]);
  const loadMain=useCallback(async()=>{
+   const epoch=authEpochRef.current,token=tx.getToken();
    const info=await tx.user();
+   if(epoch!==authEpochRef.current||token!==tx.getToken())return;
    setMe(info);
    const [sub,p,ann,s]=await Promise.allSettled([tx.subscribe(),tx.plans(),tx.notices(),tx.stat()]);
+   if(epoch!==authEpochRef.current||token!==tx.getToken())return;
    if(sub.status==='fulfilled')setSubscription(sub.value);
    if(p.status==='fulfilled')setOffers(Array.isArray(p.value)?p.value:[]);
    if(ann.status==='fulfilled')setNews(ann.value);
@@ -87,10 +90,12 @@ export default function LiveApp(){
  },[]);
  useEffect(()=>{
    let alive=true;
+   const verify=queryNow().get('verify');
+   // The one-time login code must not remain in browser history or be copied in links.
+   if(verify)window.history.replaceState(window.history.state,'',location.pathname+location.search+removeSensitiveHashParam(location.hash));
    (async()=>{
      const config=await tx.guest().catch(()=>({}));
      if(alive)setGuest(config||{});
-     const verify=queryNow().get('verify');
      if(verify && routeNow()==='login'){
        try{await tx.tokenLogin(verify)}catch(e){if(alive)setError(e.message||'快捷登录失败')}
      }
@@ -109,14 +114,16 @@ export default function LiveApp(){
    return()=>{alive=false};
  },[loadMain,go]);
  const loadSection=useCallback(async(section)=>{
+   const epoch=authEpochRef.current,token=tx.getToken();
+   const current=()=>epoch===authEpochRef.current&&token===tx.getToken();
    try{
-    if(section==='orders')setRows((await tx.orders())||[]);
-    if(section==='ticket')setTicketRows((await tx.tickets())||[]);
-    if(section==='profile'){const [inviteData,orderData]=await Promise.all([tx.invites(),tx.orders()]);setInvite(inviteData);setRows(Array.isArray(orderData)?orderData:[])}
-   }catch(e){fail(e)}
+    if(section==='orders'){const orders=await tx.orders();if(current())setRows(Array.isArray(orders)?orders:[])}
+    if(section==='ticket'){const tickets=await tx.tickets();if(current())setTicketRows(Array.isArray(tickets)?tickets:[])}
+    if(section==='profile'){const [inviteData,orderData]=await Promise.all([tx.invites(),tx.orders()]);if(current()){setInvite(inviteData);setRows(Array.isArray(orderData)?orderData:[])}}
+   }catch(e){if(current())fail(e)}
  },[fail]);
  useEffect(()=>{if(session)void loadSection(route)},[session,route,loadSection]);
- const logout=()=>{tx.clearToken();setSession(false);setMe(null);setSubscription(null);setNews([]);setNoticeOpen(false);viewedNoticesRef.current.clear();setRows([]);setTicketRows([]);go('login');notify('已安全退出')};
+ const logout=()=>{authEpochRef.current++;tx.clearToken();setSession(false);setMe(null);setSubscription(null);setNews([]);setNoticeOpen(false);viewedNoticesRef.current.clear();setRows([]);setTicketRows([]);setInvite(null);setQr(null);setCurrentOrder(null);setBlockingOrder(null);setTicket(null);setPassword('');setOldPass('');setNewPass('');setRepeatPass('');go('login');notify('已安全退出')};
  const act=async(fn,success)=>{
    setBusy(true);setError('');
    try{const result=await fn();if(success)notify(success);return result}
@@ -173,7 +180,9 @@ export default function LiveApp(){
  }
  async function refreshSubscription(){
    const response=await act(async()=>{
+     const epoch=authEpochRef.current,token=tx.getToken();
      const [freshUser,freshSub]=await Promise.all([tx.user(),tx.subscribe()]);
+     if(epoch!==authEpochRef.current||token!==tx.getToken())return null;
      setMe(freshUser);setSubscription(freshSub);
      return true;
    },'订阅与流量数据已刷新');
