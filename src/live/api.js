@@ -1,5 +1,6 @@
 // TXBoard V1 API integration. Keep the token format compatible with web/user/src/api/client.ts.
 import {safeWebUrl} from './browser-safety.js';
+import {nodeRows,trafficRows,knowledgeRows} from './user-data.js';
 const AUTH_KEY = 'xboard_auth_data';
 export const PERIODS = [
   ['month_price','月付'],['quarter_price','季付'],['half_year_price','半年付'],
@@ -117,4 +118,11 @@ export const inviteDetails=()=>get('/user/invite/details',{current:1,page_size:5
 export const sendVerify=(email,purpose)=>post('/passport/comm/sendEmailVerify',{email,purpose},false);
 export const forgetPassword=(email,password,email_code)=>post('/passport/auth/forget',{email,password,email_code},false);
 export const stat=()=>get('/user/getStat');
+// TXBoard native user menu endpoints. Enforce their actual response shapes
+// instead of silently falling back to demo rows.
+export const userCommConfig=()=>get('/user/comm/config');
+export const trafficLog=async()=>trafficRows(await get('/user/stat/getTrafficLog'));
+export const serverNodes=async()=>nodeRows(await api('/user/server/fetch',{cache:'no-store'}));
+export const knowledgeArticles=async(language)=>knowledgeRows(await get('/user/knowledge/fetch',language?{language}:null));
+
 export const safeExternal=(value)=>safeWebUrl(value,{origin:typeof location!=='undefined'?location.origin:'https://example.test',allowHttpLoopback:typeof location!=='undefined'&&['localhost','127.0.0.1','::1'].includes(location.hostname)});
