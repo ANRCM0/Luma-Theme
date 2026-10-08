@@ -805,3 +805,75 @@
  .live-purchase-coupon .live-row{flex-wrap:wrap}
  .live-purchase-coupon .live-row button{width:100%}
 }
+
+
+/* Phase 5: subscription operations and OS-aware client import */
+.live-subscription-center{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);align-items:start;gap:20px}
+.live-subscription-center>section{min-width:0;border-radius:17px;padding:24px}
+.live-subscription-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.live-subscription-head h3{font-size:22px;margin:7px 0 0;overflow-wrap:anywhere}
+.live-subscription-status{background:#e5f8f1;color:#238b67;border-radius:99px;padding:7px 11px;font-size:12px;font-weight:750;white-space:nowrap}
+.live-subscription-status.is-alert{background:#fceadf;color:#a66433}
+.live-subscription-meter{padding:19px 0 18px}
+.live-subscription-balance{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:13px}
+.live-subscription-balance>span{width:100%;color:#7e9199;font-size:12px}
+.live-subscription-balance>strong{font-size:clamp(24px,2.7vw,35px);letter-spacing:-.03em;color:#188f9d}
+.live-subscription-balance>small{font-size:13px;color:#91a1a7}
+.live-subscription-meter .live-traffic{margin:0 0 8px}
+.live-subscription-usage{display:flex;justify-content:space-between;gap:10px;color:#8799a1;font-size:12px}
+.live-subscription-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding-top:16px;border-top:1px solid #e8eff1}
+.live-subscription-metrics>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.live-subscription-metrics span{font-size:12px;color:#81949d}
+.live-subscription-metrics strong{font-size:14px;overflow-wrap:anywhere}
+.live-subscription-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:25px}
+.live-subscription-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:41px;padding-inline:13px;font-size:12px}
+.live-subscription-actions button:disabled{opacity:.5;cursor:not-allowed}
+.live-subscription-note{color:#8398a1;font-size:12px;line-height:1.7;margin:14px 0 0}
+.live-subscription-import .section-title{margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:9px}
+.live-subscription-import .section-title h3{font-size:18px}
+.live-subscription-import>.muted{font-size:12px;line-height:1.7;margin-bottom:14px}
+.live-subscription-link{display:flex;gap:6px;align-items:center;background:#f4f8f9;border:1px solid #e1edef;padding:9px;border-radius:11px;min-width:0}
+.live-subscription-link span{font-size:12px;flex:1;min-width:0;color:#526a75;overflow-wrap:anywhere;word-break:break-word}
+.live-subscription-link button{width:35px;min-width:35px;height:35px;display:grid;place-items:center;border-radius:8px;background:#e3f1f3;color:#278f9c}
+.live-subscription-link button:disabled{opacity:.35}
+.live-client-guide{margin-top:22px}
+.live-client-guide-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:13px}
+.live-client-guide-heading h4{font-size:15px;margin:0}
+.live-client-guide-heading span{font-size:12px;color:#84969e}
+.live-client-platforms{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 14px}
+.live-client-platforms button{padding:8px 10px;min-height:35px;border:1px solid #dce8ea;border-radius:8px;background:#f7fafa;color:#637b83;font-size:12px;font-weight:650}
+.live-client-platforms button.selected{color:#16838e;border-color:#84cfd5;background:#e7f8f9}
+.live-client-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.live-client-list button{display:flex;align-items:center;min-width:0;gap:9px;padding:10px;border:1px solid #e1e9ec;border-radius:11px;text-align:left;color:#475d68;font-weight:650;font-size:12px}
+.live-client-list button:hover{background:#eefafb;border-color:#8acbd1}
+.live-client-list button>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
+.live-client-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;flex-shrink:0;background:#e5f6f7;color:#2097a3}
+.live-client-steps{display:grid;gap:10px;margin-top:20px;padding:15px;border:1px solid #e5edef;border-radius:10px;background:#f7fafb}
+.live-client-steps>div{display:flex;align-items:center;gap:10px;color:#617984;font-size:12px}
+.live-client-steps b{width:24px;height:24px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;background:#ddf3f4;color:#218997}
+[data-theme=dark] .live-subscription-center>section{background:#1c2d36}
+[data-theme=dark] .live-subscription-status{background:#245343;color:#a6efc9}
+[data-theme=dark] .live-subscription-status.is-alert{background:#593b2c;color:#ffc296}
+[data-theme=dark] .live-subscription-balance>span,[data-theme=dark] .live-subscription-usage,[data-theme=dark] .live-subscription-metrics span{color:#b6c7cf}
+[data-theme=dark] .live-subscription-balance>strong{color:#87dce2}
+[data-theme=dark] .live-subscription-metrics{border-color:#354c56}
+[data-theme=dark] .live-subscription-link{background:#213942;border-color:#37505a}
+[data-theme=dark] .live-subscription-link span{color:#d4e5eb}
+[data-theme=dark] .live-subscription-link button{background:#2b525b;color:#a1e8eb}
+[data-theme=dark] .live-client-platforms button{background:#283c46;border-color:#3c5159;color:#d0e0e6}
+[data-theme=dark] .live-client-platforms button.selected{background:#25525b;border-color:#5899a3;color:#aeedf1}
+[data-theme=dark] .live-client-list button{border-color:#3e555e;color:#deeff2}
+[data-theme=dark] .live-client-list button:hover{background:#27464d}
+[data-theme=dark] .live-client-icon{background:#2a5059;color:#a1e8ed}
+[data-theme=dark] .live-client-steps{background:#223740;border-color:#3b505a}
+[data-theme=dark] .live-client-steps>div{color:#d0e0e6}
+[data-theme=dark] .live-client-steps b{background:#285762;color:#ace9ef}
+@media(max-width:950px){.live-subscription-center{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:720px){
+ .live-subscription-center{gap:14px}
+ .live-subscription-center>section{padding:19px}
+ .live-subscription-head h3{font-size:20px}
+ .live-subscription-actions button{flex:1 1 140px}
+ .live-client-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:360px){.live-client-list{grid-template-columns:minmax(0,1fr)}}
