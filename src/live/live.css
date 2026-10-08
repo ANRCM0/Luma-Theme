@@ -965,3 +965,101 @@
   transition-duration:.01ms!important;
  }
 }
+
+
+/* Compact VV dashboard: aligned cards and one subscription import surface. */
+.live-portal .dashboard-grid{grid-template-columns:minmax(0,2.05fr) minmax(280px,1fr);align-items:stretch;gap:20px}
+.live-portal .dashboard-side{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;min-height:0;height:100%}
+.live-portal .live-welcome-state{height:300px;min-height:300px;padding:26px 30px}
+.live-portal .live-welcome-state .welcome-text{max-width:80%}
+.live-portal .live-welcome-state h1{font-size:clamp(26px,2.6vw,36px);margin:9px 0}
+.live-portal .live-welcome-state .status-pill{margin:12px 0 10px}
+.live-portal .live-welcome-state .welcome-actions{margin:0 0 4px}
+.live-portal .live-welcome-state .stats{margin-top:17px;gap:18px 32px}
+.live-portal .live-welcome-state .stats>div{min-width:105px}
+.live-portal .live-welcome-state .welcome-text>p{line-height:1.5;margin-bottom:4px}
+.live-portal .live-welcome-state .welcome-decor{right:2%;opacity:.21}
+.live-portal .dashboard-side>.live-welcome-side{height:300px;min-height:300px;padding:24px;justify-content:center;border-radius:18px;overflow:hidden}
+.live-portal .live-current-plan{gap:0}
+.live-current-plan-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.live-current-plan-top .small-label{margin:0}
+.live-current-plan-badge{background:#e6f7f1;color:#1f896c;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.live-current-plan-name{display:block;font-size:23px;line-height:1.3;overflow-wrap:anywhere;margin:12px 0 14px}
+.live-current-plan-quota{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px;color:#87979d}
+.live-current-plan-quota strong{font-size:22px;color:#198e9b;white-space:nowrap}
+.live-portal .live-current-plan .live-traffic{margin:11px 0}
+.live-current-plan-expiry{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#87979d;margin:0 0 18px}
+.live-current-plan-expiry strong{font-size:12px;color:inherit;font-weight:700}
+.live-portal .live-current-plan>.wide{margin-top:auto;min-height:39px}
+.live-portal .live-subscription-section-head{margin:27px 0 15px}
+.live-portal .live-subscription-section-head h2{font-size:22px}
+.live-portal .live-subscription-center{display:block;scroll-margin-top:110px}
+.live-portal .live-subscription-center>section{width:100%;min-height:290px;max-width:none;padding:26px 30px;border-radius:18px}
+.live-portal .live-import-main{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:28px;align-items:stretch;min-height:225px}
+.live-portal .live-import-content{min-width:0;display:flex;flex-direction:column}
+.live-portal .live-import-label{font-size:15px;font-weight:650;margin:0 0 12px;color:#72848c}
+.live-portal .live-subscription-link{padding:7px 9px;max-width:100%;border-radius:10px;background:#f7fafb}
+.live-portal .live-subscription-link span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal}
+.live-portal .live-subscription-link button{flex-shrink:0;width:36px;height:36px}
+.live-portal .live-client-guide{margin-top:26px}
+.live-portal .live-client-guide h4{font-size:14px;color:#6d7e87;font-weight:650;margin:0 0 13px}
+.live-portal .live-client-platforms{margin:0 0 14px;gap:7px}
+.live-portal .live-client-platforms button{padding:5px 10px;min-height:32px;font-size:11px}
+.live-portal .live-client-list{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
+.live-portal .live-client-list button{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;width:92px;min-height:77px;padding:8px 5px;border-radius:10px;text-align:center;font-size:11px;line-height:1.2}
+.live-portal .live-client-list button>span:nth-child(2){flex:0 0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.live-portal .live-client-list button>svg{display:none}
+.live-portal .live-client-icon{width:31px;height:31px;font-size:16px;font-weight:800;border-radius:10px;background:#e3f7f8;color:#188e9a}
+.live-portal .live-client-list button:nth-child(2n) .live-client-icon{background:#e9f0ff;color:#597dce}
+.live-portal .live-client-list button:nth-child(3n) .live-client-icon{background:#f1eeff;color:#8973cc}
+.live-import-caution{margin:16px 0 0;font-size:11px;color:#9aa9b0}
+.live-import-empty{font-size:12px;color:#8b9fa7}
+.live-portal .live-import-qr{border-left:1px solid #edf1f3;padding-left:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0}
+.live-portal .live-import-qr-button{display:grid;place-items:center;width:194px;height:194px;border-radius:12px;padding:9px;background:#fff;border:1px solid #e8edf0}
+.live-portal .live-import-qr-button img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:auto}
+.live-portal .live-import-qr-button:disabled{opacity:.6}
+.live-portal .live-import-qr-empty{font-size:12px;color:#91a3ab}
+.live-portal .live-import-qr>span{font-size:12px;color:#85959c}
+.live-portal .live-subscription-extra{border-top:1px solid #eef1f3;margin-top:22px;padding-top:10px}
+.live-portal .live-subscription-extra>summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;color:#4d99a3;font-size:12px;font-weight:700;padding:5px 0}
+.live-portal .live-subscription-extra>summary::-webkit-details-marker{display:none}
+.live-portal .live-subscription-extra[open]>summary svg{transform:rotate(180deg)}
+.live-portal .live-subscription-summary{margin-top:18px;max-width:720px}
+.live-portal .live-subscription-head{align-items:center}
+.live-portal .live-subscription-head>strong{font-size:18px}
+.live-portal .live-subscription-meter{padding:12px 0 18px}
+.live-portal .live-subscription-actions{margin-top:17px}
+.live-portal .live-subscription-metrics{gap:14px 26px}
+[data-theme=dark] .live-current-plan-badge{background:#255047;color:#a4e8d0}
+[data-theme=dark] .live-current-plan-quota,[data-theme=dark] .live-current-plan-expiry,[data-theme=dark] .live-import-label,[data-theme=dark] .live-client-guide h4,[data-theme=dark] .live-import-caution,[data-theme=dark] .live-import-qr>span{color:#a8bdc4}
+[data-theme=dark] .live-current-plan-quota strong{color:#86dfe6}
+[data-theme=dark] .live-portal .live-import-qr{border-color:#364953}
+[data-theme=dark] .live-portal .live-import-qr-button{background:#fff;border-color:#52616b}
+[data-theme=dark] .live-portal .live-subscription-extra{border-color:#364953}
+[data-theme=dark] .live-portal .live-client-list button:nth-child(n) .live-client-icon{background:#27515a;color:#a3e3e8}
+@media(max-width:1000px){
+ .live-portal .dashboard-grid{grid-template-columns:minmax(0,1.55fr) minmax(255px,1fr)}
+ .live-portal .live-welcome-state .welcome-text{max-width:94%}
+ .live-portal .live-import-main{grid-template-columns:minmax(0,1fr) 188px;gap:18px}
+ .live-portal .live-import-qr{padding-left:18px}
+ .live-portal .live-import-qr-button{width:170px;height:170px}
+}
+@media(max-width:720px){
+ .live-portal .dashboard-grid{display:flex;flex-direction:column;gap:14px}
+ .live-portal .dashboard-side{display:block;width:100%;height:auto}
+ .live-portal .live-welcome-state{width:100%;min-height:255px;height:auto;padding:24px}
+ .live-portal .live-welcome-state .welcome-text{max-width:100%}
+ .live-portal .live-welcome-state .welcome-decor{right:-14%;opacity:.13}
+ .live-portal .dashboard-side>.live-welcome-side{height:auto;min-height:195px;width:100%;padding:20px}
+ .live-portal .live-current-plan-name{margin:7px 0 9px;font-size:20px}
+ .live-portal .live-subscription-center>section{padding:20px;min-height:0}
+ .live-portal .live-import-main{grid-template-columns:minmax(0,1fr);gap:18px}
+ .live-portal .live-import-qr{border-left:0;border-top:1px solid #edf1f3;padding:18px 0 0}
+ .live-portal .live-import-qr-button{width:170px;height:170px}
+ .live-portal .live-client-list button{width:calc((100% - 20px)/3);max-width:110px}
+ .live-portal .live-subscription-section-head{margin:22px 0 12px}
+}
+@media(max-width:370px){
+ .live-portal .live-client-list button{width:calc((100% - 10px)/2)}
+ .live-portal .live-welcome-state .stats{gap:8px}
+}
