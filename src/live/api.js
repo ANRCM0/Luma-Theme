@@ -117,4 +117,4 @@ export const inviteDetails=()=>get('/user/invite/details',{current:1,page_size:5
 export const sendVerify=(email,purpose)=>post('/passport/comm/sendEmailVerify',{email,purpose},false);
 export const forgetPassword=(email,password,email_code)=>post('/passport/auth/forget',{email,password,email_code},false);
 export const stat=()=>get('/user/getStat');
-export const safeExternal=(value)=>safeWebUrl(value,{allowHttpLoopback:true});
+export const safeExternal=(value)=>safeWebUrl(value,{origin:typeof location!=='undefined'?location.origin:'https://example.test',allowHttpLoopback:typeof location!=='undefined'&&['localhost','127.0.0.1','::1'].includes(location.hostname)});
