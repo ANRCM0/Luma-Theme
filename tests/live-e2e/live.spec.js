@@ -86,3 +86,55 @@ test('latest TXBoard public theme_config controls live colors and login backgrou
  await expect(page.locator('.live-auth-submit')).toHaveCSS('background-color','rgb(38, 55, 70)');
  await expect(page.getByText('新版 TXBoard',{exact:true}).first()).toBeVisible();
 });
+
+
+test('new TXBoard announcements pop up after login, not as a dashboard card',async({page})=>{
+ let announcements=[
+  {id:22,title:'维护通知',content:'<p>今晚维护</p><p>预计十分钟</p>',created_at:1700000000,updated_at:1700000010},
+  {id:20,title:'使用说明',content:'<strong>请保护账号</strong>',created_at:1690000000,updated_at:1690000001}
+ ];
+ const paths=[];
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  paths.push(path);
+  let data;
+  switch(path){
+   case '/api/v1/guest/comm/config':data={app_name:'测试站点',is_captcha:0,register_enable:1};break;
+   case '/api/v1/passport/auth/login':data={auth_data:'test-real-token'};break;
+   case '/api/v1/user/checkLogin':data={is_login:true};break;
+   case '/api/v1/user/info':data={id:51,email:'notices@example.test'};break;
+   case '/api/v1/user/notice/fetch':data={data:announcements,total:announcements.length};break;
+   case '/api/v1/user/plan/fetch':data=[];break;
+   case '/api/v1/user/getSubscribe':data={};break;
+   case '/api/v1/user/getStat':data=[];break;
+   default:data=[];break;
+  }
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data})});
+ });
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('notices@example.test');
+ await page.getByLabel('登录密码').fill('valid-pass');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'维护通知'})).toBeVisible();
+ await expect(page.getByText('今晚维护')).toBeVisible();
+ expect(paths).toContain('/api/v1/user/notice/fetch');
+ await expect(page.locator('.notice-card')).toHaveCount(0);
+ const modal=page.getByRole('dialog',{name:'重要通知'});
+ await modal.getByRole('button',{name:/使用说明/}).click();
+ await expect(modal.getByRole('heading',{name:'使用说明'})).toBeVisible();
+ await expect(modal.getByText('请保护账号')).toBeVisible();
+ await modal.getByRole('button',{name:'我知道了'}).click();
+ await expect(modal).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'查看通知'})).toBeVisible();
+ await page.reload();
+ await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
+ await page.getByRole('button',{name:'查看通知'}).click();
+ await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
+ await page.getByRole('dialog',{name:'重要通知'}).getByRole('button',{name:'我知道了'}).click();
+ announcements=[{id:25,title:'新发布公告',content:'新内容',created_at:1700001000,updated_at:1700001001},...announcements];
+ await page.reload();
+ await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'新发布公告'})).toBeVisible();
+});
