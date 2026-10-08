@@ -1,27 +1,44 @@
-// Import schemes follow TXBoard web/user/src/lib/client-import.ts.
-const platform=()=>{
- const ua=navigator.userAgent.toLowerCase();
+// Mirrors the supported client import protocols of TXBoard web/user/src/lib/client-import.ts.
+// Custom scheme links are only generated after validating the server-issued URL.
+export const PLATFORMS=[
+ {id:'windows',label:'Windows'},
+ {id:'mac',label:'macOS'},
+ {id:'ios',label:'iOS'},
+ {id:'android',label:'Android'}
+];
+export function detectPlatform(userAgent=typeof navigator!=='undefined'?navigator.userAgent:''){
+ const ua=String(userAgent).toLowerCase();
  if(/iphone|ipad|ipod/.test(ua))return 'ios';
  if(/android/.test(ua))return 'android';
  if(/macintosh|mac os/.test(ua))return 'mac';
  if(/windows/.test(ua))return 'windows';
  return 'unknown';
-};
-export function clientsFor(url,name='TXBoard'){
- if(!/^https?:\/\//i.test(url||''))return [];
- const encoded=encodeURIComponent(url);
- const label=encodeURIComponent(name);
- const utf8=new TextEncoder().encode(url);
- const binary=Array.from(utf8,x=>String.fromCharCode(x)).join('');
- const b64=btoa(binary);
- const clients=[
-   ['Clash','clash://install-config?url='+encoded+'&name='+label,['windows','mac','android']],
-   ['Hiddify','hiddify://import/'+encoded+'#'+label,['windows','mac','ios','android']],
-   ['Sing-box','sing-box://import-remote-profile?url='+encoded+'#'+label,['mac','ios','android']],
-   ['Shadowrocket','shadowrocket://add/sub://'+b64+'?remark='+label,['ios','mac']],
-   ['Surge','surge:///install-config?url='+encoded+'&name='+label,['ios','mac']],
-   ['Surfboard','surfboard:///install-config?url='+encoded+'&name='+label,['android']]
+}
+export function validSubscriptionUrl(input){
+ try{
+  const u=new URL(input);
+  return (u.protocol==='https:'||u.protocol==='http:')&&
+    !u.username&&!u.password&&!!u.hostname&&u.href.length<=8192?u.href:null;
+ }catch{return null}
+}
+const b64=x=>btoa(Array.from(new TextEncoder().encode(x),byte=>String.fromCharCode(byte)).join(''));
+export function allImportClients(url,title='TXBoard'){
+ const clean=validSubscriptionUrl(url);
+ if(!clean)return [];
+ const name=encodeURIComponent(String(title).slice(0,100));
+ const encoded=encodeURIComponent(clean);
+ return [
+  {name:'Clash',href:'clash://install-config?url='+encoded+'&name='+name,platforms:['windows','mac','android']},
+  {name:'Hiddify',href:'hiddify://import/'+encoded+'#'+name,platforms:['windows','mac','ios','android']},
+  {name:'Sing-box',href:'sing-box://import-remote-profile?url='+encoded+'#'+name,platforms:['mac','ios','android']},
+  {name:'Shadowrocket',href:'shadowrocket://add/sub://'+b64(clean)+'?remark='+name,platforms:['ios','mac']},
+  {name:'Quantumult X',href:'quantumult-x:///update-configuration?remote-resource='+encodeURIComponent(JSON.stringify({server_remote:[clean+', tag='+String(title).replace(/[\r\n,]/g,' ').slice(0,50)]})),platforms:['ios','mac']},
+  {name:'Surge',href:'surge:///install-config?url='+encoded+'&name='+name,platforms:['ios','mac']},
+  {name:'Stash',href:'stash://install-config?url='+encoded+'&name='+name,platforms:['ios','mac']},
+  {name:'NekoBox',href:'clash://install-config?url='+encoded+'&name='+name,platforms:['android']},
+  {name:'Surfboard',href:'surfboard:///install-config?url='+encoded+'&name='+name,platforms:['android']}
  ];
- const current=platform();
- return clients.filter(([, ,systems])=>current==='unknown'||systems.includes(current)).map(([name,href])=>({name,href}));
+}
+export function clientsFor(url,title='TXBoard',platform=detectPlatform()){
+ return allImportClients(url,title).filter(x=>platform==='unknown'||x.platforms.includes(platform));
 }
