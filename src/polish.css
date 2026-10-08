@@ -1,0 +1,29 @@
+/* Shared design tokens and final visual refinement */
+:root{--ui-accent:#2a9ea8;--ui-accent-soft:#e5f8f9;--ui-text:#293740;--ui-muted:#778892;--ui-border:#e5edef;--ui-surface:#fff;--ui-radius:14px;--ui-shadow:0 8px 30px rgba(33,67,76,.055);--ui-space:22px}
+.card{border-color:var(--ui-border);border-radius:var(--ui-radius);box-shadow:var(--ui-shadow)}
+.container{width:100%;max-width:1232px}.dashboard-grid,.content-grid,.profile-grid{gap:var(--ui-space)}
+.page-heading{margin-bottom:26px}.page-heading h1{line-height:1.18}.page-heading p{max-width:720px;line-height:1.7}
+.primary,.secondary{min-height:42px;transition:background .18s,transform .18s,box-shadow .18s}.primary:focus-visible,.secondary:focus-visible{outline-offset:3px}
+.card .section-title{min-width:0}.section-title>div{min-width:0}.section-title h3{line-height:1.4}
+.product{display:flex;flex-direction:column;min-width:0}.product .feature strong{text-align:right}.product .plan-actions{margin-top:auto;padding-top:22px}.product .plan-actions .primary{margin-top:0}.product .plan-actions .secondary{min-height:42px}
+.welcome{height:auto;min-height:340px}.welcome-text{max-width:74%}.welcome-actions{margin:0 0 16px}.welcome .status-pill{margin:12px 0 18px}.welcome .stats{gap:clamp(14px,3vw,40px);flex-wrap:wrap}.welcome-decor{pointer-events:none}
+.field input,.field textarea,.field select{min-height:44px;transition:border-color .18s,box-shadow .18s}.field input:focus,.field textarea:focus,.field select:focus{box-shadow:0 0 0 3px rgba(66,192,202,.12)}
+.search:focus-within,.subscription:focus-within{border-color:#76ced4;box-shadow:0 0 0 3px rgba(66,192,202,.12)}.search input{min-width:0;width:100%}
+.filters button,.tabs button{min-height:40px}.tabs button{white-space:nowrap}
+.menu-item{min-width:0;min-height:78px}.menu-item strong{min-width:0;overflow-wrap:anywhere}
+.ticket-row>div{flex:1;min-width:0}.ticket-description{max-width:100%}
+.dialog{box-shadow:0 24px 80px rgba(15,38,44,.22)}.overlay{overscroll-behavior:contain}.dialog .close{min-width:36px;min-height:36px}.dialog h2{padding-right:35px;line-height:1.3}
+.finance-summary>div{min-width:0}.finance-summary strong{overflow-wrap:anywhere}
+.help-search{max-width:none}.help-search input{min-width:0}.faq-item>button{min-height:54px}.faq-item>button:focus-visible{outline-offset:-2px}
+.invite-link{min-width:0}.invite-link input{width:100%}
+[data-theme=dark]{--ui-border:#31454e;--ui-surface:#1b2932;--ui-muted:#a3b4bc;--ui-shadow:0 8px 30px rgba(0,0,0,.12)}
+[data-theme=dark] .product .plan-actions .secondary{background:#213d43;color:#b2e6e8}
+[data-theme=dark] .detail-list,[data-theme=dark] .detail-list>div{border-color:#344b52}
+[data-theme=dark] .invite-link input{color:#e3edf0}
+[data-theme=dark] .faq-item>p{color:#b0c0c6}
+[data-theme=dark] .finance-summary>div{background:#1b3038;border-color:#334851}
+@media(max-width:1000px){.welcome-text{max-width:83%}.desktop-nav button{min-height:40px}}
+@media(max-width:720px){:root{--ui-space:16px}.top{height:68px}.head-inner{min-height:68px}.container{padding:20px 16px calc(112px + env(safe-area-inset-bottom))}.card{padding:19px}.welcome{min-height:0;padding:24px 22px}.welcome-text{max-width:100%}.welcome-decor{opacity:.12;right:-26%}.welcome .stats{gap:14px;justify-content:space-between}.welcome .stats>div{min-width:0}.welcome-actions{flex-wrap:wrap}.page-heading{margin-bottom:20px}.page-heading h1{font-size:28px}.product{padding:22px}.product .plan-actions{flex-direction:row}.menu-grid{gap:12px}.menu-item{padding:16px;min-height:74px}.mobile-nav{height:calc(70px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -5px 24px rgba(22,53,62,.05)}.mobile-nav button{min-height:58px;gap:4px}.mobile-nav button svg{width:20px;height:20px}.toast{bottom:calc(85px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);white-space:normal;text-align:center}.overlay{padding:14px}.dialog{width:100%;max-height:calc(100dvh - 28px);padding:25px 20px}.tabs{flex-wrap:nowrap;overflow-x:auto}.finance-summary{gap:8px}.finance-summary>div{padding:14px 10px}.finance-summary strong{font-size:18px}}
+@media(max-width:390px){.product .plan-actions{flex-direction:column}.welcome .stats{gap:8px}.welcome .stats strong{font-size:12px}.finance-summary strong{font-size:16px}.menu-item strong{font-size:12px}}
+@media(hover:hover){.card.menu-item:hover{box-shadow:0 12px 30px rgba(40,123,130,.11)}.product:hover{border-color:#c7e9eb}}
+@media(prefers-reduced-motion:reduce){.primary,.secondary,.field input,.field textarea,.field select{transition:none}}
