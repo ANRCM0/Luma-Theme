@@ -1132,3 +1132,45 @@
  .live-portal .live-plan-operations button{font-size:11px;padding:8px 4px;gap:4px}
  .live-portal .live-welcome-state{min-height:165px}
 }
+
+
+/* Luma shop: two quiet plan categories, without period filter chips. */
+.live-portal .live-shop{min-width:0}
+.live-portal .live-shop-category{min-width:0;margin-top:26px}
+.live-portal .live-shop-category:first-child{margin-top:0}
+.live-portal .live-shop-category+.live-shop-category{border-top:1px dashed #dbe7e9;padding-top:34px;margin-top:38px}
+.live-portal .live-shop-category-head{margin-bottom:20px}
+.live-portal .live-shop-category-title{display:flex;align-items:center;gap:11px}
+.live-portal .live-shop-category-title h2{font-size:clamp(21px,2.6vw,28px);letter-spacing:-.025em;margin:0;line-height:1.3}
+.live-portal .live-shop-category-icon{width:39px;height:39px;display:grid;place-items:center;flex:none;background:#e7f8f8;border:1px solid #d1eff1;border-radius:12px;color:#239aa5}
+.live-portal .live-shop-category-head p{color:#82939c;font-size:13px;line-height:1.65;margin:8px 0 0}
+.live-portal .live-shop-category-empty{border:1px dashed #d9e7eb;border-radius:13px;padding:24px;margin:0;color:#9aabb2;font-size:13px;text-align:center}
+.live-portal .live-shop-grid{gap:18px}
+.live-portal .live-shop-plan{min-height:300px;padding:24px}
+.live-portal .live-shop-plan-top{margin-bottom:13px}
+.live-portal .live-shop-plan-mark{color:#71bec3;display:inline-flex;align-items:center}
+.live-portal .live-shop-plan h3{margin:0 0 5px;font-size:22px}
+.live-portal .live-shop-plan .live-shop-price{margin:13px 0 18px}
+.live-portal .live-shop-plan .live-shop-price strong{font-size:clamp(27px,3vw,36px)}
+.live-portal .live-shop-plan .live-shop-description{margin:0 0 15px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.live-portal .live-shop-plan .live-shop-features{gap:12px;border-top:1px solid #edf2f3;padding:16px 0 0;margin-top:auto}
+.live-portal .live-shop-plan .live-shop-features>div{align-items:center;gap:8px}
+.live-portal .live-shop-plan .live-shop-buy{margin-top:20px}
+.live-portal .live-shop-compare-footer{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin-top:22px}
+.live-portal .live-shop-compare-footer .live-shop-compare{align-self:stretch;width:100%;margin:14px 0 0}
+.live-portal .live-shop-compare-button{min-height:39px}
+[data-theme=dark] .live-portal .live-shop-category+.live-shop-category{border-color:#40545c}
+[data-theme=dark] .live-portal .live-shop-category-icon{background:#25474f;border-color:#38636b;color:#a1e5e8}
+[data-theme=dark] .live-portal .live-shop-category-head p,[data-theme=dark] .live-portal .live-shop-category-empty{color:#afc0c9}
+[data-theme=dark] .live-portal .live-shop-category-empty{border-color:#40545c}
+[data-theme=dark] .live-portal .live-shop-plan .live-shop-features{border-color:#36515d}
+@media(max-width:760px){
+ .live-portal .live-shop-category{margin-top:18px}
+ .live-portal .live-shop-category+.live-shop-category{padding-top:27px;margin-top:30px}
+ .live-portal .live-shop-category-head{margin-bottom:16px}
+ .live-portal .live-shop-category-title h2{font-size:22px}
+ .live-portal .live-shop-category-icon{width:35px;height:35px;border-radius:10px}
+ .live-portal .live-shop-plan{min-height:0;padding:21px}
+ .live-portal .live-shop-plan .live-shop-price strong{font-size:31px}
+ .live-portal .live-shop-plan .live-shop-buy{min-height:45px}
+}
