@@ -77,8 +77,18 @@ export const verifySession=()=>get('/user/checkLogin');
 export const user=()=>get('/user/info');
 export const subscribe=()=>get('/user/getSubscribe');
 export const notices=async()=>{
- const result=await get('/user/notice/fetch',{current:1,pageSize:20});
- return Array.isArray(result)?result:Array.isArray(result?.data)?result.data:[];
+ // The TXBoard user endpoint returns server-ordered pages with {data,total}.
+ // Load up to 500 visible notices so tag-targeted popups and the inbox can see
+ // more than the first 20 entries. Never loop indefinitely on bad pagination.
+ const collected=[];
+ for(let current=1;current<=5;current++){
+  const result=await get('/user/notice/fetch',{current,pageSize:100});
+  const items=Array.isArray(result)?result:Array.isArray(result?.data)?result.data:[];
+  collected.push(...items);
+  const total=Number(result?.total);
+  if(items.length<100||(Number.isFinite(total)&&total>=0&&collected.length>=total))break;
+ }
+ return collected;
 };
 export const plans=()=>get('/user/plan/fetch');
 export const orders=()=>get('/user/order/fetch');
