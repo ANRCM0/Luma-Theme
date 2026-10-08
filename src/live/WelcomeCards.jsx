@@ -15,7 +15,7 @@ export function WelcomeBanner({user,subscription,overview,config,formatBytes,for
    <span className="eyebrow">{entry.eyebrow}</span>
    <h1>{title}</h1>
    <p>{entry.description}</p>
-   <div className="status-pill"><ShieldCheck size={15}/>{active?(overview.planName||'已订阅'):'未订阅'}<span>{active?'当前套餐':'待开通'}</span></div>
+   <div className="status-pill"><ShieldCheck size={15}/>{active?(overview.planName||'已订阅'):'未订阅'}<span>{!active?'待开通':overview.state==='expired'?'已到期':overview.state==='exhausted'?'本期流量已用完':'当前套餐'}</span></div>
    <div className="welcome-actions">
     <button className="secondary" onClick={()=>onNavigate(entry.action)}>{entry.primary}<ArrowRight size={15}/></button>
     <button className="welcome-help" onClick={()=>onNavigate(entry.secondaryAction)}>{entry.secondary}</button>
