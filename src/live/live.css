@@ -8,3 +8,287 @@
 .live-portal .primary:hover{filter:brightness(.95);background:var(--vv-live-brand)}
 .live-portal .desktop-nav .selected,.live-portal .desktop-nav button:hover,.live-portal .mobile-nav .selected,.live-portal a{color:var(--vv-live-brand)}
 .live-portal .client-icon{color:var(--vv-live-contrast);background:var(--vv-live-brand)}
+
+
+/* Live authentication: explicit light/dark tokens avoid legacy .login-card white text. */
+.live-login{
+ --vv-auth-surface:#fff;
+ --vv-auth-text:#233640;
+ --vv-auth-muted:#647984;
+ --vv-auth-input:#f8fbfc;
+ --vv-auth-input-text:#21313c;
+ --vv-auth-border:#d9e7ea;
+ --vv-auth-outline:#58bac3;
+ --vv-auth-icon:#8398a0;
+ min-height:100vh;
+ min-height:100dvh;
+ padding-bottom:34px;
+ color:var(--vv-auth-text);
+ background:
+  radial-gradient(ellipse 48% 30% at 5% 17%,rgba(132,234,238,.20),transparent 100%),
+  radial-gradient(ellipse 42% 40% at 95% 91%,rgba(147,196,232,.15),transparent 100%),
+  linear-gradient(150deg,#f7fbfc 0%,#f0f7f8 100%);
+}
+.live-login .top{
+ height:74px;
+ background:rgba(255,255,255,.88);
+ border-bottom:1px solid #e5eff1;
+ position:relative;
+}
+.live-login .head-inner{max-width:1080px;padding-inline:24px}
+.live-login .brand{color:var(--vv-auth-text);text-decoration:none;font-size:23px;letter-spacing:-.03em}
+.live-login .brand:hover{color:#209da8}
+.live-login .head-actions>button{width:42px;height:42px;border:1px solid #e4edef;background:#f6fafb;border-radius:13px;color:#4e6671}
+.live-login .head-actions>button:hover{background:#e8f6f8;border-color:#d1ebee}
+.live-login .login-card{
+ width:min(476px,calc(100% - 40px));
+ max-width:476px;
+ margin:clamp(36px,7vh,82px) auto 0;
+ padding:40px 40px 32px;
+ background:var(--vv-auth-surface);
+ color:var(--vv-auth-text);
+ border:1px solid rgba(206,226,230,.9);
+ border-radius:24px;
+ box-shadow:0 22px 75px rgba(29,69,79,.09),0 2px 10px rgba(29,69,79,.025);
+ backdrop-filter:none;
+ -webkit-backdrop-filter:none;
+}
+.live-login .live-auth-intro{margin-bottom:26px}
+.live-login .live-auth-symbol{
+ display:grid;place-items:center;
+ width:54px;height:54px;
+ margin-bottom:22px;
+ color:#248f9a;
+ background:linear-gradient(135deg,#d8f7f6,#e8f4fc);
+ border:1px solid #caedef;
+ border-radius:17px;
+}
+.live-login .live-auth-eyebrow{
+ margin-bottom:9px;
+ font-size:12px;
+ font-weight:700;
+ letter-spacing:.06em;
+ color:#399aa5;
+ overflow-wrap:anywhere;
+}
+.live-login .login-card h1{
+ margin:0 0 9px;
+ font-size:30px;
+ font-weight:760;
+ line-height:1.27;
+ letter-spacing:-.04em;
+ color:var(--vv-auth-text);
+}
+.live-login .login-card .live-auth-description{
+ margin:0;
+ color:var(--vv-auth-muted);
+ font-size:14px;
+ line-height:1.75;
+}
+.live-login .login-card .live-auth-form{
+ display:flex;
+ flex-direction:column;
+ gap:18px;
+ margin:0;
+}
+.live-login .login-card .live-auth-field{
+ display:flex;
+ flex-direction:column;
+ gap:9px;
+ margin:0;
+ color:var(--vv-auth-text);
+ cursor:default;
+}
+.live-login .live-auth-label{
+ color:var(--vv-auth-text);
+ font-size:13px;
+ font-weight:690;
+ line-height:1.5;
+}
+.live-login .live-auth-input-wrap{
+ display:flex;
+ align-items:center;
+ position:relative;
+ width:100%;
+ min-height:54px;
+ overflow:hidden;
+ padding:0 13px 0 15px;
+ background:var(--vv-auth-input);
+ color:var(--vv-auth-icon);
+ border:1px solid var(--vv-auth-border);
+ border-radius:12px;
+ transition:border-color .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.live-login .live-auth-input-wrap:focus-within{
+ border-color:var(--vv-auth-outline);
+ box-shadow:0 0 0 4px rgba(79,193,202,.16);
+ background:var(--vv-auth-surface);
+}
+.live-login .live-auth-input-wrap>svg{flex-shrink:0;margin-right:12px;color:var(--vv-auth-icon)}
+.live-login .live-auth-input-wrap input,
+.live-login .login-card .live-auth-input-wrap input{
+ display:block;
+ flex:1;
+ width:100%;
+ min-width:0;
+ height:52px;
+ margin:0;
+ padding:0;
+ background:transparent;
+ border:0;
+ border-radius:0;
+ outline:0;
+ box-shadow:none;
+ font-size:16px;
+ font-weight:500;
+ line-height:normal;
+ color:var(--vv-auth-input-text);
+ -webkit-text-fill-color:var(--vv-auth-input-text);
+ caret-color:#208f9a;
+ opacity:1;
+}
+.live-login .live-auth-input-wrap input::placeholder{color:#8da0a9;-webkit-text-fill-color:#8da0a9;font-weight:400;opacity:1}
+.live-login .live-auth-input-wrap input:focus{outline:0;border:0;box-shadow:none}
+.live-login .live-auth-input-wrap input:-webkit-autofill,
+.live-login .live-auth-input-wrap input:-webkit-autofill:hover,
+.live-login .live-auth-input-wrap input:-webkit-autofill:focus{
+ -webkit-text-fill-color:var(--vv-auth-input-text)!important;
+ -webkit-box-shadow:0 0 0 100px var(--vv-auth-input) inset!important;
+ caret-color:var(--vv-auth-input-text);
+}
+.live-login .live-auth-reveal{
+ display:grid;
+ place-items:center;
+ flex-shrink:0;
+ width:40px;
+ height:40px;
+ padding:0;
+ border-radius:9px;
+ color:#637d86;
+ background:transparent;
+}
+.live-login .live-auth-reveal:hover{color:#238e98;background:rgba(77,184,193,.10)}
+.live-login .live-auth-reveal:focus-visible,.live-login .live-auth-send-code:focus-visible{outline:2px solid var(--vv-auth-outline);outline-offset:2px}
+.live-login .live-auth-code{padding-left:14px}
+.live-login .live-auth-send-code{
+ flex-shrink:0;
+ min-height:38px;
+ padding:0 12px;
+ font-size:13px;
+ font-weight:700;
+ border-radius:9px;
+ color:#167d89;
+ background:#e1f6f6;
+}
+.live-login .live-auth-send-code:hover{background:#c9f0f1}
+.live-login .live-auth-send-code:disabled{opacity:.55;cursor:not-allowed}
+.live-login .live-auth-terms{margin:0;color:var(--vv-auth-muted);font-size:12px;line-height:1.7}
+.live-login .live-auth-terms a{color:#188e9a}
+.live-login .login-card .live-auth-submit{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:9px;
+ min-height:53px;
+ margin:6px 0 0;
+ padding:13px 18px;
+ border:0;
+ border-radius:12px;
+ background:var(--vv-live-brand,#84eaee);
+ color:var(--vv-live-contrast,#14565c);
+ font-size:16px;
+ font-weight:750;
+ box-shadow:0 9px 25px rgba(51,157,171,.15);
+ transition:filter .2s ease,transform .2s ease,box-shadow .2s ease;
+}
+.live-login .login-card .live-auth-submit:hover{filter:brightness(.97);box-shadow:0 12px 29px rgba(51,157,171,.20);transform:translateY(-1px)}
+.live-login .login-card .live-auth-submit:active{transform:translateY(0)}
+.live-login .live-auth-options{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ min-height:24px;
+ gap:12px;
+ margin:22px 0 0;
+ color:#298e99;
+}
+.live-login .live-auth-options button{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ gap:5px;
+ padding:3px 0;
+ font-size:13px;
+ font-weight:680;
+ color:#218a98;
+ text-decoration:none;
+}
+.live-login .live-auth-options button:hover{text-decoration:underline}
+.live-login .live-auth-options button:only-child{margin-right:auto}
+.live-login .live-auth-back-icon{transform:rotate(180deg)}
+.live-login .live-auth-captcha{color:var(--vv-auth-muted);font-size:14px;line-height:1.7}
+.live-login .live-auth-captcha .live-link{display:flex;align-items:center;justify-content:center;gap:7px;min-height:49px;margin:18px 0 0;border-radius:12px;color:var(--vv-live-contrast);font-weight:700}
+.live-login .live-error{margin:0 0 19px;font-size:13px}
+.live-login .live-auth-footnote{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ margin:22px 16px 0;
+ text-align:center;
+ color:#879ba4;
+ font-size:12px;
+ line-height:1.6;
+}
+.live-login .live-auth-footnote svg{flex-shrink:0}
+[data-theme=dark] .live-login{
+ --vv-auth-surface:#1d2b34;
+ --vv-auth-text:#e8f1f5;
+ --vv-auth-muted:#a3b5bf;
+ --vv-auth-input:#243641;
+ --vv-auth-input-text:#f2f7fa;
+ --vv-auth-border:#405562;
+ --vv-auth-outline:#56c9d0;
+ --vv-auth-icon:#8daab7;
+ background:radial-gradient(ellipse 55% 35% at 0 0,rgba(35,109,119,.26),transparent 100%),linear-gradient(140deg,#111c24,#17242d 85%);
+ color:var(--vv-auth-text);
+}
+[data-theme=dark] .live-login .top{background:rgba(24,37,46,.89);border-bottom-color:#30434e}
+[data-theme=dark] .live-login .brand{color:var(--vv-auth-text)}
+[data-theme=dark] .live-login .head-actions>button{background:#2a3b45;border-color:#3a505c;color:#d2e4e9}
+[data-theme=dark] .live-login .login-card{background:var(--vv-auth-surface);border-color:#3b515c;color:var(--vv-auth-text);box-shadow:0 22px 75px rgba(0,0,0,.24)}
+[data-theme=dark] .live-login .live-auth-symbol{background:linear-gradient(135deg,#254c54,#294052);border-color:#426b74;color:#89e4e6}
+[data-theme=dark] .live-login .live-auth-eyebrow{color:#7cd5da}
+[data-theme=dark] .live-login .live-auth-input-wrap:focus-within{background:#2c424d}
+[data-theme=dark] .live-login .live-auth-input-wrap input::placeholder{color:#9baeb7;-webkit-text-fill-color:#9baeb7}
+[data-theme=dark] .live-login .live-auth-send-code{background:#28535e;color:#b6f3f3}
+[data-theme=dark] .live-login .live-auth-reveal{color:#a6c5ce}
+[data-theme=dark] .live-login .live-auth-options button{color:#7ed9dd}
+[data-theme=dark] .live-login .live-auth-footnote{color:#a2b4be}
+@media(max-width:720px){
+ .live-login .top{height:68px}
+ .live-login .head-inner{padding-inline:20px}
+ .live-login .brand{font-size:21px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+ .live-login .brand img{width:37px;height:37px}
+ .live-login .login-card{
+  width:calc(100% - 32px);
+  margin:32px 16px 0;
+  padding:29px 24px 26px;
+  border-radius:22px;
+ }
+ .live-login .live-auth-symbol{width:49px;height:49px;margin-bottom:17px}
+ .live-login .login-card h1{font-size:27px}
+ .live-login .live-auth-intro{margin-bottom:24px}
+ .live-login .login-card .live-auth-form{gap:17px}
+ .live-login .live-auth-input-wrap{min-height:52px}
+ .live-login .live-auth-input-wrap input{height:50px;font-size:16px}
+ .live-login .live-auth-footnote{margin-top:19px;padding-bottom:20px}
+}
+@media(max-width:370px){
+ .live-login .login-card{padding:26px 18px 24px}
+ .live-login .live-auth-options{gap:7px}
+ .live-login .live-auth-options button{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .live-login .live-auth-input-wrap,.live-login .live-auth-submit{transition:none}
+}
