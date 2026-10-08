@@ -2,22 +2,23 @@ import React from 'react';
 import {ArrowRight,CheckCircle2,LockKeyhole,Tag} from 'lucide-react';
 import {annualSavings,planPeriods,planPrice} from './catalog.js';
 
-export default function PurchaseForm({plan,period,setPeriod,coupon,setCoupon,discount,setDiscount,busy,formatMoney,onVerify,onSubmit}){
- const options=planPeriods(plan);
- const price=planPrice(plan,period);
- const saving=annualSavings(plan,period);
+export default function PurchaseForm({plan,period,setPeriod,coupon,setCoupon,discount,setDiscount,busy,formatMoney,onVerify,onSubmit,resetMode=false}){
+ const options=resetMode?[{id:'reset_price',label:'重置流量'}]:planPeriods(plan);
+ const rawReset=Number(plan?.reset_price);
+ const price=resetMode?(plan?.reset_price!==null&&plan?.reset_price!==undefined&&Number.isFinite(rawReset)&&rawReset>=0?Math.round(rawReset):null):planPrice(plan,period);
+ const saving=resetMode?null:annualSavings(plan,period);
  return <div className="live-purchase">
-  <p className="live-purchase-subtitle">第一步 · 选择周期与核对基础价格</p>
+  <p className="live-purchase-subtitle">{resetMode?'第一步 · 核对流量重置价格':'第一步 · 选择周期与核对基础价格'}</p>{resetMode&&<p className="muted">该订单仅用于当前套餐流量重置，不会延长套餐有效期。是否允许重置由 TXBoard 下单接口最终判断。</p>}
   <div className="live-purchase-periods" role="group" aria-label="购买周期">
    {options.map(({id,label})=><label key={id} className={'live-purchase-period '+(id===period?'selected':'')}>
     <input type="radio" name="period" value={id} checked={period===id} onChange={()=>{setPeriod(id);setDiscount('')}}/>
-    <span>{label}</span><strong>{formatMoney(planPrice(plan,id))}</strong>
+    <span>{label}</span><strong>{formatMoney(resetMode?price:planPrice(plan,id))}</strong>
    </label>)}
   </div>
   {saving&&<p className="live-purchase-saving">当前周期与连续购买 {saving.months} 个月月付比较，基础价格少 {formatMoney(saving.saved)}（约 {saving.percent}%）。</p>}
   <div className="live-purchase-summary" aria-label="订单基础价格">
    <div><span>套餐</span><strong>{plan.name}</strong></div>
-   <div><span>已选周期</span><strong>{options.find(x=>x.id===period)?.label||'请选择'}</strong></div>
+   <div><span>{resetMode?'操作类型':'已选周期'}</span><strong>{options.find(x=>x.id===period)?.label||'请选择'}</strong></div>
    <div className="live-purchase-subtotal"><span>基础价格</span><strong>{price!==null?formatMoney(price):'请选择周期'}</strong></div>
   </div>
   <p className="live-purchase-subtitle">第二步 · 优惠码（可选）</p>
