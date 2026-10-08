@@ -27,7 +27,7 @@ test('single-use login code is removed from address bar while token exchange sti
  page.on('request',req=>{if(req.url().includes('/token2Login'))called.push(req.url())});
  await page.goto('/#/login?verify=SECRET_ONCE_123&tab=login');
  await expect(page.getByRole('heading',{name:'欢迎回来'})).toHaveCount(0);
- await expect(page.getByRole('region',{name:'订阅概览'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'客户端与订阅导入'})).toBeVisible();
  expect(called).toHaveLength(1);
  expect(called[0]).toContain('verify=SECRET_ONCE_123');
  expect(await page.evaluate(()=>location.href.includes('SECRET_ONCE_123'))).toBe(false);
