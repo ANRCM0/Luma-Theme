@@ -9,8 +9,8 @@ if ($argc < 3) {
 }
 require $argv[1];
 
-use Illuminate\\Filesystem\\Filesystem;
-use Illuminate\\View\\Compilers\\BladeCompiler;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\View\Compilers\BladeCompiler;
 
 $blade = file_get_contents($argv[2]);
 if ($blade === false) {
