@@ -19,7 +19,7 @@ function Card({children,className=''}){return <section className={'card '+classN
 function Heading({en,title,children}){return <div className="page-heading"><span className="eyebrow">{en}</span><h1>{title}</h1><p>{children}</p></div>}
 function Dialog({title,onClose,children,wide=false}){
  useEffect(()=>{const f=e=>{if(e.key==='Escape')onClose()};document.addEventListener('keydown',f);return()=>document.removeEventListener('keydown',f)},[onClose]);
- return <div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section role="dialog" aria-modal="true" aria-label={title} className={'dialog '+(wide?'live-dialog-wide':'')}><button className="close" aria-label="关闭" onClick={onClose}><X size={20}/></button><h2>{title}</h2>{children}</section></div>
+ return <div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section role="dialog" aria-modal="true" aria-label={title} className={'dialog '+(wide?'live-dialog-wide':'')}><button className="close" aria-label="关闭弹窗" onClick={onClose}><X size={20}/></button><h2>{title}</h2>{children}</section></div>
 }
 function QrDialog({value,title,onClose}){
  const [src,setSrc]=useState('');const [error,setError]=useState('');
@@ -313,7 +313,7 @@ export default function LiveApp(){
   <div className={'live-notice-modal live-notice-style-'+(noticeMode==='popup'?noticeConfig.style:'classic')}>
    {noticeMode==='popup'
     ?<p className="live-notice-intro">请查看这条站点公告。后续可通过右上角通知入口浏览历史公告。</p>
-    :<><p className="live-notice-intro">站点公告与通知记录</p><div className="live-notice-tabs"><button type="button" aria-pressed={noticeFilter==='all'} className={noticeFilter==='all'?'active':''} onClick={()=>switchNoticeFilter('all')}>全部公告 <span>{news.length}</span></button><button type="button" aria-pressed={noticeFilter==='unread'} className={noticeFilter==='unread'?'active':''} onClick={()=>switchNoticeFilter('unread')}>未读 <span>{unseen.length}</span></button></div></>}
+    :<><p className="live-notice-intro">站点公告与通知记录</p><div className="live-notice-tabs"><button type="button" aria-label="筛选全部公告" aria-pressed={noticeFilter==='all'} className={noticeFilter==='all'?'active':''} onClick={()=>switchNoticeFilter('all')}>全部公告 <span>{news.length}</span></button><button type="button" aria-label="筛选未读公告" aria-pressed={noticeFilter==='unread'} className={noticeFilter==='unread'?'active':''} onClick={()=>switchNoticeFilter('unread')}>未读 <span>{unseen.length}</span></button></div></>}
    {visibleNotices.length>0?<div className="live-notice-content-grid">
     {visibleNotices.length>1&&<div className="live-notice-list" aria-label="公告列表">{visibleNotices.map((item,index)=><button type="button" key={noticeVersion(item)||index} className={currentNotice===item?'active':''} aria-pressed={currentNotice===item} onClick={()=>selectNotice(item)}><span>{item.title||'站点公告'}</span><small>{date(item.created_at).split(' ')[0]}{unseen.includes(item)?' · 未读':''}</small></button>)}</div>}
     {currentNotice&&<article className="live-notice-article">
