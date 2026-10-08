@@ -1,6 +1,8 @@
 import React,{useEffect,useState,useCallback,useRef} from 'react';
 import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,PanelLeftOpen,PanelLeftClose,Bell,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
 import QRCode from 'qrcode';
+import Dialog from './Dialog.jsx';
+import {safeWebUrl,safeImageUrl,removeSensitiveHashParam} from './browser-safety.js';
 import * as tx from './api.js';
 import SubscriptionCenter from './SubscriptionCenter.jsx';
 import {resolveSubscriptionConfig,canAttemptReset} from './subscription-center.js';
@@ -25,13 +27,9 @@ const status=s=>({0:'待支付',1:'开通中',2:'已取消',3:'已完成',4:'已
 const availablePeriods=p=>planPeriods(p).map(({id,label})=>[id,label]);
 function Card({children,className=''}){return <section className={'card '+className}>{children}</section>}
 function Heading({en,title,children}){return <div className="page-heading"><span className="eyebrow">{en}</span><h1>{title}</h1><p>{children}</p></div>}
-function Dialog({title,onClose,children,wide=false}){
- useEffect(()=>{const f=e=>{if(e.key==='Escape')onClose()};document.addEventListener('keydown',f);return()=>document.removeEventListener('keydown',f)},[onClose]);
- return <div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section role="dialog" aria-modal="true" aria-label={title} className={'dialog '+(wide?'live-dialog-wide':'')}><button className="close" aria-label="关闭弹窗" onClick={onClose}><X size={20}/></button><h2>{title}</h2>{children}</section></div>
-}
 function QrDialog({value,title,onClose}){
  const [src,setSrc]=useState('');const [error,setError]=useState('');
- useEffect(()=>{let live=true;QRCode.toDataURL(value,{width:240,margin:2}).then(url=>{if(live)setSrc(url)}).catch(()=>{if(live)setError('二维码生成失败')});return()=>{live=false}},[value]);
+ useEffect(()=>{let live=true;setSrc('');setError('');QRCode.toDataURL(value,{width:240,margin:2}).then(url=>{if(live)setSrc(url)}).catch(()=>{if(live)setError('二维码生成失败')});return()=>{live=false}},[value]);
  return <Dialog title={title} onClose={onClose}><div className="live-qr">{src?<img src={src} alt={title}/>:<p>{error||'生成中…'}</p>}</div><p className="muted">仅包含当前账号的真实链接，请勿向陌生人分享。</p><button className="secondary wide" onClick={onClose}>关闭</button></Dialog>
 }
 export default function LiveApp(){
@@ -59,7 +57,7 @@ export default function LiveApp(){
  const [oldPass,setOldPass]=useState(''),[newPass,setNewPass]=useState(''),[repeatPass,setRepeatPass]=useState('');
  const notify=useCallback(msg=>setToast(String(msg)),[]);
  const fail=useCallback(err=>{setError(err?.message||'请求失败')},[]);
- const logo=guest.logo||window.settings?.logo||'';
+ const logo=safeImageUrl(guest.logo||window.settings?.logo||'',location.origin)||'';
  const title=guest.app_name||window.settings?.title||'TXBoard';
  const appearance=resolveThemeAppearance(guest,window.settings,location.origin);
  const themeColor=appearance.color;
@@ -397,7 +395,7 @@ export default function LiveApp(){
    const timer=setInterval(()=>void check(),paymentConfig.pollMs);
    return ()=>{alive=false;clearInterval(timer)};
  },[session,dialog,currentOrder?.trade_no,currentOrder?.status,loadMain,loadSection,paymentConfig.autoCheck,paymentConfig.pollMs]);
- const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&navConfig.layout==='top'&&<nav className="desktop-nav" aria-label="主导航">{visibleNav.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
+ const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} referrerPolicy="no-referrer" alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&navConfig.layout==='top'&&<nav className="desktop-nav" aria-label="主导航">{visibleNav.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
   {header}
@@ -423,7 +421,7 @@ export default function LiveApp(){
       {authTab!=='login'&&<label className="live-auth-field"><span className="live-auth-label">确认密码</span><span className="live-auth-input-wrap"><LockKeyhole size={19} aria-hidden="true"/><input type="password" aria-label="确认密码" autoComplete="new-password" minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="请再次输入密码"/></span></label>}
       {authTab==='register'&&Number(guest.is_invite_force)===1&&<label className="live-auth-field"><span className="live-auth-label">邀请码</span><span className="live-auth-input-wrap"><Gift size={19} aria-hidden="true"/><input aria-label="邀请码" value={inviteCode} required onChange={e=>setInviteCode(e.target.value)} placeholder="请输入邀请码"/></span></label>}
       {(authTab==='forget'||(authTab==='register'&&Number(guest.is_email_verify)===1))&&<label className="live-auth-field"><span className="live-auth-label">邮箱验证码</span><span className="live-auth-input-wrap live-auth-code"><input aria-label="邮箱验证码" required value={emailCode} onChange={e=>setEmailCode(e.target.value)} placeholder="请输入验证码"/><button type="button" className="live-auth-send-code" disabled={busy||!email.trim()} onClick={()=>act(()=>tx.sendVerify(email.trim(),authTab==='forget'?'forget':'register'),'验证码已发送')}>发送验证码</button></span></label>}
-      {authTab==='register'&&guest.tos_url&&<p className="live-auth-terms">注册即表示你已阅读并同意 <a href={tx.safeExternal(guest.tos_url)||'#'} target="_blank" rel="noopener noreferrer">服务条款</a></p>}
+      {authTab==='register'&&tx.safeExternal(guest.tos_url)&&<p className="live-auth-terms">注册即表示你已阅读并同意 <a href={tx.safeExternal(guest.tos_url)} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">服务条款</a></p>}
       <button type="submit" disabled={busy} className="primary wide live-auth-submit">{busy?'提交中…':authTab==='login'?'登录':authTab==='register'?'注册账号':'重置密码'} {!busy&&<ArrowRight size={18}/>}</button>
      </form>}
    <div className="live-auth-options">
@@ -438,7 +436,8 @@ export default function LiveApp(){
  const activePlans=availableCatalogPlans(offers);
  const featured=activePlans.find(p=>catalogConfig.featuredIds.has(String(p.id)))||activePlans[0];
  const inviteCodeValue=invite?.codes?.[0]?.code;
- const inviteLink=inviteCodeValue?(guest.app_url||location.origin).replace(/\/$/,'')+'/#/login?tab=register&code='+encodeURIComponent(inviteCodeValue):'';
+ const inviteBase=safeWebUrl(guest.app_url||location.origin,{allowHttpLoopback:true})||location.origin;
+ const inviteLink=inviteCodeValue?inviteBase.replace(/\/$/,'')+'/#/login?tab=register&code='+encodeURIComponent(inviteCodeValue):'';
  return <div className={'app live-portal '+(navConfig.layout==='sidebar'?'live-layout-sidebar':'live-layout-top')+(sidebarCollapsed?' live-sidebar-collapsed':'')}>{header}
  {navConfig.layout==='sidebar'&&<aside className="live-sidebar" aria-label="桌面侧边栏">
   <div className="live-sidebar-heading"><span>{sidebarCollapsed?'菜单':'快速导航'}</span>
@@ -485,7 +484,7 @@ export default function LiveApp(){
       {currentNotice.created_at&&<time>{date(currentNotice.created_at)}</time>}
       {Array.isArray(currentNotice.tags)&&currentNotice.tags.length>0&&<div className="live-notice-tags">{currentNotice.tags.map((tag,i)=><span key={i}>{String(tag)}</span>)}</div>}
       <p className="live-notice-body">{noticePlainText(currentNotice.content)||'暂无详细内容'}</p>
-      {tx.safeExternal(currentNotice.img_url)&&<img className="live-notice-image" src={tx.safeExternal(currentNotice.img_url)} loading="lazy" alt="公告配图"/>}
+      {safeImageUrl(currentNotice.img_url,location.origin)&&<img className="live-notice-image" src={safeImageUrl(currentNotice.img_url,location.origin)} loading="lazy" referrerPolicy="no-referrer" alt="公告配图"/>}
      </article>}
    </div>:<p className="live-notice-empty">{noticeFilter==='unread'?'已查看全部公告':'暂无公告'}</p>}
    <div className="live-notice-footer">
