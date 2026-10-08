@@ -53,7 +53,7 @@ export default function Dialog({title,onClose,children,wide=false}){
  return <div className="overlay" onMouseDown={event=>{
    if(event.target===event.currentTarget&&isTop())closeRef.current();
  }}>
-  <section role="dialog" aria-modal={isTop()?'true':'false'} aria-label={title} tabIndex={-1} ref={nodeRef}
+  <section role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={nodeRef}
    className={'dialog '+(wide?'live-dialog-wide':'')}>
    <button type="button" className="close" aria-label="关闭弹窗" onClick={()=>closeRef.current()}><X size={20}/></button>
    <h2>{title}</h2>{children}
