@@ -7,7 +7,7 @@ test('TXBoard order statuses cover unpaid, processing and terminal cases',()=>{
  assert.deepEqual(ORDER_STATUS,{UNPAID:0,PROCESSING:1,CANCELED:2,COMPLETED:3,DISCOUNTED:4});
  assert.equal(normalizeOrderStatus('0'),0);
  assert.equal(normalizeOrderStatus('3'),3);
- for(const value of [null,'',-1,5,'NaN','not-a-status'])assert.equal(normalizeOrderStatus(value),null);
+ for(const value of [null,'',-1,5,'NaN','not-a-status',[],{},false,true])assert.equal(normalizeOrderStatus(value),null);
  assert.equal(isBlockingOrder(0),true);
  assert.equal(isBlockingOrder('1'),true);
  assert.equal(isBlockingOrder(2),false);
