@@ -138,3 +138,78 @@ test('new TXBoard announcements pop up after login, not as a dashboard card',asy
  await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'新发布公告'})).toBeVisible();
 });
+
+
+test('theme notice tags choose popup while the bell keeps a full searchable-by-status inbox',async({page})=>{
+ const announcements=[
+  {id:90,title:'普通公告先展示',content:'普通内容',tags:['general'],updated_at:1810000001,created_at:1810000001},
+  {id:80,title:'紧急维护公告',content:'紧急内容',tags:['important'],updated_at:1810000000,created_at:1810000000}
+ ];
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'测试主题',frontend_theme:'vv-theme',theme_config:{
+    notice_popup_enabled:'1',notice_center_enabled:'1',notice_popup_tag:'important',
+    notice_popup_frequency:'once',notice_popup_scope:'all',notice_popup_style:'feature'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:77,email:'tags@example.test'},
+   '/api/v1/user/notice/fetch':{data:announcements,total:2},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/getSubscribe':{},
+   '/api/v1/user/getStat':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('tags@example.test');
+ await page.getByLabel('登录密码').fill('valid-password');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const popup=page.getByRole('dialog',{name:'重要通知'});
+ await expect(popup).toBeVisible();
+ await expect(popup.locator('.live-notice-style-feature')).toHaveCount(1);
+ await expect(popup.getByRole('heading',{name:'紧急维护公告'})).toBeVisible();
+ await popup.getByRole('button',{name:'我知道了'}).click();
+ await expect(popup).toHaveCount(0);
+ const bell=page.getByRole('button',{name:'查看通知'});
+ await expect(bell.locator('.live-notice-indicator')).toHaveCount(1);
+ await bell.click();
+ const inbox=page.getByRole('dialog',{name:'公告中心'});
+ await expect(inbox).toBeVisible();
+ await inbox.getByRole('button',{name:/未读/}).click();
+ await expect(inbox.getByRole('heading',{name:'普通公告先展示'})).toBeVisible();
+ await inbox.getByRole('button',{name:'全部标为已读'}).click();
+ await inbox.getByRole('button',{name:/未读/}).click();
+ await expect(inbox.getByText('已查看全部公告')).toBeVisible();
+ await inbox.getByRole('button',{name:'关闭'}).click();
+ await expect(bell.locator('.live-notice-indicator')).toHaveCount(0);
+ await page.reload();
+ await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
+});
+
+test('notification popup and bell can be independently disabled in theme settings',async({page})=>{
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{frontend_theme:'vv-theme',app_name:'Test',theme_config:{
+    notice_popup_enabled:'0',notice_center_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:78,email:'disabled@example.test'},
+   '/api/v1/user/notice/fetch':{data:[{id:1,title:'公告',content:'内容'}],total:1},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/getSubscribe':{},
+   '/api/v1/user/getStat':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('disabled@example.test');
+ await page.getByLabel('登录密码').fill('valid-password');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ await expect(page.getByText('WELCOME BACK')).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'查看通知'})).toHaveCount(0);
+});
