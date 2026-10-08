@@ -64,3 +64,25 @@ test('mobile authentication keeps input text visible in light and dark themes',a
  await expect(page.getByLabel('新密码')).toBeVisible();
  await expect(page.getByLabel('邮箱验证码')).toBeVisible();
 });
+
+
+test('latest TXBoard public theme_config controls live colors and login background',async({page})=>{
+ await page.route('**/api/v1/**',async route=>{
+  const url=new URL(route.request().url());
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(
+   url.pathname==='/api/v1/guest/comm/config'
+    ?{status:'success',data:{
+      app_name:'新版 TXBoard',frontend_theme:'vv-theme',
+      theme_config:{theme_color:'black',background_url:'/images/welcome.webp'},
+      is_captcha:0,register_enable:1
+     }}
+    :{status:'fail',message:'not signed in',data:false}
+  )});
+ });
+ await page.goto('/');
+ await expect(page.getByRole('heading',{name:'欢迎回来'})).toBeVisible();
+ await expect(page.locator('html')).toHaveAttribute('data-vv-accent','black');
+ await expect(page.locator('.live-login')).toHaveCSS('background-image',/images\\/welcome\\.webp/);
+ await expect(page.locator('.live-auth-submit')).toHaveCSS('background-color','rgb(38, 55, 70)');
+ await expect(page.getByText('新版 TXBoard',{exact:true}).first()).toBeVisible();
+});
