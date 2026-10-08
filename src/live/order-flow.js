@@ -16,7 +16,8 @@ export function resolvePaymentConfig(guest={},settings={}){
 }
 
 export const normalizeOrderStatus=value=>{
- if(value===null||value===undefined||value==='')return null;
+ if(typeof value!=='number'&&typeof value!=='string')return null;
+ if(typeof value==='string'&&!/^[0-4]$/.test(value.trim()))return null;
  const n=Number(value);
  return Number.isInteger(n)&&n>=0&&n<=4?n:null;
 };
