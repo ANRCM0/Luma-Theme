@@ -27,20 +27,41 @@ ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**
 
 详细配置说明：[第八阶段主题安全与细节](docs/theme-phase8.md) · [第六阶段订单与支付](docs/theme-phase6.md) · [第五阶段订阅管理](docs/theme-phase5.md) · [第四阶段套餐商店](docs/theme-phase4.md) · [第三阶段动态欢迎卡片](docs/theme-phase3.md) · [第二阶段主题布局与导航](docs/theme-phase2.md)。
 
+## 自动发布 GitHub Release
+
+发布由**新标签**触发，而不是每次推送 `main` 就创建 Release。标签格式为 `vMAJOR.MINOR.PATCH`，例如：
+
+```sh
+git checkout main
+git pull --ff-only
+git tag v0.9.2
+git push origin v0.9.2
+```
+
+推送后，`Build & Release TXBoard Theme` 工作流会自动运行单元测试、构建生产主题资源、从标签设置 `theme-package/config.json` 的版本、用 PHP 8.2 + Laravel 12 编译和渲染 Blade 模板、验证 ZIP 内容，再发布同名 GitHub Release，并附加：
+
+- `vv-theme-txboard.zip`：TXBoard 后台可直接安装的主题包（ZIP 根目录包含 `config.json`、`dashboard.blade.php`、`assets/`）。
+- `vv-theme-txboard.zip.sha256`：对应 ZIP 的 SHA-256 校验值。
+
+Release 自动生成更新说明。支持 `v1.0.0-beta.1` 等预发布标签，并自动标识为 Pre-release。主题包内的版本号来自标签（例如 `v0.9.2` 对应 `0.9.2`），不再固定为旧版本。构建或 Blade 校验失败时**不会**发布 Release。
+
+需要临时检查打包结果但不发布 Release，可以在 Actions 的该工作流中手动运行 `workflow_dispatch`，输入不带 `v` 的版本号。主分支和 PR 仍由独立 `Frontend CI` 负责测试；`Deploy GitHub Pages` 工作流已移除。
+
 ## 安装升级
 
 需要同时使用包含**动态根路由修复**的 TXBoard 镜像（TXBoard 的 `api/routes/web.php` 和 `api/.docker/caddy/Caddyfile` 已更新）。现在访问 `/` 时由 Laravel 根据 `frontend_theme` 判定：默认 `TXBoard` 仍输出原有 Vue SPA，自定义主题则渲染其 Blade 文件；默认 SPA 不再因启用主题而变成旧的 `umi.js`。
 
 1. 更新并重新部署 TXBoard 镜像，确认新 Caddyfile 与后端生效。
-2. 在 GitHub Actions「Build TXBoard Theme Package」中下载 `vv-theme-txboard.zip`，或者运行：
+2. 在 [GitHub Releases](https://github.com/ANRCM0/vv-theme/releases) 下载最新版本的 **`vv-theme-txboard.zip`**（这是可直接安装的主题包，不是 GitHub 自动生成的 Source code ZIP），或者运行：
    ```sh
    npm install
    npm test
    TXBOARD_THEME=true npm run build
-   THEME_VERSION=0.9.1 node scripts/package-txboard.mjs
+   THEME_VERSION=0.9.2 node scripts/package-txboard.mjs
    cd theme-package && zip -qr ../vv-theme-txboard.zip .
    ```
-3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。本次使用 `0.9.1`，支持覆盖升级原 `0.1.0`。
+   上面的 `0.9.2` 仅为手动打包示例；自动发布时版本始终来自 Git 标签。
+3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。
 4. 切换 `frontend_theme` 为 `vv-theme`，从无缓存浏览器验证注册、登录、订阅、下单、回调、工单、移动端。未完成真实支付沙箱或实际环境回归前不要直接向用户推广。
 
 回滚：主题管理里切换回 `TXBoard`，默认用户 SPA 立即恢复，无需改 Caddyfile；不必删除已安装主题。
@@ -53,7 +74,7 @@ ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**
 - 主题依赖 TXBoard V1 API 协议与对应后端功能开关。生产上线仍需验证付款回调、验证码模式、特殊支付网关、邀请码限制、套餐切换和部署负载。
 - CSS 使用系统字体，登录背景可由后台配置，不再强制请求 Google Fonts 或 `viaspeed.shop`。
 - 自定义 HTML 是受信任管理员配置，不会随公开配置下发；主题背景只接受 HTTP(S) URL，不执行非 Web 协议。
-- 独立演示通过 GitHub Pages 展示，**不等于实际业务环境**。
+- 独立视觉演示仍可在本地运行（`npm run dev`）；仓库不再自动构建或部署 GitHub Pages。
 
 ## 验证
 
