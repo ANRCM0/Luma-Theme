@@ -132,7 +132,7 @@ test('new TXBoard announcements pop up after login, not as a dashboard card',asy
  await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
  await page.getByRole('button',{name:'查看通知'}).click();
  await expect(page.getByRole('dialog',{name:'公告中心'})).toBeVisible();
- await page.getByRole('dialog',{name:'公告中心'}).getByRole('button',{name:'关闭'}).click();
+ await page.getByRole('dialog',{name:'公告中心'}).getByRole('button',{name:'关闭',exact:true}).click();
  announcements=[{id:25,title:'新发布公告',content:'新内容',created_at:1700001000,updated_at:1700001001},...announcements];
  await page.reload();
  await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
@@ -182,7 +182,7 @@ test('theme notice tags choose popup while the bell keeps a full searchable-by-s
  await inbox.getByRole('button',{name:'全部标为已读'}).click();
  await inbox.getByRole('button',{name:'筛选未读公告'}).click();
  await expect(inbox.getByText('已查看全部公告')).toBeVisible();
- await inbox.getByRole('button',{name:'关闭'}).click();
+ await inbox.getByRole('button',{name:'关闭',exact:true}).click();
  await expect(bell.locator('.live-notice-indicator')).toHaveCount(0);
  await page.reload();
  await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
