@@ -462,14 +462,12 @@ export default function LiveApp(){
  {error&&<div className="live-error" role="alert">{error} <button type="button" aria-label="关闭错误提示" onClick={()=>setError('')}>×</button></div>}
  {route==='dashboard'&&<>
   <div className="dashboard-grid">
-   <WelcomeBanner user={me} subscription={subscription} overview={overview} config={welcomeConfig} formatBytes={tx.bytes} formatDate={date} onNavigate={go}/>
-   <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go}/></div>
-  </div><div className="section-head live-subscription-section-head"><h2>订阅管理</h2></div><SubscriptionCenter subscription={subscription} user={me} siteTitle={title} config={subscriptionConfig} formatBytes={tx.bytes}
+   <WelcomeBanner user={me} overview={overview} config={welcomeConfig}/>
+   <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} config={subscriptionConfig} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go} onRenew={renewCurrent} onReset={resetTraffic} onRefresh={refreshSubscription} busy={busy}/></div>
+  </div><div className="section-head live-subscription-section-head"><h2>订阅管理</h2></div><SubscriptionCenter subscription={subscription} siteTitle={title} config={subscriptionConfig}
    onQr={url=>setQr({title:'订阅二维码',value:url})}
    onCopy={copy}
-   onImport={client=>{if(client?.href)window.location.href=client.href}}
-   onRenew={renewCurrent} onReset={resetTraffic} onShop={()=>go('shop')}
-   onRefresh={refreshSubscription} busy={busy}/>
+   onImport={client=>{if(client?.href)window.location.href=client.href}}/>
  </>}
  {route==='shop'&&<><Heading en="SUBSCRIPTION PLANS" title="购买套餐">挑选适合自己的订阅方案，订单金额由 TXBoard 服务器确认。</Heading>
   <ShopCatalog plans={activePlans} config={catalogConfig} money={tx.money} onBuy={openBuy}/>
