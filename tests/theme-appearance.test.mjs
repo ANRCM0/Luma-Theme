@@ -45,5 +45,5 @@ test('unsupported theme colors and non-web background schemes are rejected',()=>
 test('custom HTML is non-public in the theme package and package version advances',()=>{
  const src=readFileSync(new URL('../scripts/package-txboard.mjs',import.meta.url),'utf8');
  assert.match(src,/field_name:'custom_html',field_type:'textarea',public:false/);
- assert.match(src,/THEME_VERSION\|\|'0\.9\.0'/);
+ assert.match(src,/THEME_VERSION\|\|'0\.9\.1'/);
 });
