@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {api,getToken,saveToken,clearToken,login,checkout,plans,createTicket} from '../src/live/api.js';
+import {api,getToken,saveToken,clearToken,login,checkout,plans,createTicket,notices} from '../src/live/api.js';
 
 const values=new Map();
 globalThis.localStorage={getItem:key=>values.get(key)??null,setItem:(key,val)=>values.set(key,String(val)),removeItem:key=>values.delete(key)};
@@ -56,4 +56,24 @@ test('live mode has no fake subscription, fake plan prices or demo auth bypass',
  assert.ok(!source.includes('example.invalid'));
  assert.ok(!source.includes('viaspeed-demo-tickets'));
  assert.ok(!source.includes('进入演示'));
+});
+
+
+test('notice history follows TXBoard pagination and stops at server total',async()=>{
+ const requests=[];
+ globalThis.fetch=async(url)=>{
+  const parsed=new URL(url,'https://test.local');
+  const current=Number(parsed.searchParams.get('current'));
+  requests.push(current);
+  const items=current===1
+   ?Array.from({length:100},(_,i)=>({id:i+1,title:'公告 '+i}))
+   :[{id:101,title:'重要提醒'}];
+  return reply({status:'success',data:{data:items,total:101}});
+ };
+ try{
+  const all=await notices();
+  assert.equal(all.length,101);
+  assert.equal(all[100].title,'重要提醒');
+  assert.deepEqual(requests,[1,2]);
+ }finally{globalThis.fetch=originalFetch}
 });
