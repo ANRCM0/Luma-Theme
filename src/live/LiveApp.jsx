@@ -11,7 +11,7 @@ import {WelcomeBanner,WelcomeSecondaryCard} from './WelcomeCards.jsx';
 import ShopCatalog from './ShopCatalog.jsx';
 import PurchaseForm from './PurchaseForm.jsx';
 import {ExistingOrderDialog,OrderPaymentBody} from './OrderPayment.jsx';
-import {firstBlockingOrder,isBlockingOrder,isTerminalOrder,normalizeOrderStatus,STATUS_POLL_MS,MAX_STATUS_POLLS} from './order-flow.js';
+import {firstBlockingOrder,isBlockingOrder,isTerminalOrder,normalizeOrderStatus,MAX_STATUS_POLLS,resolvePaymentConfig} from './order-flow.js';
 import {availableCatalogPlans,planPeriods,planPrice,resolveCatalogConfig} from './catalog.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
@@ -68,6 +68,7 @@ export default function LiveApp(){
  const welcomeConfig=resolveWelcomeConfig(guest,window.settings);
  const catalogConfig=resolveCatalogConfig(guest,window.settings);
  const subscriptionConfig=resolveSubscriptionConfig(guest,window.settings);
+ const paymentConfig=resolvePaymentConfig(guest,window.settings);
  const sidebarCollapsed=sidebarOverride??navConfig.sidebarCollapsed;
  const visibleNav=orderedNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
  const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
@@ -360,7 +361,7 @@ export default function LiveApp(){
     noticeConfig.popupEnabled,noticeConfig.scope,noticeConfig.tag,noticeConfig.frequency]);
  // Bounded, read-only status checks. Never re-submit checkout or order-save.
  useEffect(()=>{
-   if(!session||dialog!=='order'||!currentOrder?.trade_no||!isBlockingOrder(currentOrder.status)){
+   if(!session||!paymentConfig.autoCheck||dialog!=='order'||!currentOrder?.trade_no||!isBlockingOrder(currentOrder.status)){
      setWatchingOrder(false);
      return;
    }
@@ -391,9 +392,9 @@ export default function LiveApp(){
        // Network problems do not imply payment failure. Manual refresh stays available.
      }finally{running=false}
    };
-   const timer=setInterval(()=>void check(),STATUS_POLL_MS);
+   const timer=setInterval(()=>void check(),paymentConfig.pollMs);
    return ()=>{alive=false;clearInterval(timer)};
- },[session,dialog,currentOrder?.trade_no,currentOrder?.status,loadMain,loadSection]);
+ },[session,dialog,currentOrder?.trade_no,currentOrder?.status,loadMain,loadSection,paymentConfig.autoCheck,paymentConfig.pollMs]);
  const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&navConfig.layout==='top'&&<nav className="desktop-nav" aria-label="主导航">{visibleNav.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
