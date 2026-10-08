@@ -43,6 +43,19 @@ export function availableCatalogPlans(plans){
  return (Array.isArray(plans)?plans:[])
   .filter(p=>p&&p.show!==false&&p.show!==0&&p.sell!==false&&p.sell!==0&&planPeriods(p).length>0);
 }
+// A plan may expose both recurring and one-time prices. Show it once in
+// each applicable category, while keeping checkout tied to its price field.
+export function groupedCatalogPlans(plans){
+ const grouped={recurring:[],traffic:[]};
+ for(const plan of availableCatalogPlans(plans)){
+  const recurring=CATALOG_PERIODS.find(p=>p.id!=='onetime_price'&&planPrice(plan,p.id)!==null);
+  if(recurring)grouped.recurring.push({plan,price:{period:recurring.id,price:planPrice(plan,recurring.id)}});
+  const oneTime=planPrice(plan,'onetime_price');
+  if(oneTime!==null)grouped.traffic.push({plan,price:{period:'onetime_price',price:oneTime}});
+ }
+ return grouped;
+}
+
 export function catalogPriceFor(plan,period='all'){
  const periods=planPeriods(plan);
  if(!periods.length)return null;
