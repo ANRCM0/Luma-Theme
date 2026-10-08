@@ -1,0 +1,52 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-build:
+    name: Test and build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run tests
+        run: npm test
+      - name: Build production bundle
+        run: npm run build
+      - name: Verify build output
+        run: |
+          test -s dist/index.html
+          test -d dist/assets
+          find dist/assets -name '*.js' -size +0c | grep -q .
+      - name: Upload production build
+        if: matrix.node == '22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: viaspeed-theme-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
