@@ -1,4 +1,4 @@
-name: Build & Release TXBoard Theme
+name: Build & Release Luma Theme
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
             fi
           fi
           echo "THEME_VERSION=$version" >> "$GITHUB_ENV"
-          echo "Packaging vv-theme version $version"
+          echo "Packaging Luma Theme version $version"
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -93,24 +93,24 @@ jobs:
       - name: Create installable ZIP
         run: |
           cd theme-package
-          zip -qr ../vv-theme-txboard.zip .
+          zip -qr ../luma-theme.zip .
       - name: Verify ZIP structure and checksum
         shell: bash
         run: |
-          unzip -t vv-theme-txboard.zip
+          unzip -t luma-theme.zip
           for required in config.json dashboard.blade.php; do
-            unzip -Z1 vv-theme-txboard.zip | grep -Fxq "$required"
+            unzip -Z1 luma-theme.zip | grep -Fxq "$required"
           done
-          unzip -Z1 vv-theme-txboard.zip | grep -Eq '^assets/.+\.js$'
-          unzip -Z1 vv-theme-txboard.zip | grep -Eq '^assets/.+\.css$'
-          sha256sum vv-theme-txboard.zip > vv-theme-txboard.zip.sha256
+          unzip -Z1 luma-theme.zip | grep -Eq '^assets/.+\.js$'
+          unzip -Z1 luma-theme.zip | grep -Eq '^assets/.+\.css$'
+          sha256sum luma-theme.zip > luma-theme.zip.sha256
       - name: Upload packaged artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vv-theme-txboard-${{ env.THEME_VERSION }}
+          name: luma-theme-${{ env.THEME_VERSION }}
           path: |
-            vv-theme-txboard.zip
-            vv-theme-txboard.zip.sha256
+            luma-theme.zip
+            luma-theme.zip.sha256
           if-no-files-found: error
           retention-days: 14
       - name: Publish GitHub Release
@@ -118,11 +118,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: vv-theme ${{ github.ref_name }}
+          name: Luma Theme ${{ github.ref_name }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            vv-theme-txboard.zip
-            vv-theme-txboard.zip.sha256
+            luma-theme.zip
+            luma-theme.zip.sha256
