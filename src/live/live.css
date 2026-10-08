@@ -1174,3 +1174,69 @@
  .live-portal .live-shop-plan .live-shop-price strong{font-size:31px}
  .live-portal .live-shop-plan .live-shop-buy{min-height:45px}
 }
+
+
+/* Native TXBoard user-data pages: traffic, nodes and knowledge. */
+.live-data-page{min-width:0}
+.live-data-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:10px 0 20px}
+.live-data-heading h1{font-size:clamp(23px,2.7vw,32px);margin:7px 0 5px}
+.live-data-heading p{font-size:13px;color:#81949c;line-height:1.6;margin:0}
+.live-data-heading>button{display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:13px;padding:9px 13px}
+.live-portal .live-data-card{padding:22px 25px;min-height:155px}
+.live-data-empty{font-size:13px;color:#8b9da5;line-height:1.7;padding:22px 8px;margin:0}
+.live-data-empty button{display:inline-flex;align-items:center;gap:7px;margin-top:10px}
+.live-data-error{display:flex;align-items:center;gap:15px;flex-wrap:wrap;font-size:13px;color:#b64b48;padding:12px}
+.live-data-error button{font-size:12px}
+.live-data-table-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+.live-data-table{width:100%;border-collapse:collapse;min-width:560px;text-align:left;font-size:13px}
+.live-data-table th{font-weight:700;color:#80959e;white-space:nowrap}
+.live-data-table th,.live-data-table td{padding:16px 11px;border-bottom:1px solid #e9f0f2}
+.live-data-table td{color:#3f5661;white-space:nowrap}
+.live-data-tag{display:inline-flex;align-items:center;border-radius:7px;padding:4px 8px;font-size:11px;color:#258f9b;background:#eaf8f9;white-space:nowrap;font-weight:700}
+.live-node-list{min-width:0}
+.live-node-head,.live-node-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:center}
+.live-node-head{font-size:12px;color:#94a5ac;border-bottom:1px solid #eaf0f2;padding:8px 0 13px}
+.live-node-row{min-height:72px;padding:15px 0;border-bottom:1px solid #eaf0f2}
+.live-node-row:last-child{border-bottom:0}
+.live-node-identity{min-width:0}
+.live-node-identity strong{font-size:14px;overflow-wrap:anywhere}
+.live-node-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.live-node-tags span{font-size:11px;color:#708c94;padding:3px 7px;border:1px solid #dfebee;border-radius:6px;overflow-wrap:anywhere}
+.live-node-meta{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.live-node-status{display:flex;gap:6px;align-items:center;font-size:12px;white-space:nowrap;color:#8999a0}
+.live-node-status.online{color:#208b73}
+.live-node-status i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#adb7bb}
+.live-node-status.online i{background:#34b38c}
+.live-data-search{display:flex;gap:9px;align-items:center;border:1px solid #e0e9ec;background:#f7fafb;padding:9px 12px;border-radius:10px;color:#79949e;margin-bottom:17px}
+.live-data-search input{border:0;outline:0;background:transparent;min-width:0;width:100%;font:inherit;font-size:14px;color:inherit}
+.live-data-categories{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.live-data-categories button{border:1px solid #e2eaed;border-radius:9px;background:transparent;color:#708993;padding:7px 12px;font-size:12px}
+.live-data-categories button.active{background:#e7f8f9;border-color:#8cdae0;color:#148995}
+.live-knowledge-list details{border-bottom:1px solid #e7eff1}
+.live-knowledge-list details:last-child{border:0}
+.live-knowledge-list summary{list-style:none;display:flex;align-items:center;gap:9px;padding:17px 4px;cursor:pointer;font-size:14px;font-weight:650}
+.live-knowledge-list summary::-webkit-details-marker{display:none}
+.live-knowledge-list summary svg{color:#57b4be;flex:none}
+.live-knowledge-list summary span:nth-child(2){flex:1;overflow-wrap:anywhere}
+.live-knowledge-arrow{color:#8b9fa7;font-size:20px}
+.live-knowledge-list details[open] .live-knowledge-arrow{transform:rotate(180deg)}
+.live-knowledge-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:13px;color:#607780;padding:2px 12px 20px 30px}
+[data-theme=dark] .live-data-heading p,[data-theme=dark] .live-data-empty,[data-theme=dark] .live-node-head{color:#b4c6cc}
+[data-theme=dark] .live-data-table th,[data-theme=dark] .live-data-table td,[data-theme=dark] .live-node-head,[data-theme=dark] .live-node-row,[data-theme=dark] .live-knowledge-list details{border-color:#344e58}
+[data-theme=dark] .live-data-table td,[data-theme=dark] .live-knowledge-body{color:#cad9de}
+[data-theme=dark] .live-data-tag{background:#274650;color:#99e0e5}
+[data-theme=dark] .live-node-tags span{border-color:#46616b;color:#bed2da}
+[data-theme=dark] .live-data-search{background:#20333d;border-color:#425861}
+[data-theme=dark] .live-data-categories button{border-color:#435860;color:#b1c9d1}
+[data-theme=dark] .live-data-categories button.active{background:#29505a;color:#a4eaf0;border-color:#538994}
+@media(max-width:720px){
+ .live-data-heading{align-items:flex-start;margin:6px 0 15px}
+ .live-data-heading>button{margin-top:7px}
+ .live-portal .live-data-card{padding:16px}
+ .live-data-table th,.live-data-table td{padding:13px 10px}
+ .live-node-head,.live-node-row{gap:8px}
+ .live-node-meta{gap:6px}
+ .live-node-identity strong{font-size:13px}
+ .live-node-status{font-size:11px}
+ .live-knowledge-body{padding-left:10px}
+}
