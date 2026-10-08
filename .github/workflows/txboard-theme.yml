@@ -2,6 +2,8 @@ name: Build TXBoard Theme Package
 on:
   workflow_dispatch:
   push:
+    branches: [main]
+  push:
     tags:
       - 'v*'
 permissions:
