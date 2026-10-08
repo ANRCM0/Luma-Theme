@@ -29,7 +29,7 @@ export class ApiError extends Error {
 export async function api(path,options={}) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),12000);
-  const {auth=true,method='GET',body,...rest}=options;
+  const {auth=true,method='GET',body,preserveEnvelope=false,...rest}=options;
   const headers={Accept:'application/json'};
   if(body!==undefined)headers['Content-Type']='application/json';
   if(auth&&getToken())headers.Authorization=getToken();
@@ -43,7 +43,7 @@ export async function api(path,options={}) {
     if(result&&typeof result==='object'&&'status' in result) {
       if(result.status!=='success')throw new ApiError(result.message||'请求失败',response.status);
       if(result.data===undefined)throw new ApiError(result.message||'响应缺少数据',response.status);
-      return result.data;
+      return preserveEnvelope?result:result.data;
     }
     // Some legacy endpoints intentionally return a top-level {data,total} object.
     return result;
@@ -74,7 +74,7 @@ export const payments=()=>get('/user/order/getPaymentMethod');
 export const cancelOrder=(trade_no)=>post('/user/order/cancel',{trade_no});
 export const createOrder=(plan_id,period,coupon_code)=>post('/user/order/save',{plan_id,period,...(coupon_code?{coupon_code}:{})});
 export const checkCoupon=(code,plan_id,period)=>post('/user/coupon/check',{code,plan_id,period});
-export const checkout=(trade_no,method)=>post('/user/order/checkout',{trade_no,...(method!==undefined?{method}:{})});
+export const checkout=(trade_no,method)=>api('/user/order/checkout',{method:'POST',body:{trade_no,...(method!==undefined?{method}:{})},preserveEnvelope:true});
 export const tickets=()=>get('/user/ticket/fetch');
 export const ticketDetail=(id)=>get('/user/ticket/fetch',{id});
 export const createTicket=(subject,level,message)=>post('/user/ticket/save',{subject,level,message});
