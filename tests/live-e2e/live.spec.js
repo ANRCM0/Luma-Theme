@@ -131,8 +131,8 @@ test('new TXBoard announcements pop up after login, not as a dashboard card',asy
  await page.reload();
  await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
  await page.getByRole('button',{name:'查看通知'}).click();
- await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
- await page.getByRole('dialog',{name:'重要通知'}).getByRole('button',{name:'我知道了'}).click();
+ await expect(page.getByRole('dialog',{name:'公告中心'})).toBeVisible();
+ await page.getByRole('dialog',{name:'公告中心'}).getByRole('button',{name:'关闭'}).click();
  announcements=[{id:25,title:'新发布公告',content:'新内容',created_at:1700001000,updated_at:1700001001},...announcements];
  await page.reload();
  await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
