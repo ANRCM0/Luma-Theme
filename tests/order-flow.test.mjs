@@ -47,6 +47,6 @@ test('CI runs only Node.js 22 and preserves real-mode browser tests',()=>{
  assert.doesNotMatch(ci,/matrix\.node|node-version: '20'|node: \['20'/);
  for(const name of ['Run tests','Browser end-to-end tests','Real-mode browser smoke tests','Build live TXBoard theme bundle'])assert.ok(ci.includes(name));
  const pkg=readFileSync(new URL('../scripts/package-txboard.mjs',import.meta.url),'utf8');
- assert.match(pkg,/THEME_VERSION\|\|'0\.8\.0'/);
+ assert.match(pkg,/THEME_VERSION\|\|'0\.9\.0'/);
  for(const key of ['payment_auto_check','payment_poll_seconds'])assert.ok(pkg.includes("field_name:'"+key+"'"));
 });
