@@ -99,13 +99,14 @@ export default function LiveApp(){
      if(verify && routeNow()==='login'){
        try{await tx.tokenLogin(verify)}catch(e){if(alive)setError(e.message||'快捷登录失败')}
      }
-     if(!tx.getToken()){if(alive){setSession(false);setReady(true)}return}
+     const bootToken=tx.getToken();
+     if(!bootToken){if(alive){setSession(false);setReady(true)}return}
      try{
        const checked=await tx.verifySession();
        if(!checked?.is_login)throw new tx.ApiError('登录已失效',401);
-       if(!alive)return;
+       if(!alive||tx.getToken()!==bootToken)return;
        await loadMain();
-       if(alive){setSession(true);if(routeNow()==='login')go('dashboard')}
+       if(alive&&tx.getToken()===bootToken){setSession(true);if(routeNow()==='login')go('dashboard')}
      }catch(e){
        if(e.status===401||e.status===403){tx.clearToken();if(alive)setSession(false)}
        else if(alive)setError('加载用户数据失败：'+(e.message||'网络异常'));
@@ -142,8 +143,11 @@ export default function LiveApp(){
    });
    if(!result)return;
    if(mode==='forget'){setAuthTab('login');setPassword('');notify('密码已重置，请重新登录');return}
+   const signedToken=tx.getToken();
    await loadMain().catch(fail);
-   try{const user=await tx.user();setMe(user);setSession(true);go('dashboard');notify('登录成功')}
+   try{if(!signedToken||tx.getToken()!==signedToken)return;
+    const user=await tx.user();if(tx.getToken()!==signedToken)return;
+    setMe(user);setSession(true);go('dashboard');notify('登录成功')}
    catch(e){fail(e)}
  }
  async function openBuy(item,preferredPeriod){
