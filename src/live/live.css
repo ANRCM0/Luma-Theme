@@ -492,3 +492,76 @@
  .live-notice-footer .secondary{flex:1}
  .live-notice-footer .primary{flex:1}
 }
+
+
+/* Phase 2: theme-owned desktop navigation layouts. Mobile bottom navigation
+   remains the responsive fallback for both desktop choices. */
+.live-layout-top .desktop-nav{min-width:0;max-width:min(70vw,770px);overflow-x:auto;scrollbar-width:thin}
+.live-layout-top .desktop-nav button{flex-shrink:0}
+.live-layout-sidebar{--vv-sidebar-width:236px}
+.live-layout-sidebar.live-sidebar-collapsed{--vv-sidebar-width:76px}
+.live-layout-sidebar .head-inner{max-width:none;padding-inline:28px}
+.live-layout-sidebar .live-sidebar{
+ position:fixed;left:0;top:80px;bottom:0;z-index:19;
+ width:var(--vv-sidebar-width);
+ padding:22px 12px;
+ background:rgba(255,255,255,.96);
+ border-right:1px solid #e6edef;
+ box-shadow:5px 0 28px rgba(31,75,86,.04);
+ overflow-y:auto;
+ transition:width .2s ease;
+}
+.live-layout-sidebar .live-sidebar-heading{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ min-height:42px;padding:0 8px 14px;
+ color:#82949e;font-size:12px;font-weight:750;letter-spacing:.04em;
+}
+.live-layout-sidebar .live-sidebar-heading button{
+ width:36px;height:36px;min-width:36px;
+ background:#eff6f8;border-radius:10px;color:#617782;
+}
+.live-layout-sidebar .live-sidebar-heading button:hover{color:#218b95;background:#dff4f6}
+.live-layout-sidebar .live-sidebar nav{display:flex;flex-direction:column;gap:6px}
+.live-layout-sidebar .live-sidebar nav button{
+ width:100%;min-height:46px;display:flex;align-items:center;justify-content:flex-start;
+ gap:13px;padding:10px 13px;border-radius:12px;
+ color:#627682;font-size:14px;font-weight:650;text-align:left;
+}
+.live-layout-sidebar .live-sidebar nav button svg{flex-shrink:0}
+.live-layout-sidebar .live-sidebar nav button:hover{background:#eff9fa;color:#1c8d9b}
+.live-layout-sidebar .live-sidebar nav button.selected{background:#dff6f8;color:#177f8b}
+.live-layout-sidebar .container{
+ width:calc(100% - var(--vv-sidebar-width));
+ max-width:1250px;
+ margin:0 auto 0 var(--vv-sidebar-width);
+ padding-inline:clamp(18px,3.3vw,44px);
+}
+.live-layout-sidebar footer{margin-left:var(--vv-sidebar-width)}
+.live-layout-sidebar.live-sidebar-collapsed .live-sidebar{padding:22px 9px}
+.live-layout-sidebar.live-sidebar-collapsed .live-sidebar-heading{justify-content:center;padding-inline:0}
+.live-layout-sidebar.live-sidebar-collapsed .live-sidebar-heading span,
+.live-layout-sidebar.live-sidebar-collapsed .live-sidebar nav button span{display:none}
+.live-layout-sidebar.live-sidebar-collapsed .live-sidebar nav button{justify-content:center;padding-inline:9px}
+[data-theme=dark] .live-layout-sidebar .live-sidebar{background:#1a2932;border-color:#30464e;box-shadow:5px 0 28px rgba(0,0,0,.13)}
+[data-theme=dark] .live-layout-sidebar .live-sidebar-heading{color:#b3c4cb}
+[data-theme=dark] .live-layout-sidebar .live-sidebar-heading button{background:#2c4049;color:#c6dbe2}
+[data-theme=dark] .live-layout-sidebar .live-sidebar nav button{color:#b8cbd3}
+[data-theme=dark] .live-layout-sidebar .live-sidebar nav button:hover{background:#29434e;color:#a9edf0}
+[data-theme=dark] .live-layout-sidebar .live-sidebar nav button.selected{background:#24505a;color:#b2f2f3}
+@media(min-width:721px) and (max-width:1000px){
+ .live-layout-sidebar{--vv-sidebar-width:200px}
+ .live-layout-sidebar.live-sidebar-collapsed{--vv-sidebar-width:68px}
+ .live-layout-sidebar .live-sidebar nav button{font-size:12px;gap:9px}
+ .live-layout-sidebar .head-inner{padding-inline:18px}
+ .live-layout-sidebar .container{padding-inline:20px}
+}
+@media(max-width:720px){
+ .live-layout-sidebar .live-sidebar{display:none}
+ .live-layout-sidebar .container{width:100%;max-width:100%;margin:0;padding:20px 16px calc(112px + env(safe-area-inset-bottom))}
+ .live-layout-sidebar footer{margin-left:0}
+ .live-layout-sidebar .head-inner{padding-inline:16px}
+ .live-layout-top .desktop-nav{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .live-layout-sidebar .live-sidebar{transition:none}
+}
