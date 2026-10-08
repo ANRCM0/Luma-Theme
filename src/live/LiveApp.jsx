@@ -7,6 +7,9 @@ import {resolveThemeAppearance} from './theme-config.js';
 import {resolveNavigationConfig,orderedNavigation,mobileNavigation} from './navigation-config.js';
 import {resolveWelcomeConfig,classifyWelcome} from './welcome-config.js';
 import {WelcomeBanner,WelcomeSecondaryCard} from './WelcomeCards.jsx';
+import ShopCatalog from './ShopCatalog.jsx';
+import PurchaseForm from './PurchaseForm.jsx';
+import {availableCatalogPlans,planPeriods,planPrice,resolveCatalogConfig} from './catalog.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
 import './live.css';
@@ -16,8 +19,7 @@ const routeNow=()=>((location.hash.replace(/^#\/?/,'').split(/[/?]/)[0])||'dashb
 const queryNow=()=>new URLSearchParams(location.hash.split('?')[1]||'');
 const date=v=>v?new Date(Number(v)*1000).toLocaleString('zh-CN'):'—';
 const status=s=>({0:'待支付',1:'开通中',2:'已取消',3:'已完成',4:'已折抵'})[s]||'未知';
-const orderPrice=(p,key)=>Number(p?.[key]||0);
-const availablePeriods=p=>tx.PERIODS.filter(([key])=>orderPrice(p,key)>0);
+const availablePeriods=p=>planPeriods(p).map(({id,label})=>[id,label]);
 function Card({children,className=''}){return <section className={'card '+className}>{children}</section>}
 function Heading({en,title,children}){return <div className="page-heading"><span className="eyebrow">{en}</span><h1>{title}</h1><p>{children}</p></div>}
 function Dialog({title,onClose,children,wide=false}){
@@ -41,7 +43,7 @@ export default function LiveApp(){
  const [noticeMode,setNoticeMode]=useState('popup'),[noticeFilter,setNoticeFilter]=useState('all');
  const viewedNoticesRef=useRef(new Set()),autoAttemptedRef=useRef(new Set());
  const [rows,setRows]=useState([]),[ticketRows,setTicketRows]=useState([]),[invite,setInvite]=useState(null);
- const [filter,setFilter]=useState('全部'),[profileTab,setProfileTab]=useState('基本信息'),[search,setSearch]=useState('');
+ const [profileTab,setProfileTab]=useState('基本信息'),[search,setSearch]=useState('');
  const [visibleSub,setVisibleSub]=useState(false),[qr,setQr]=useState(null),[dialog,setDialog]=useState(null);
  const [plan,setPlan]=useState(null),[period,setPeriod]=useState(''),[coupon,setCoupon]=useState(''),[discount,setDiscount]=useState('');
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
@@ -58,6 +60,7 @@ export default function LiveApp(){
  const noticeConfig=resolveNoticeConfig(guest,window.settings);
  const navConfig=resolveNavigationConfig(guest,window.settings);
  const welcomeConfig=resolveWelcomeConfig(guest,window.settings);
+ const catalogConfig=resolveCatalogConfig(guest,window.settings);
  const sidebarCollapsed=sidebarOverride??navConfig.sidebarCollapsed;
  const visibleNav=orderedNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
  const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
@@ -130,8 +133,12 @@ export default function LiveApp(){
    try{const user=await tx.user();setMe(user);setSession(true);go('dashboard');notify('登录成功')}
    catch(e){fail(e)}
  }
- async function openBuy(item){
-   setPlan(item);const options=availablePeriods(item);setPeriod(options[0]?.[0]||'');setCoupon('');setDiscount('');setDialog('purchase')
+ async function openBuy(item,preferredPeriod){
+   const choices=availablePeriods(item);
+   if(!choices.length){notify('当前套餐没有可购买的周期');return}
+   const requested=preferredPeriod||catalogConfig.defaultPeriod;
+   const initial=choices.some(([id])=>id===requested)?requested:choices[0][0];
+   setPlan(item);setPeriod(initial);setCoupon('');setDiscount('');setDialog('purchase');
  }
  async function buy(){
    if(!plan||!period)return;
@@ -295,8 +302,8 @@ export default function LiveApp(){
  const used=overview.used;
  const quota=overview.total;
  const remaining=overview.remaining;
- const activePlans=offers.filter(p=>p.show!==0&&p.show!==false);
- const featured=activePlans.find(p=>p.month_price>0)||activePlans[0];
+ const activePlans=availableCatalogPlans(offers);
+ const featured=activePlans.find(p=>catalogConfig.featuredIds.has(String(p.id)))||activePlans[0];
  const subUrl=subscription?.subscribe_url;
  const inviteCodeValue=invite?.codes?.[0]?.code;
  const inviteLink=inviteCodeValue?(guest.app_url||location.origin).replace(/\/$/,'')+'/#/login?tab=register&code='+encodeURIComponent(inviteCodeValue):'';
@@ -315,7 +322,9 @@ export default function LiveApp(){
    <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go}/></div>
   </div><div className="section-head"><h2>订阅管理</h2><p>管理你的真实订阅信息和客户端</p></div><div className="content-grid"><Card className="subscribe-card"><div className="section-title"><div><ShieldCheck size={21}/><h3>订阅链接</h3></div><button className="link" disabled={!subUrl} onClick={()=>setQr({title:'订阅二维码',value:subUrl})}><QrCode size={16}/> 二维码</button></div><p className="muted">订阅链接属于敏感凭证，请勿公开分享。</p><div className="subscription"><span className="live-break">{subUrl?(visibleSub?subUrl:'https://••••••••••••••••'):'暂无订阅链接'}</span><button aria-label="显示或隐藏订阅链接" onClick={()=>setVisibleSub(v=>!v)} disabled={!subUrl}>{visibleSub?<EyeOff size={17}/>:<Eye size={17}/>}</button><button aria-label="复制订阅链接" onClick={()=>copy(subUrl)} disabled={!subUrl}><Copy size={17}/></button></div><div className="subhint">已用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</div><div className="live-traffic"><div style={{width:(quota?Math.min(100,used/quota*100):0)+'%'}}/></div><h3 className="client-heading">一键导入客户端</h3><div className="clients"><button disabled={!subUrl} onClick={()=>copy(subUrl)}><div className="client-icon"><Copy size={17}/></div><span>复制链接</span></button>{clientsFor(subUrl,title).map((client,i)=><button key={client.name} onClick={()=>{window.location.href=client.href}}><div className={"client-icon icon"+(i%6)}>{client.name.charAt(0)}</div><span>{client.name}</span></button>)}</div></Card><Card className="my-plan"><div className="section-title"><div><Gift size={21}/><h3>我的套餐</h3></div></div>{subscription?.plan?<div className="empty-plan"><ShieldCheck size={36}/><h3>{subscription.plan.name}</h3><p className="muted">到期时间：{date(subscription.expired_at)}</p><p className="muted">已使用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</p><button className="primary" onClick={()=>go('shop')}>续费或升级</button></div>:<div className="empty-plan"><ShoppingBag size={36}/><h3>暂无有效套餐</h3><button className="primary" onClick={()=>go('shop')}>前往购买</button></div>}</Card></div>
  </>}
- {route==='shop'&&<><Heading en="SUBSCRIPTION PLANS" title="购买套餐">以下套餐、价格与销售状态实时读取自 TXBoard。</Heading><div className="filters">{['全部','月付','季付','半年付','年付','一次性'].map(label=><button key={label} className={filter===label?'active':''} onClick={()=>setFilter(label)}>{label}</button>)}</div><div className="plans">{activePlans.flatMap(p=>{const options=availablePeriods(p);const matches=filter==='全部'||options.some(([,label])=>label===filter);return matches?[<Card key={p.id} className="product"><div className="plan-name">{p.name}</div><div className="product-price"><strong>{tx.money(options[0]&&p[options[0][0]])}</strong><span> 起</span></div><p className="muted">{p.transfer_enable} GB · {p.content?String(p.content).replace(/<[^>]+>/g,' ').slice(0,80):'套餐服务'}</p><hr/><div className="feature"><Wifi size={18}/>套餐流量<strong>{p.transfer_enable} GB</strong></div><div className="feature"><RefreshCcw size={18}/>可选周期<strong>{options.length} 种</strong></div><div className="plan-actions"><button className="primary wide" disabled={!options.length} onClick={()=>openBuy(p)}>选择套餐 <ArrowRight size={16}/></button></div></Card>]:[]})}</div>{!activePlans.length&&<Card>当前没有可购买的套餐。</Card>}</>}
+ {route==='shop'&&<><Heading en="SUBSCRIPTION PLANS" title="购买套餐">挑选适合自己的订阅方案，订单金额由 TXBoard 服务器确认。</Heading>
+  <ShopCatalog plans={activePlans} config={catalogConfig} money={tx.money} onBuy={openBuy}/>
+ </>}
  {route==='orders'&&<><Heading en="ORDER HISTORY" title="我的订单">查看真实订单与支付状态。</Heading><Card><div className="ticket-toolbar"><h3>订单记录（{rows.length}）</h3><button className="secondary" onClick={()=>loadSection('orders')}>刷新</button></div>{rows.length?rows.map(o=><button className="live-list-row" key={o.trade_no} onClick={()=>showOrder(o.trade_no)}><div><strong>{o.plan?.name||'套餐 #'+o.plan_id}</strong><p className="muted">{o.trade_no} · {date(o.created_at)}</p></div><div>{tx.money(o.total_amount)} · {status(o.status)} <ChevronRight size={15}/></div></button>):<p className="muted">暂无订单</p>}</Card></>}
  {route==='profile'&&<><Heading en="ACCOUNT CENTER" title="账号设置">账户信息、安全设置与邀请管理。</Heading><div className="tabs">{['基本信息','安全设置','邀请管理','财务记录'].map(t=><button key={t} className={profileTab===t?'active':''} onClick={()=>setProfileTab(t)}>{t}</button>)}</div>{profileTab==='基本信息'&&<div className="profile-grid"><Card><h3>个人信息</h3><div className="field"><label>邮箱地址</label><input readOnly value={me?.email||''}/></div><div className="field"><label>当前套餐</label><input readOnly value={planName}/></div></Card><Card><h3>账户余额</h3><div className="account-balance">{tx.money(me?.balance)}</div><p className="muted">可用余额，金额由 TXBoard 返回</p><button className="secondary wide" onClick={()=>go('orders')}>查看订单</button></Card></div>}
  {profileTab==='安全设置'&&<Card className="form-card"><h3>修改密码</h3><form onSubmit={async e=>{e.preventDefault();if(newPass.length<8||newPass!==repeatPass){setError('请确认新密码至少 8 位且两次一致');return}const result=await act(()=>tx.changePassword(oldPass,newPass),'密码修改成功');if(result!==null){setOldPass('');setNewPass('');setRepeatPass('')}}}><div className="field"><label>当前密码</label><input type="password" required value={oldPass} onChange={e=>setOldPass(e.target.value)}/></div><div className="field"><label>新密码</label><input type="password" minLength="8" required value={newPass} onChange={e=>setNewPass(e.target.value)}/></div><div className="field"><label>确认新密码</label><input type="password" minLength="8" required value={repeatPass} onChange={e=>setRepeatPass(e.target.value)}/></div><button className="primary" disabled={busy}>修改密码</button></form></Card>}
@@ -349,7 +358,12 @@ export default function LiveApp(){
   </div>
  </Dialog>}
  {qr&&<QrDialog title={qr.title} value={qr.value} onClose={()=>setQr(null)}/>}
- {dialog==='purchase'&&plan&&<Dialog title={'购买 '+plan.name} onClose={()=>setDialog(null)}><p className="muted">{plan.content?String(plan.content).replace(/<[^>]+>/g,' '):'选择支付周期'}</p><div className="live-periods">{availablePeriods(plan).map(([key,label])=><label key={key} className={period===key?'live-period selected':'live-period'}><input type="radio" name="period" value={key} checked={period===key} onChange={()=>{setPeriod(key);setDiscount('')}}/>{label} <strong>{tx.money(plan[key])}</strong></label>)}</div><div className="field"><label>优惠码（可选）</label><div className="live-row"><input value={coupon} onChange={e=>setCoupon(e.target.value)}/><button className="secondary" disabled={!coupon.trim()||busy} onClick={async()=>{const result=await act(()=>tx.checkCoupon(coupon.trim(),plan.id,period));if(result)setDiscount(result.type===2?result.value+'%':tx.money(result.value))}}>验证</button></div></div>{discount&&<p className="muted">优惠码有效：{discount}</p>}<button className="primary wide" disabled={busy||!period} onClick={buy}>{busy?'处理中…':'创建真实订单'}</button></Dialog>}
+ {dialog==='purchase'&&plan&&<Dialog title={'购买 '+plan.name} onClose={()=>setDialog(null)} wide>
+  <PurchaseForm plan={plan} period={period} setPeriod={setPeriod} coupon={coupon} setCoupon={setCoupon} discount={discount} setDiscount={setDiscount} busy={busy} formatMoney={tx.money} onVerify={async()=>{
+   const result=await act(()=>tx.checkCoupon(coupon.trim(),plan.id,period));
+   if(result)setDiscount(result.type===2?String(result.value)+'%':tx.money(result.value));
+  }} onSubmit={buy}/>
+ </Dialog>}
  {dialog==='order'&&currentOrder&&<Dialog title="订单详情" onClose={()=>{setDialog(null);loadSection('orders')}} wide><div className="live-order"><p>订单号：<strong className="live-break">{currentOrder.trade_no}</strong></p><p>套餐：{currentOrder.plan?.name||currentOrder.plan_id}</p><p>周期：{currentOrder.period}</p><p>金额：<strong>{tx.money(currentOrder.total_amount)}</strong></p>{methods.find(m=>String(m.id)===method)&&<p>支付手续费（估算）：{tx.money(Math.round(Number(currentOrder.total_amount||0)*Number(methods.find(m=>String(m.id)===method)?.handling_fee_percent||0)/100)+Number(methods.find(m=>String(m.id)===method)?.handling_fee_fixed||0))}</p>}<p>状态：{status(currentOrder.status)}</p></div>{currentOrder.status===0&&<><div className="field"><label>支付方式</label><select value={method} onChange={e=>setMethod(e.target.value)} disabled={Boolean(currentOrder.payment_id)}>{!methods.length&&<option value="">无在线支付方式（尝试余额支付）</option>}{methods.map(p=><option key={p.id} value={String(p.id)}>{p.name}</option>)}</select></div>{methods.find(m=>String(m.id)===method)?.payment==='StripeCredit'&&<p className="muted">Stripe 信用卡支付将由 TXBoard 安全支付组件完成。</p>}<button className="primary wide" disabled={busy} onClick={pay}>立即支付</button><button className="secondary wide" onClick={async()=>{if(!window.confirm('确定取消该订单吗？'))return;const result=await act(()=>tx.cancelOrder(currentOrder.trade_no),'订单已取消');if(result!==null)await showOrder(currentOrder.trade_no)}}>取消订单</button></>}<button className="secondary wide" onClick={()=>showOrder(currentOrder.trade_no)}>刷新订单状态</button></Dialog>}
  {dialog==='ticket-create'&&<Dialog title="创建工单" onClose={()=>setDialog(null)}><form onSubmit={createTicket}><div className="field"><label>工单主题</label><input name="title" required maxLength="100"/></div><div className="field"><label>优先级</label><select name="level" defaultValue="1"><option value="0">低</option><option value="1">普通</option><option value="2">高</option></select></div><div className="field"><label>问题描述</label><textarea name="description" minLength="5" maxLength="2000" rows="5" required/></div><button className="primary wide" disabled={busy}>提交工单</button></form></Dialog>}
  {dialog==='ticket-detail'&&ticket&&<Dialog title={ticket.subject} onClose={()=>setDialog(null)} wide><p className="muted">工单 #{ticket.id} · {ticket.status===1?'已关闭':'处理中'}</p><div className="live-thread">{(ticket.message||[]).map(m=><div key={m.id} className={'live-message '+(m.is_me?'mine':'')}><strong>{m.is_me?'我':'客服'}</strong><p>{m.message}</p><small>{date(m.created_at)}</small></div>)}</div>{ticket.status===0&&<form onSubmit={sendReply}><div className="field"><label>回复</label><textarea rows="3" value={reply} required onChange={e=>setReply(e.target.value)}/></div><button className="primary" disabled={busy||!reply.trim()}>发送回复</button><button className="secondary" type="button" disabled={busy} onClick={closeCurrent}>关闭工单</button></form>}</Dialog>}
