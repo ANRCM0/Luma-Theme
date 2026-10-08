@@ -1,13 +1,10 @@
 // TXBoard Theme Package v1: the active theme owns its public appearance.
+import {safeImageUrl} from './browser-safety.js';
 // Keep the Blade-injected settings as a fallback for older TXBoard versions.
 const ACCENTS=new Set(['default','blue','darkblue','black']);
 
 export function safeThemeBackground(value,origin='http://localhost'){
- if(typeof value!=='string'||!value.trim())return '';
- try {
-  const url=new URL(value.trim(),origin);
-  return (url.protocol==='http:'||url.protocol==='https:')?url.href:'';
- } catch {return ''}
+ return safeImageUrl(value,origin)||'';
 }
 
 export function resolveThemeAppearance(guest={},settings={},origin='http://localhost'){
