@@ -9,6 +9,8 @@ npm install
 npm run dev
 npm test
 npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
 ## 功能
@@ -18,6 +20,10 @@ npm run build
 - 主题及演示工单保存在本地 localStorage，不会发送到 ViaSpeed。
 - `#/login` 是独立演示登录页，点击“进入演示”即可返回面板；不执行真实认证。
 - 真实订阅链接、令牌和账户数据不包含在项目中。
+
+## CI 和浏览器测试
+
+GitHub Actions 在 main 推送和 PR 时执行 Node 20/22 的源码检查和生产构建；Node 22 还执行 Chromium 桌面及移动端 E2E 测试。失败时保留 Playwright HTML 报告和 trace。工作流文件：`.github/workflows/ci.yml`。
 
 ## 验证范围
 
