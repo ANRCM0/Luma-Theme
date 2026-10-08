@@ -188,7 +188,7 @@ export default function LiveApp(){
    catch{fail(Error('复制失败，请检查剪贴板权限'))}
  }
  const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions"><button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
- if(!ready)return <div className="app live-portal">{head
+ if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={window.settings?.background_url?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(window.settings.background_url)+")",backgroundSize:"cover"}:{}}>
   {header}
   <main className="login-card live-auth-card" aria-labelledby="live-auth-title">
@@ -222,8 +222,7 @@ export default function LiveApp(){
    </div>
   </main>
   <p className="live-auth-footnote"><ShieldCheck size={15} aria-hidden="true"/> 您的账号信息通过安全连接传输</p>
- </div>;('');setAuthTab('register')}}>立即注册</button>}</>}</p>
- </main></div>;
+ </div>;
  const planName=subscription?.plan?.name||'Free';
  const used=Number(subscription?.u||me?.u||0)+Number(subscription?.d||me?.d||0);
  const quota=Number(subscription?.transfer_enable||0)||Number(subscription?.plan?.transfer_enable||0)*1073741824||Number(me?.transfer_enable||0);
