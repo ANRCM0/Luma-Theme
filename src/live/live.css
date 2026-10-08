@@ -877,3 +877,37 @@
  .live-client-list{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:360px){.live-client-list{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Phase 6: transaction recovery, read-only status feedback and retry affordances */
+.live-order-warning{display:flex;align-items:flex-start;gap:12px;background:#fff4e4;border:1px solid #f0d5b1;border-radius:12px;padding:16px;margin-bottom:17px;color:#94612c}
+.live-order-warning svg{flex:none;margin-top:2px}
+.live-order-warning strong{font-size:15px}
+.live-order-warning p{font-size:13px;line-height:1.7;margin:7px 0 0;color:#876e51}
+.live-order-conflict>p{font-size:13px;line-height:1.8;margin:9px 0;overflow-wrap:anywhere}
+.live-order-actionstack{display:grid;gap:10px;margin-top:21px}
+.live-order-actionstack button{min-height:43px}
+.live-order-operations .live-order{padding-bottom:14px}
+.live-order-state{display:flex;gap:11px;align-items:flex-start;background:#edf7f9;border:1px solid #d3e9ed;border-radius:12px;padding:14px;margin:8px 0 14px;color:#237988}
+.live-order-state svg{flex:none;margin-top:2px}
+.live-order-state strong{font-size:14px}
+.live-order-state p{font-size:12px;line-height:1.75;margin:5px 0 0;color:#527b86}
+.live-order-state.success{background:#ecf9f1;border-color:#d1eedb;color:#20794d}
+.live-order-state.success p{color:#488368}
+.live-order-watching{display:flex;align-items:center;gap:7px;color:#73929a;font-size:12px;margin:12px 0;line-height:1.6}
+.live-order-watching svg{flex:none}
+.live-order-payment-error{border:1px solid #efb5ac;background:#fff0ee;border-radius:9px;padding:10px 13px;color:#af4238;font-size:13px;line-height:1.65}
+.live-order-payment-link{font-size:12px;line-height:1.8;background:#f4f9fa;padding:11px;border-radius:9px;color:#5c7d89}
+.live-order-payment-link a{display:inline-flex;align-items:center;gap:4px;color:#167f95;font-weight:700;text-decoration:underline;overflow-wrap:anywhere}
+.live-order-operations>.wide{min-height:42px;margin-top:9px}
+[data-theme=dark] .live-order-warning{background:#4c3a2b;border-color:#7a5a35;color:#f1c68b}
+[data-theme=dark] .live-order-warning p{color:#e1c39d}
+[data-theme=dark] .live-order-state{background:#243f47;border-color:#395965;color:#ade5e9}
+[data-theme=dark] .live-order-state p{color:#bdd9e2}
+[data-theme=dark] .live-order-state.success{background:#204234;border-color:#366e52;color:#afedc5}
+[data-theme=dark] .live-order-state.success p{color:#bcdfca}
+[data-theme=dark] .live-order-watching{color:#a5c3cb}
+[data-theme=dark] .live-order-payment-error{background:#492c30;border-color:#844750;color:#ffc9bd}
+[data-theme=dark] .live-order-payment-link{background:#263c47;color:#cbdce3}
+[data-theme=dark] .live-order-payment-link a{color:#9cdee9}
+@media(max-width:720px){.live-order-warning{padding:13px}.live-order-actionstack button{width:100%}.live-order-operations>.wide{width:100%}}
