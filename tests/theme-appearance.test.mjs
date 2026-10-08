@@ -35,7 +35,7 @@ test('a different active theme cannot inject its theme settings into vv-theme',(
 });
 
 test('unsupported theme colors and non-web background schemes are rejected',()=>{
- for(const url of ['javascript:alert(1)','data:text/html,hello','file:///etc/passwd','not a url with spaces','']){
+ for(const url of ['javascript:alert(1)','data:text/html,hello','file:///etc/passwd','http://[','']){
   assert.equal(safeThemeBackground(url,'https://panel.example.test'),'');
  }
  const theme=resolveThemeAppearance({frontend_theme:'vv-theme',theme_config:{theme_color:'url(javascript:1)',background_url:'javascript:alert(1)'}},{},'https://panel.example.test');
