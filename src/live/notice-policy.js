@@ -10,6 +10,7 @@ const FREQUENCIES=new Set(['once','session','daily','always']);
 const SCOPES=new Set(['all','dashboard']);
 const STYLES=new Set(['classic','compact','feature']);
 const enabled=(raw,fallback)=>raw==null?fallback:!(raw===false||raw===0||raw==='0'||raw==='false');
+const popupAllowed=item=>enabled(item?.popup,true); // Respect TXBoard admin notice '弹窗展示'.
 
 export function resolveNoticeConfig(guest={},settings={}){
  const remote=guest?.frontend_theme==='vv-theme'&&guest?.theme_config&&
@@ -55,7 +56,7 @@ export function automaticNotices(items,policy,user,storage,sessionStorage,now=Da
  const seen=new Set(readSeenNotices(storage,user));
  return (Array.isArray(items)?items:[]).filter(item=>{
   const version=noticeVersion(item);
-  if(!version||!matchesPopupTag(item,policy.tag))return false;
+  if(!version||!popupAllowed(item)||!matchesPopupTag(item,policy.tag))return false;
   switch(policy.frequency){
    case 'once':return !seen.has(version);
    case 'session':return !readGate(sessionStorage,gateKey('session',user,item));
