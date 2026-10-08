@@ -82,7 +82,7 @@ test('latest TXBoard public theme_config controls live colors and login backgrou
  await page.goto('/');
  await expect(page.getByRole('heading',{name:'欢迎回来'})).toBeVisible();
  await expect(page.locator('html')).toHaveAttribute('data-vv-accent','black');
- await expect(page.locator('.live-login')).toHaveCSS('background-image',/images\\/welcome\\.webp/);
+ await expect(page.locator('.live-login')).toHaveCSS('background-image',/welcome[.]webp/);
  await expect(page.locator('.live-auth-submit')).toHaveCSS('background-color','rgb(38, 55, 70)');
  await expect(page.getByText('新版 TXBoard',{exact:true}).first()).toBeVisible();
 });
