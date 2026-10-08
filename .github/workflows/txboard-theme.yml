@@ -24,7 +24,20 @@ jobs:
       - name: Stage Theme Package v1
         run: node scripts/package-txboard.mjs
         env:
-          THEME_VERSION: '0.9.0'
+          THEME_VERSION: '0.9.1'
+      - name: Set up PHP 8.2 for real Laravel Blade validation
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+      - name: Install Laravel 12 Blade compiler for packaging smoke test
+        run: |
+          mkdir -p "$RUNNER_TEMP/vv-blade-test"
+          cd "$RUNNER_TEMP/vv-blade-test"
+          composer require "illuminate/view:^12.0" --no-interaction --no-progress --no-scripts --prefer-dist
+      - name: Compile and render packaged Blade template
+        run: php tests/blade-compile-smoke.php "$RUNNER_TEMP/vv-blade-test/vendor/autoload.php" theme-package/dashboard.blade.php
       - name: Create installable ZIP
         run: cd theme-package && zip -qr ../vv-theme-txboard.zip .
       - uses: actions/upload-artifact@v4
