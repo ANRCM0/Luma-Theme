@@ -32,8 +32,9 @@ export async function api(path,options={}) {
   const timer=setTimeout(()=>controller.abort(),12000);
   const {auth=true,method='GET',body,preserveEnvelope=false,...rest}=options;
   const headers={Accept:'application/json'};
+  const requestToken=auth?getToken():'';
   if(body!==undefined)headers['Content-Type']='application/json';
-  if(auth&&getToken())headers.Authorization=getToken();
+  if(requestToken)headers.Authorization=requestToken;
   try {
     const response=await fetch('/api/v1'+path,{
       method,headers,credentials:'same-origin',signal:controller.signal,
@@ -43,8 +44,11 @@ export async function api(path,options={}) {
     if(!response.ok) {
       const message=result?.message||('HTTP '+response.status);
       if(auth&&(response.status===401||(response.status===403&&/login|token|auth|登录|认证|过期/i.test(message)))){
-        clearToken();
-        if(typeof window!=='undefined')window.dispatchEvent(new Event('txboard:unauthorized'));
+        // A stale response from an earlier account must not sign out a new login.
+        if(requestToken&&getToken()===requestToken){
+          clearToken();
+          if(typeof window!=='undefined')window.dispatchEvent(new Event('txboard:unauthorized'));
+        }
       }
       throw new ApiError(message,response.status);
     }
