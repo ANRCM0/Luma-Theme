@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CATALOG_PERIODS,planPrice,planPeriods,parseFeatured,resolveCatalogConfig,availableCatalogPlans,catalogPriceFor,annualSavings,planFeatures,normalizedDescription,catalogCompare} from '../src/live/catalog.js';
+import {CATALOG_PERIODS,planPrice,planPeriods,parseFeatured,resolveCatalogConfig,availableCatalogPlans,groupedCatalogPlans,catalogPriceFor,annualSavings,planFeatures,normalizedDescription,catalogCompare} from '../src/live/catalog.js';
 
 const basic={id:1,name:'Basic',show:true,sell:true,transfer_enable:100,device_limit:3,speed_limit:100,month_price:1000,quarter_price:2700,year_price:9000,reset_price:200};
 const annualOnly={id:2,name:'Annual',show:true,sell:true,transfer_enable:200,year_price:15000};
@@ -56,4 +56,18 @@ test('features, comparisons and descriptions remain constrained to real plan fie
  assert.equal(comparison[1].traffic,200);
  assert.equal(normalizedDescription('<p>高速<br>网络 &amp; 稳定</p>'),'高速 网络 & 稳定');
  assert.equal(normalizedDescription(null),'');
+});
+
+test('shop categories separate recurring from one-time prices without treating reset fees as traffic packages',()=>{
+ const hybrid={id:8,name:'Hybrid',show:true,sell:true,month_price:1200,onetime_price:3600};
+ const groups=groupedCatalogPlans([basic,annualOnly,oneTime,hybrid,{id:9,show:true,sell:true,reset_price:400},{id:10,show:true,sell:false,onetime_price:0}]);
+ assert.deepEqual(groups.recurring.map(entry=>entry.plan.id),[1,2,8]);
+ assert.deepEqual(groups.traffic.map(entry=>entry.plan.id),[3,8]);
+ assert.deepEqual(groups.recurring.map(entry=>entry.price),[
+  {period:'month_price',price:1000},{period:'year_price',price:15000},{period:'month_price',price:1200}
+ ]);
+ assert.deepEqual(groups.traffic.map(entry=>entry.price),[
+  {period:'onetime_price',price:3000},{period:'onetime_price',price:3600}
+ ]);
+ assert.deepEqual(groupedCatalogPlans([{id:11,show:true,sell:true,onetime_price:0}]).traffic[0].price,{period:'onetime_price',price:0});
 });
