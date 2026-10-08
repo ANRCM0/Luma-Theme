@@ -15,20 +15,16 @@ concurrency:
 
 jobs:
   test-build:
-    name: Test and build (Node ${{ matrix.node }})
+    name: Test and build (Node 22)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['20', '22']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Run tests
@@ -41,10 +37,8 @@ jobs:
           test -d dist/assets
           find dist/assets -name '*.js' -size +0c | grep -q .
       - name: Install Playwright Chromium
-        if: matrix.node == '22'
         run: npx playwright install --with-deps chromium
       - name: Browser end-to-end tests
-        if: matrix.node == '22'
         run: npm run test:e2e
       - name: Build live TXBoard theme bundle
         run: npm run build
@@ -52,10 +46,9 @@ jobs:
           TXBOARD_THEME: 'true'
           TXBOARD_THEME_PREVIEW: 'true'
       - name: Real-mode browser smoke tests (mocked API)
-        if: matrix.node == '22'
         run: npm run test:live
       - name: Upload Playwright report on failure
-        if: failure() && matrix.node == '22'
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -65,7 +58,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload production build
-        if: matrix.node == '22'
         uses: actions/upload-artifact@v4
         with:
           name: viaspeed-theme-dist
