@@ -91,6 +91,7 @@ export const notices=async()=>{
  return collected;
 };
 export const plans=()=>get('/user/plan/fetch');
+export const plan=id=>get('/user/plan/fetch',{id});
 export const orders=()=>get('/user/order/fetch');
 export const orderDetail=(trade_no)=>get('/user/order/detail',{trade_no});
 export const payments=()=>get('/user/order/getPaymentMethod');
