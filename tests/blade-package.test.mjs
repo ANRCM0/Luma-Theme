@@ -35,7 +35,7 @@ test('tagged builds publish checked theme ZIP and checksum as a GitHub Release',
  assert.match(workflow,/softprops\/action-gh-release@v2/);
  assert.match(workflow,/github\.event_name == 'push'/);
  assert.match(workflow,/generate_release_notes: true/);
- assert.match(workflow,/vv-theme-txboard\.zip\.sha256/);
+ assert.match(workflow,/luma-theme\.zip\.sha256/);
  assert.ok(workflow.indexOf('Check packaged version')<workflow.indexOf('Publish GitHub Release'));
  assert.ok(workflow.indexOf('Compile and render packaged Blade template')<workflow.indexOf('Publish GitHub Release'));
 });
