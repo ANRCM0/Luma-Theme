@@ -443,7 +443,7 @@ test('shop groups subscription types and creates an order only after server-side
  await shop.getByRole('button',{name:/套餐对比/}).click();
  await expect(shop.getByRole('table',{name:'已选套餐对比'})).toBeVisible();
  await expect(shop.getByRole('table',{name:'已选套餐对比'})).toContainText('200 GB');
- await page.locator('[data-plan-id="1"]').getByRole('button',{name:/选择这个套餐/}).click();
+ await page.locator('[data-plan-id="1"]').getByRole('button',{name:/立即购买/}).click();
  const purchase=page.getByRole('dialog',{name:'购买 基础套餐'});
  await expect(purchase).toBeVisible();
  await expect(purchase.getByRole('radio',{name:/月付/})).toBeChecked();
