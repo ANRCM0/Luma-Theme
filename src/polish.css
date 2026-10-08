@@ -113,3 +113,21 @@ html{scroll-behavior:smooth;scrollbar-gutter:stable}
  .plans>.product,.shop-empty{animation:none!important}
  .faq-answer{transition:none!important}
 }
+
+/* Floating magnetic header and pointer-aware card feedback */
+.top{position:sticky;top:10px;z-index:50;width:min(calc(100% - 32px),1232px);margin:10px auto 0;border:1px solid rgba(128,171,179,.22);border-radius:18px;background:rgba(255,255,255,.88);box-shadow:0 8px 28px rgba(27,66,75,.075);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);transition:top 280ms var(--motion-ease),width 280ms var(--motion-ease),border-radius 280ms var(--motion-ease),box-shadow 280ms ease,background-color 280ms ease}
+.top.is-scrolled{top:8px;width:min(calc(100% - 48px),1120px);border-radius:20px;box-shadow:0 14px 42px rgba(27,66,75,.15);background:rgba(255,255,255,.94)}
+.top .head-inner{padding-inline:22px}
+.top .desktop-nav button{position:relative;transition:transform 190ms var(--motion-ease),background-color 190ms ease,color 190ms ease}
+@media(hover:hover) and (pointer:fine){
+ .top .desktop-nav button:hover{transform:translateY(-2px)}
+ .top .head-actions>button:hover{transform:translateY(-2px) scale(1.06)}
+ .card:not(.welcome):not(.shop-empty):hover{border-color:rgba(56,162,172,.3)}
+ .menu-item:hover svg:last-child{transform:translateX(3px)}
+}
+.menu-item svg:last-child{transition:transform 220ms var(--motion-ease)}
+.top .desktop-nav button:active,.top .head-actions>button:active{transform:scale(.95)}
+[data-theme=dark] .top{background:rgba(25,36,43,.87);border-color:rgba(158,194,199,.16)}
+[data-theme=dark] .top.is-scrolled{background:rgba(25,36,43,.95);box-shadow:0 14px 42px rgba(0,0,0,.26)}
+@media(max-width:720px){.top,.top.is-scrolled{top:0;width:100%;margin:0;border-radius:0;border-left:0;border-right:0;box-shadow:0 4px 20px rgba(27,66,75,.07)}.top .head-inner{padding-inline:16px}}
+@media(prefers-reduced-motion:reduce){.top,.top .desktop-nav button,.top .head-actions>button,.menu-item svg:last-child{transition:none!important}}
