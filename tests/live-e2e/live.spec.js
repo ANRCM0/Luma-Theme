@@ -10,7 +10,7 @@ test('theme requires the actual login endpoint and rejects login failures',async
      : {status:'fail',message:'账户或密码错误',data:false};
    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
  });
- await page.goto('/theme/vv-theme/');
+ await page.goto('/');
  await page.locator('input[type=email]').fill('sample@example.com');
  await page.locator('input[type=password]').fill('sample-password');
  await page.getByRole('button',{name:'登录',exact:true}).click();
