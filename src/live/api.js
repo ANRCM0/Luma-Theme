@@ -39,7 +39,14 @@ export async function api(path,options={}) {
       ...(body!==undefined?{body:JSON.stringify(body)}:{}),...rest
     });
     const result=await response.json().catch(()=>null);
-    if(!response.ok)throw new ApiError(result?.message||('HTTP '+response.status),response.status);
+    if(!response.ok) {
+      const message=result?.message||('HTTP '+response.status);
+      if(auth&&(response.status===401||(response.status===403&&/login|token|auth|登录|认证|过期/i.test(message)))){
+        clearToken();
+        if(typeof window!=='undefined')window.dispatchEvent(new Event('txboard:unauthorized'));
+      }
+      throw new ApiError(message,response.status);
+    }
     if(result&&typeof result==='object'&&'status' in result) {
       if(result.status!=='success')throw new ApiError(result.message||'请求失败',response.status);
       if(result.data===undefined)throw new ApiError(result.message||'响应缺少数据',response.status);
