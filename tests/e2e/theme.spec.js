@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test.beforeEach(async({page})=>{
-  await page.addInitScript(()=>{localStorage.clear()});
+  await page.addInitScript(()=>{try{localStorage.clear()}catch{}});
   await page.goto('/#/dashboard');
 });
 
