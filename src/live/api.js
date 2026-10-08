@@ -94,6 +94,7 @@ export const plans=()=>get('/user/plan/fetch');
 export const plan=id=>get('/user/plan/fetch',{id});
 export const orders=()=>get('/user/order/fetch');
 export const orderDetail=(trade_no)=>get('/user/order/detail',{trade_no});
+export const orderCheck=(trade_no)=>get('/user/order/check',{trade_no});
 export const payments=()=>get('/user/order/getPaymentMethod');
 export const cancelOrder=(trade_no)=>post('/user/order/cancel',{trade_no});
 export const createOrder=(plan_id,period,coupon_code)=>post('/user/order/save',{plan_id,period,...(coupon_code?{coupon_code}:{})});
