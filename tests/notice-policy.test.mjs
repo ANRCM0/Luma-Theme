@@ -36,6 +36,8 @@ test('tag matching is exact and case-insensitive, with comma-separated alternati
  assert.equal(matchesPopupTag(announcements[1],'promo'),false);
  assert.equal(matchesPopupTag(announcements[2],'important'),false);
  assert.equal(matchesPopupTag({tags:'important'},'important'),false);
+ assert.deepEqual(automaticNotices([{...announcements[0],popup:0}],DEFAULT_NOTICE_CONFIG,account,store(),store()),[]);
+ assert.equal(automaticNotices([{...announcements[0],popup:1}],DEFAULT_NOTICE_CONFIG,account,store(),store()).length,1);
 });
 
 test('once per version respects read history; disabled popup suppresses all auto prompts',()=>{
