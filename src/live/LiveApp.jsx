@@ -217,7 +217,7 @@ export default function LiveApp(){
  }
  async function showOrder(tradeNo){
    setPaymentError('');setPaymentLink('');setWatchingOrder(false);setWatchExpired(false);
-   setDialog('order');
+   setCurrentOrder(null);setDialog('order');
    const order=await act(()=>tx.orderDetail(tradeNo));
    if(!order){setDialog(null);return}
    setCurrentOrder(order);
