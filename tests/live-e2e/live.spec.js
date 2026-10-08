@@ -382,3 +382,118 @@ test('fully depleted plans show an upgrade action before other warnings',async({
  await expect(welcome.getByRole('heading',{name:/流量已用完/})).toBeVisible();
  await expect(welcome.getByRole('button',{name:/查看升级套餐/})).toBeVisible();
 });
+
+
+test('shop compares period prices and creates an order only after server-side confirmation',async({page})=>{
+ const checkoutRequests=[];
+ const plans=[
+  {id:1,name:'基础套餐',show:true,sell:true,transfer_enable:100,device_limit:3,
+   month_price:1000,year_price:9000,quarter_price:2800,content:'<p>快速连接</p>'},
+  {id:2,name:'旗舰套餐',show:true,sell:true,transfer_enable:200,device_limit:5,
+   month_price:2000,year_price:17000,content:'覆盖多种终端'},
+  {id:3,name:'限时免费套餐',show:false,sell:false,transfer_enable:1,month_price:0}
+ ];
+ await page.route('**/api/v1/**',async route=>{
+  const url=new URL(route.request().url());
+  const path=url.pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'套餐测试',frontend_theme:'vv-theme',theme_config:{
+    shop_default_period:'year_price',shop_featured_ids:'2',
+    shop_compare_enabled:'1',shop_show_savings:'1',notice_popup_enabled:'0'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'purchase-test-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:901,email:'shop@example.test',plan_id:0},
+   '/api/v1/user/plan/fetch':plans,
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getSubscribe':{plan_id:0},
+   '/api/v1/user/getStat':[],
+   '/api/v1/user/order/fetch':[],
+   '/api/v1/user/order/detail':{trade_no:'ORDER-SERVER-01',status:0,plan:{id:1,name:'基础套餐'},total_amount:8500,period:'year_price'},
+   '/api/v1/user/order/getPaymentMethod':[{id:5,name:'测试支付',handling_fee_percent:0,handling_fee_fixed:0}]
+  };
+  if(path==='/api/v1/user/order/save'){
+   checkoutRequests.push(JSON.parse(route.request().postData()||'{}'));
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:'ORDER-SERVER-01'})});
+   return;
+  }
+  if(path==='/api/v1/user/coupon/check'){
+   checkoutRequests.push({coupon:JSON.parse(route.request().postData()||'{}')});
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:{type:2,value:15}})});
+   return;
+  }
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('shop@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
+ const shop=page.getByRole('region',{name:'套餐商店'});
+ await expect(shop).toBeVisible();
+ await expect(shop.getByRole('button',{name:'年付',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('[data-plan-id="3"]')).toHaveCount(0);
+ await expect(page.locator('[data-plan-id="2"] .live-shop-recommend')).toContainText('精选套餐');
+ await expect(page.locator('[data-plan-id="1"] .live-shop-price')).toContainText('¥90.00');
+ await expect(page.locator('[data-plan-id="1"] .live-shop-saving')).toContainText('¥30.00');
+ await shop.getByRole('checkbox',{name:'对比 基础套餐'}).check();
+ await shop.getByRole('checkbox',{name:'对比 旗舰套餐'}).check();
+ await shop.getByRole('button',{name:/套餐对比/}).click();
+ await expect(shop.getByRole('table',{name:'已选套餐对比'})).toBeVisible();
+ await expect(shop.getByRole('table',{name:'已选套餐对比'})).toContainText('200 GB');
+ await page.locator('[data-plan-id="1"]').getByRole('button',{name:/选择这个套餐/}).click();
+ const purchase=page.getByRole('dialog',{name:'购买 基础套餐'});
+ await expect(purchase).toBeVisible();
+ await expect(purchase.getByRole('radio',{name:/年付/})).toBeChecked();
+ await expect(purchase.getByLabel('订单基础价格')).toContainText('¥90.00');
+ await purchase.getByLabel('优惠码').fill('AUTUMN');
+ await purchase.getByRole('button',{name:'验证优惠码'}).click();
+ await expect(purchase).toContainText('已验证优惠码');
+ await purchase.getByRole('radio',{name:/月付/}).check();
+ await expect(purchase).not.toContainText('已验证优惠码');
+ await purchase.getByRole('radio',{name:/年付/}).check();
+ await purchase.getByRole('button',{name:/确认并创建订单/}).click();
+ await expect(page.getByRole('dialog',{name:'订单详情'})).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'订单详情'})).toContainText('¥85.00');
+ const order=checkoutRequests.find(x=>x.plan_id===1);
+ expect(order).toEqual({plan_id:1,period:'year_price',coupon_code:'AUTUMN'});
+ const coupon=checkoutRequests.find(x=>x.coupon)?.coupon;
+ expect(coupon).toEqual({code:'AUTUMN',plan_id:1,period:'year_price'});
+});
+
+test('mobile plan filter and comparison remain scroll-safe',async({page})=>{
+ const plans=[
+  {id:1,name:'月付方案',show:true,sell:true,month_price:1200,transfer_enable:40},
+  {id:2,name:'一次性方案',show:true,sell:true,onetime_price:3000,transfer_enable:60},
+  {id:3,name:'年付方案',show:true,sell:true,year_price:9900,transfer_enable:90}
+ ];
+ await page.setViewportSize({width:390,height:844});
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'手机商店',frontend_theme:'vv-theme',theme_config:{shop_default_period:'all',notice_popup_enabled:'0'}},
+   '/api/v1/passport/auth/login':{auth_data:'mobile-shop-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:902,email:'mobile-shop@example.test'},
+   '/api/v1/user/plan/fetch':plans,
+   '/api/v1/user/getSubscribe':{},
+   '/api/v1/user/getStat':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0}
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('mobile-shop@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ await page.getByRole('navigation',{name:'移动端导航'}).getByRole('button',{name:'购买套餐'}).click();
+ const shop=page.getByRole('region',{name:'套餐商店'});
+ await expect(shop.locator('.live-shop-plan')).toHaveCount(3);
+ await shop.getByRole('button',{name:'一次性',exact:true}).click();
+ await expect(shop.locator('.live-shop-plan')).toHaveCount(1);
+ await expect(shop.locator('.live-shop-plan')).toContainText('一次性方案');
+ await shop.getByRole('button',{name:'全部周期'}).click();
+ await expect(shop.locator('.live-shop-plan')).toHaveCount(3);
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+ expect(overflow).toBeLessThanOrEqual(1);
+});
