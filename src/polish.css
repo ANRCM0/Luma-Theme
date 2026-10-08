@@ -61,3 +61,28 @@ button:disabled{cursor:not-allowed;opacity:.55;transform:none}
   .welcome .stats span{font-size:10px}
   .mobile-nav button{gap:3px}
 }
+
+/* Motion system: subtle route entrance, tactile controls, scroll polish */
+:root{--motion-fast:160ms;--motion-normal:260ms;--motion-slow:380ms;--motion-ease:cubic-bezier(.22,1,.36,1)}
+html{scroll-behavior:smooth;scrollbar-gutter:stable}
+.page-transition{animation:page-enter var(--motion-slow) var(--motion-ease) both;transform-origin:50% 0}
+@keyframes page-enter{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes dialog-enter{from{opacity:0;transform:translate3d(0,12px,0) scale(.985)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes backdrop-enter{from{opacity:0}to{opacity:1}}
+.overlay{animation:backdrop-enter var(--motion-fast) ease-out both}
+.dialog{animation:dialog-enter var(--motion-normal) var(--motion-ease) both;transform-origin:center}
+.card{transition:transform var(--motion-normal) var(--motion-ease),box-shadow var(--motion-normal) ease,border-color var(--motion-fast) ease}
+@media(hover:hover) and (pointer:fine){
+ .product:hover,.menu-item:hover{transform:translate3d(0,-4px,0);box-shadow:0 16px 34px rgba(25,82,92,.12)}
+ .dashboard-side>.card:hover,.content-grid>.card:hover{box-shadow:0 12px 32px rgba(25,82,92,.085)}
+ .primary:hover,.secondary:hover{transform:translate3d(0,-2px,0)}
+}
+.primary,.secondary,.desktop-nav button,.mobile-nav button,.filters button,.tabs button,.faq-item>button,.head-actions button{transition:color var(--motion-fast) ease,background-color var(--motion-fast) ease,border-color var(--motion-fast) ease,transform var(--motion-fast) var(--motion-ease),box-shadow var(--motion-fast) ease}
+.primary:active,.secondary:active,.menu-item:active,.mobile-nav button:active{transform:scale(.975)}
+.desktop-nav button.selected,.mobile-nav button[aria-current=page]{transition:background-color var(--motion-normal) ease,color var(--motion-normal) ease}
+.desktop-nav button:focus-visible,.mobile-nav button:focus-visible,.menu-item:focus-visible,.faq-item>button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
+.faq-item>button svg{transition:transform var(--motion-normal) var(--motion-ease)}
+.tabs,.filters{scroll-behavior:smooth;overscroll-behavior-inline:contain}
+.tabs{scrollbar-width:thin}
+@media(max-width:720px){html{scrollbar-gutter:auto}.page-transition{animation-duration:290ms}.product,.menu-item{transition:background-color var(--motion-fast) ease,box-shadow var(--motion-fast) ease}.mobile-nav{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}}
+@media(prefers-reduced-motion:reduce){html,.tabs,.filters{scroll-behavior:auto!important}.page-transition,.overlay,.dialog{animation:none!important}.card,.product,.menu-item,.primary,.secondary,.desktop-nav button,.mobile-nav button,.filters button,.tabs button,.faq-item>button,.faq-item>button svg{transition:none!important;transform:none!important}}
