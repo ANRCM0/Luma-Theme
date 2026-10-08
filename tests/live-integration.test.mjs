@@ -90,3 +90,17 @@ test('order status check sends authenticated, read-only trade number to TXBoard'
   assert.equal(requested.opts.headers.Authorization,'Bearer order-check-token');
  }finally{clearToken();globalThis.fetch=originalFetch}
 });
+
+
+test('a stale 401 from the previous account cannot invalidate a newer login token',async()=>{
+ let resolveOld;
+ globalThis.fetch=()=>new Promise(resolve=>{resolveOld=resolve});
+ try{
+  saveToken('old-account');
+  const pending=api('/user/info');
+  saveToken('new-account');
+  resolveOld(reply({message:'Token expired'},401));
+  await assert.rejects(pending,/Token expired/);
+  assert.equal(getToken(),'Bearer new-account');
+ }finally{clearToken();globalThis.fetch=originalFetch}
+});
