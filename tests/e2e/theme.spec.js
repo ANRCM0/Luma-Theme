@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test.beforeEach(async({page})=>{
-  await page.addInitScript(()=>{try{localStorage.clear()}catch{}});
+  await page.addInitScript(()=>{try{if(!sessionStorage.getItem('viaspeed-e2e-initialized')){localStorage.clear();sessionStorage.setItem('viaspeed-e2e-initialized','1')}}catch{}});
   await page.goto('/#/dashboard');
 });
 
