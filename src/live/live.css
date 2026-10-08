@@ -565,3 +565,118 @@
 @media(prefers-reduced-motion:reduce){
  .live-layout-sidebar .live-sidebar{transition:none}
 }
+
+
+/* Phase 3: data-driven welcome cards. Warnings are rendered from TXBoard
+   subscription facts, not inferred from prices or arbitrary UI events. */
+.live-portal .live-welcome-state{
+ position:relative;
+ height:auto;
+ min-height:320px;
+ padding:32px 34px 26px;
+ display:flex;
+ align-items:center;
+ overflow:hidden;
+ border-radius:18px;
+}
+.live-portal .live-welcome-state .welcome-text{width:100%;max-width:83%}
+.live-portal .live-welcome-state .eyebrow{display:inline-flex;align-items:center;font-size:11px;letter-spacing:.13em}
+.live-portal .live-welcome-state h1{
+ margin:12px 0 10px;
+ font-size:clamp(27px,3vw,39px);
+ line-height:1.22;
+ overflow-wrap:anywhere;
+}
+.live-portal .live-welcome-state .welcome-text>p{margin:0;max-width:48ch;line-height:1.65}
+.live-portal .live-welcome-state .status-pill{
+ display:inline-flex;
+ gap:9px;
+ margin:16px 0 20px;
+ max-width:100%;
+ overflow-wrap:anywhere;
+}
+.live-portal .live-welcome-state .status-pill>svg{flex-shrink:0}
+.live-portal .live-welcome-state .welcome-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.live-portal .live-welcome-state .stats{
+ display:flex;
+ flex-wrap:wrap;
+ gap:16px 30px;
+ margin-top:22px;
+}
+.live-portal .live-welcome-state .stats>div{min-width:90px}
+.live-portal .live-welcome-attention{
+ background:linear-gradient(117deg,#e0f7fa 0%,#f4fcfc 80%);
+ border:1px solid #c8eaf0;
+}
+.live-portal .live-welcome-warning{
+ background:linear-gradient(117deg,#fcecd8 0%,#fff9ef 80%);
+ border:1px solid #f2dcb8;
+}
+.live-portal .live-welcome-warning .eyebrow{color:#a56b27}
+.live-portal .live-welcome-warning .welcome-decor{color:#dca763}
+.live-portal .live-welcome-welcome{
+ background:linear-gradient(117deg,#d9f5ef 0%,#f3fffd 80%);
+ border:1px solid #c5ebe4;
+}
+.live-portal .live-welcome-side{
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ min-width:0;
+ gap:4px;
+}
+.live-portal .live-welcome-side .small-label{font-size:12px;font-weight:650}
+.live-portal .live-welcome-side-heading{
+ display:flex;
+ align-items:center;
+ gap:12px;
+ min-width:0;
+ margin:3px 0 12px;
+ color:#238f9b;
+}
+.live-portal .live-welcome-side-heading strong{
+ overflow-wrap:anywhere;
+ font-size:clamp(19px,2vw,28px);
+ line-height:1.2;
+}
+.live-portal .live-welcome-side .live-traffic{margin:10px 0 16px}
+.live-portal .live-welcome-side .muted{margin-bottom:12px;overflow-wrap:anywhere}
+[data-theme=dark] .live-portal .live-welcome-attention{
+ background:linear-gradient(120deg,#264d57,#1c373e 82%);
+ border-color:#38636e;
+}
+[data-theme=dark] .live-portal .live-welcome-warning{
+ background:linear-gradient(115deg,#59402b,#332d2c 85%);
+ border-color:#7b5b35;
+}
+[data-theme=dark] .live-portal .live-welcome-warning .eyebrow{color:#f4bf78}
+[data-theme=dark] .live-portal .live-welcome-warning .welcome-decor{color:#c78c48}
+[data-theme=dark] .live-portal .live-welcome-welcome{
+ background:linear-gradient(120deg,#1d514c,#1d3738 85%);
+ border-color:#39766b;
+}
+[data-theme=dark] .live-portal .live-welcome-side-heading{color:#88dfe1}
+@media(max-width:1000px){
+ .live-portal .live-welcome-state{padding:27px 24px}
+ .live-portal .live-welcome-state .welcome-text{max-width:92%}
+ .live-portal .live-welcome-state .stats{gap:13px 20px}
+}
+@media(max-width:720px){
+ .live-portal .live-welcome-state{
+  width:100%;
+  min-height:0;
+  padding:27px 22px;
+  align-items:flex-start;
+ }
+ .live-portal .live-welcome-state .welcome-text{max-width:100%}
+ .live-portal .live-welcome-state h1{font-size:clamp(24px,7vw,32px)}
+ .live-portal .live-welcome-state .welcome-text>p{font-size:13px}
+ .live-portal .live-welcome-state .welcome-decor{opacity:.10;right:-20%}
+ .live-portal .live-welcome-state .stats{gap:14px 17px}
+ .live-portal .live-welcome-state .stats>div{flex:1 1 80px;min-width:75px}
+ .live-portal .live-welcome-side{min-height:180px}
+}
+@media(max-width:360px){
+ .live-portal .live-welcome-state .welcome-actions{align-items:stretch;flex-direction:column}
+ .live-portal .live-welcome-state .welcome-actions button{width:100%;min-height:40px}
+}
