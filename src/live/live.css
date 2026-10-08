@@ -1063,3 +1063,72 @@
  .live-portal .live-client-list button{width:calc((100% - 10px)/2)}
  .live-portal .live-welcome-state .stats{gap:8px}
 }
+
+
+/* Luma dashboard refinement: a greeting without duplicated plan data.
+   The plan card owns subscription figures and direct management actions. */
+.live-portal .dashboard-grid{align-items:stretch}
+.live-portal .live-welcome-state{
+ height:auto;
+ min-height:340px;
+ align-items:center;
+ padding:30px 34px;
+}
+.live-portal .live-welcome-state .welcome-text{max-width:76%}
+.live-portal .live-welcome-state h1{margin:12px 0 13px}
+.live-portal .live-welcome-state .welcome-text>p{margin:0;max-width:34ch;line-height:1.65}
+.live-portal .dashboard-side>.live-welcome-side{
+ height:auto;
+ min-height:340px;
+ display:flex;
+ justify-content:center;
+ padding:24px;
+}
+.live-portal .live-current-plan-name{margin:8px 0 13px}
+.live-portal .live-current-plan .live-traffic{margin:9px 0 10px}
+.live-current-plan-expiry{margin:0 0 16px}
+.live-current-plan-badge.is-alert{background:#fff0df;color:#a36631}
+.live-plan-operations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:auto}
+.live-portal .live-plan-operations button{
+ min-width:0;
+ width:100%;
+ min-height:40px;
+ padding:9px 7px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:6px;
+ font-size:12px;
+ line-height:1.4;
+ font-weight:650;
+ white-space:normal;
+ text-align:center;
+ border-radius:9px;
+}
+.live-plan-operations button svg{width:15px;height:15px;flex:none}
+.live-plan-note{font-size:11px;color:#899ba2;line-height:1.45;margin:10px 0 0}
+[data-theme=dark] .live-current-plan-badge.is-alert{background:#553e2b;color:#ffca88}
+[data-theme=dark] .live-plan-note{color:#aebfc6}
+@media(max-width:1000px) and (min-width:721px){
+ .live-portal .live-welcome-state .welcome-text{max-width:90%}
+ .live-portal .dashboard-side>.live-welcome-side{padding:20px}
+ .live-portal .live-plan-operations button{font-size:11px;padding-inline:5px}
+}
+@media(max-width:720px){
+ .live-portal .live-welcome-state{
+  height:auto;
+  min-height:175px;
+  padding:26px 24px;
+  align-items:center;
+ }
+ .live-portal .live-welcome-state .welcome-text{max-width:91%}
+ .live-portal .live-welcome-state .welcome-text>p{font-size:13px}
+ .live-portal .dashboard-side>.live-welcome-side{height:auto;min-height:0;padding:20px}
+ .live-portal .live-current-plan-name{margin:9px 0 12px}
+ .live-plan-operations{margin-top:10px;gap:9px}
+ .live-portal .live-plan-operations button{min-height:42px;font-size:12px}
+}
+@media(max-width:370px){
+ .live-portal .live-plan-operations button{font-size:11px;padding:8px 4px;gap:4px}
+ .live-portal .live-welcome-state{min-height:165px}
+}
