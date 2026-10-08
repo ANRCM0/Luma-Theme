@@ -2,7 +2,8 @@ import React,{useEffect,useState,useCallback,useRef} from 'react';
 import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,PanelLeftOpen,PanelLeftClose,Bell,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
 import QRCode from 'qrcode';
 import * as tx from './api.js';
-import {clientsFor} from './import.js';
+import SubscriptionCenter from './SubscriptionCenter.jsx';
+import {resolveSubscriptionConfig,canAttemptReset} from './subscription-center.js';
 import {resolveThemeAppearance} from './theme-config.js';
 import {resolveNavigationConfig,orderedNavigation,mobileNavigation} from './navigation-config.js';
 import {resolveWelcomeConfig,classifyWelcome} from './welcome-config.js';
@@ -44,8 +45,8 @@ export default function LiveApp(){
  const viewedNoticesRef=useRef(new Set()),autoAttemptedRef=useRef(new Set());
  const [rows,setRows]=useState([]),[ticketRows,setTicketRows]=useState([]),[invite,setInvite]=useState(null);
  const [profileTab,setProfileTab]=useState('基本信息'),[search,setSearch]=useState('');
- const [visibleSub,setVisibleSub]=useState(false),[qr,setQr]=useState(null),[dialog,setDialog]=useState(null);
- const [plan,setPlan]=useState(null),[period,setPeriod]=useState(''),[coupon,setCoupon]=useState(''),[discount,setDiscount]=useState('');
+ const [qr,setQr]=useState(null),[dialog,setDialog]=useState(null);
+ const [plan,setPlan]=useState(null),[period,setPeriod]=useState(''),[coupon,setCoupon]=useState(''),[discount,setDiscount]=useState(''),[resetMode,setResetMode]=useState(false);
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
  const [ticket,setTicket]=useState(null),[reply,setReply]=useState(''),[authTab,setAuthTab]=useState(()=>['register','forget'].includes(queryNow().get('tab'))?queryNow().get('tab'):'login');
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[emailCode,setEmailCode]=useState(''),[inviteCode,setInviteCode]=useState(()=>queryNow().get('code')||'');
@@ -61,6 +62,7 @@ export default function LiveApp(){
  const navConfig=resolveNavigationConfig(guest,window.settings);
  const welcomeConfig=resolveWelcomeConfig(guest,window.settings);
  const catalogConfig=resolveCatalogConfig(guest,window.settings);
+ const subscriptionConfig=resolveSubscriptionConfig(guest,window.settings);
  const sidebarCollapsed=sidebarOverride??navConfig.sidebarCollapsed;
  const visibleNav=orderedNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
  const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
@@ -138,7 +140,40 @@ export default function LiveApp(){
    if(!choices.length){notify('当前套餐没有可购买的周期');return}
    const requested=preferredPeriod||catalogConfig.defaultPeriod;
    const initial=choices.some(([id])=>id===requested)?requested:choices[0][0];
-   setPlan(item);setPeriod(initial);setCoupon('');setDiscount('');setDialog('purchase');
+   setResetMode(false);setPlan(item);setPeriod(initial);setCoupon('');setDiscount('');setDialog('purchase');
+ }
+ async function renewCurrent(){
+   const id=Number(subscription?.plan_id||me?.plan_id);
+   if(!Number.isSafeInteger(id)||id<=0){go('shop');return}
+   const current=await act(()=>tx.plan(id));
+   if(!current)return;
+   const options=availablePeriods(current);
+   if(!options.length){notify('当前套餐没有可用续费周期，可查看其他套餐');go('shop');return}
+   openBuy(current);
+ }
+ async function resetTraffic(){
+   if(!canAttemptReset(subscription,me)){notify('当前订阅不符合流量重置的基本条件');return}
+   const id=Number(subscription?.plan_id||me?.plan_id);
+   // The per-user plan endpoint enforces backend purchase eligibility and
+   // translates reset_traffic from the stored plan prices to reset_price cents.
+   const current=await act(()=>tx.plan(id));
+   if(!current)return;
+   const price=current?.reset_price;
+   if(price===null||price===undefined||!Number.isFinite(Number(price))||Number(price)<0){
+     notify('当前套餐没有开放付费流量重置，请查看套餐或联系客服');
+     return;
+   }
+   if(!window.confirm('流量重置会创建一笔新订单，不会延长套餐有效期。继续吗？'))return;
+   setResetMode(true);setPlan(current);setPeriod('reset_price');
+   setCoupon('');setDiscount('');setDialog('purchase');
+ }
+ async function refreshSubscription(){
+   const response=await act(async()=>{
+     const [freshUser,freshSub]=await Promise.all([tx.user(),tx.subscribe()]);
+     setMe(freshUser);setSubscription(freshSub);
+     return true;
+   },'订阅与流量数据已刷新');
+   return response;
  }
  async function buy(){
    if(!plan||!period)return;
@@ -299,12 +334,8 @@ export default function LiveApp(){
  </div>;
  const overview=classifyWelcome(me,subscription,welcomeConfig);
  const planName=subscription?.plan?.name||'Free';
- const used=overview.used;
- const quota=overview.total;
- const remaining=overview.remaining;
  const activePlans=availableCatalogPlans(offers);
  const featured=activePlans.find(p=>catalogConfig.featuredIds.has(String(p.id)))||activePlans[0];
- const subUrl=subscription?.subscribe_url;
  const inviteCodeValue=invite?.codes?.[0]?.code;
  const inviteLink=inviteCodeValue?(guest.app_url||location.origin).replace(/\/$/,'')+'/#/login?tab=register&code='+encodeURIComponent(inviteCodeValue):'';
  return <div className={'app live-portal '+(navConfig.layout==='sidebar'?'live-layout-sidebar':'live-layout-top')+(sidebarCollapsed?' live-sidebar-collapsed':'')}>{header}
@@ -320,7 +351,12 @@ export default function LiveApp(){
   <div className="dashboard-grid">
    <WelcomeBanner user={me} subscription={subscription} overview={overview} config={welcomeConfig} formatBytes={tx.bytes} formatDate={date} onNavigate={go}/>
    <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go}/></div>
-  </div><div className="section-head"><h2>订阅管理</h2><p>管理你的真实订阅信息和客户端</p></div><div className="content-grid"><Card className="subscribe-card"><div className="section-title"><div><ShieldCheck size={21}/><h3>订阅链接</h3></div><button className="link" disabled={!subUrl} onClick={()=>setQr({title:'订阅二维码',value:subUrl})}><QrCode size={16}/> 二维码</button></div><p className="muted">订阅链接属于敏感凭证，请勿公开分享。</p><div className="subscription"><span className="live-break">{subUrl?(visibleSub?subUrl:'https://••••••••••••••••'):'暂无订阅链接'}</span><button aria-label="显示或隐藏订阅链接" onClick={()=>setVisibleSub(v=>!v)} disabled={!subUrl}>{visibleSub?<EyeOff size={17}/>:<Eye size={17}/>}</button><button aria-label="复制订阅链接" onClick={()=>copy(subUrl)} disabled={!subUrl}><Copy size={17}/></button></div><div className="subhint">已用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</div><div className="live-traffic"><div style={{width:(quota?Math.min(100,used/quota*100):0)+'%'}}/></div><h3 className="client-heading">一键导入客户端</h3><div className="clients"><button disabled={!subUrl} onClick={()=>copy(subUrl)}><div className="client-icon"><Copy size={17}/></div><span>复制链接</span></button>{clientsFor(subUrl,title).map((client,i)=><button key={client.name} onClick={()=>{window.location.href=client.href}}><div className={"client-icon icon"+(i%6)}>{client.name.charAt(0)}</div><span>{client.name}</span></button>)}</div></Card><Card className="my-plan"><div className="section-title"><div><Gift size={21}/><h3>我的套餐</h3></div></div>{subscription?.plan?<div className="empty-plan"><ShieldCheck size={36}/><h3>{subscription.plan.name}</h3><p className="muted">到期时间：{date(subscription.expired_at)}</p><p className="muted">已使用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</p><button className="primary" onClick={()=>go('shop')}>续费或升级</button></div>:<div className="empty-plan"><ShoppingBag size={36}/><h3>暂无有效套餐</h3><button className="primary" onClick={()=>go('shop')}>前往购买</button></div>}</Card></div>
+  </div><div className="section-head"><h2>订阅管理</h2><p>管理你的真实订阅信息和客户端</p></div><SubscriptionCenter subscription={subscription} user={me} siteTitle={title} config={subscriptionConfig} formatBytes={tx.bytes}
+   onQr={url=>setQr({title:'订阅二维码',value:url})}
+   onCopy={copy}
+   onImport={client=>{if(client?.href)window.location.href=client.href}}
+   onRenew={renewCurrent} onReset={resetTraffic} onShop={()=>go('shop')}
+   onRefresh={refreshSubscription} busy={busy}/>
  </>}
  {route==='shop'&&<><Heading en="SUBSCRIPTION PLANS" title="购买套餐">挑选适合自己的订阅方案，订单金额由 TXBoard 服务器确认。</Heading>
   <ShopCatalog plans={activePlans} config={catalogConfig} money={tx.money} onBuy={openBuy}/>
@@ -359,7 +395,7 @@ export default function LiveApp(){
  </Dialog>}
  {qr&&<QrDialog title={qr.title} value={qr.value} onClose={()=>setQr(null)}/>}
  {dialog==='purchase'&&plan&&<Dialog title={'购买 '+plan.name} onClose={()=>setDialog(null)} wide>
-  <PurchaseForm plan={plan} period={period} setPeriod={setPeriod} coupon={coupon} setCoupon={setCoupon} discount={discount} setDiscount={setDiscount} busy={busy} formatMoney={tx.money} onVerify={async()=>{
+  <PurchaseForm resetMode={resetMode} plan={plan} period={period} setPeriod={setPeriod} coupon={coupon} setCoupon={setCoupon} discount={discount} setDiscount={setDiscount} busy={busy} formatMoney={tx.money} onVerify={async()=>{
    const result=await act(()=>tx.checkCoupon(coupon.trim(),plan.id,period));
    if(result)setDiscount(result.type===2?String(result.value)+'%':tx.money(result.value));
   }} onSubmit={buy}/>
