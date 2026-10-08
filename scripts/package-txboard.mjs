@@ -1,0 +1,15 @@
+import {readFileSync,writeFileSync,mkdirSync,cpSync,rmSync} from 'node:fs';
+import {join} from 'node:path';
+const html=readFileSync('dist/index.html','utf8');
+const out='theme-package';
+rmSync(out,{recursive:true,force:true});
+mkdirSync(out,{recursive:true});
+cpSync('dist/assets',join(out,'assets'),{recursive:true});
+const script=[...html.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*><\/script>/g)].map(m=>m[1]);
+const css=[...html.matchAll(/<link\b[^>]*href="([^"]+\.css)"[^>]*>/g)].map(m=>m[1]);
+if(!script.length||!css.length||[...script,...css].some(p=>!p.startsWith('/theme/vv-theme/assets/')))throw Error('Unexpected Vite asset paths');
+const title='{{ $title }}';
+const blade='<!doctype html>\n<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title>\n'+css.map(p=>'<link rel="stylesheet" href="'+p+'">').join('\n')+'\n'+script.map(p=>'<script type="module" crossorigin src="'+p+'"></script>').join('\n')+'\n</head><body><div id="root"></div></body></html>\n';
+writeFileSync(join(out,'dashboard.blade.php'),blade);
+writeFileSync(join(out,'config.json'),JSON.stringify({name:'vv-theme',version:process.env.THEME_VERSION||'0.1.0',description:'React user theme for TXBoard (integration preview)',author:'ANRCM0',compatibility:{txboard:'*'},configs:[]},null,2)+'\n');
+console.log('TXBoard package staged:',script.length,'scripts,',css.length,'stylesheets');
