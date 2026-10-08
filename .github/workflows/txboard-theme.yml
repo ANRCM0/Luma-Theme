@@ -24,7 +24,7 @@ jobs:
       - name: Stage Theme Package v1
         run: node scripts/package-txboard.mjs
         env:
-          THEME_VERSION: '0.3.0'
+          THEME_VERSION: '0.4.0'
       - name: Create installable ZIP
         run: cd theme-package && zip -qr ../vv-theme-txboard.zip .
       - uses: actions/upload-artifact@v4
