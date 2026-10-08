@@ -464,7 +464,7 @@ export default function LiveApp(){
   <div className="dashboard-grid">
    <WelcomeBanner user={me} subscription={subscription} overview={overview} config={welcomeConfig} formatBytes={tx.bytes} formatDate={date} onNavigate={go}/>
    <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go}/></div>
-  </div><div className="section-head"><h2>订阅管理</h2><p>管理你的真实订阅信息和客户端</p></div><SubscriptionCenter subscription={subscription} user={me} siteTitle={title} config={subscriptionConfig} formatBytes={tx.bytes}
+  </div><div className="section-head live-subscription-section-head"><h2>订阅管理</h2></div><SubscriptionCenter subscription={subscription} user={me} siteTitle={title} config={subscriptionConfig} formatBytes={tx.bytes}
    onQr={url=>setQr({title:'订阅二维码',value:url})}
    onCopy={copy}
    onImport={client=>{if(client?.href)window.location.href=client.href}}
