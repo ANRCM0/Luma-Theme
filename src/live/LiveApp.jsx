@@ -10,6 +10,8 @@ import {resolveWelcomeConfig,classifyWelcome} from './welcome-config.js';
 import {WelcomeBanner,WelcomeSecondaryCard} from './WelcomeCards.jsx';
 import ShopCatalog from './ShopCatalog.jsx';
 import PurchaseForm from './PurchaseForm.jsx';
+import {ExistingOrderDialog,OrderPaymentBody} from './OrderPayment.jsx';
+import {firstBlockingOrder,isBlockingOrder,isTerminalOrder,normalizeOrderStatus,STATUS_POLL_MS,MAX_STATUS_POLLS} from './order-flow.js';
 import {availableCatalogPlans,planPeriods,planPrice,resolveCatalogConfig} from './catalog.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
@@ -48,6 +50,9 @@ export default function LiveApp(){
  const [qr,setQr]=useState(null),[dialog,setDialog]=useState(null);
  const [plan,setPlan]=useState(null),[period,setPeriod]=useState(''),[coupon,setCoupon]=useState(''),[discount,setDiscount]=useState(''),[resetMode,setResetMode]=useState(false);
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
+ const [blockingOrder,setBlockingOrder]=useState(null),[paying,setPaying]=useState(false),[paymentError,setPaymentError]=useState(''),[paymentLink,setPaymentLink]=useState('');
+ const [watchingOrder,setWatchingOrder]=useState(false),[watchExpired,setWatchExpired]=useState(false);
+ const createLockRef=useRef(false),payLockRef=useRef(false);
  const [ticket,setTicket]=useState(null),[reply,setReply]=useState(''),[authTab,setAuthTab]=useState(()=>['register','forget'].includes(queryNow().get('tab'))?queryNow().get('tab'):'login');
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[emailCode,setEmailCode]=useState(''),[inviteCode,setInviteCode]=useState(()=>queryNow().get('code')||'');
  const [showAuthPassword,setShowAuthPassword]=useState(false);
@@ -176,49 +181,106 @@ export default function LiveApp(){
    return response;
  }
  async function buy(){
-   if(!plan||!period)return;
-   const trade=await act(async()=>{
-     const all=await tx.orders();
-     const blocking=Array.isArray(all)?all.find(o=>o.status===0||o.status===1):null;
-     if(blocking){
-       if(blocking.status===1)throw Error('有正在开通中的订单，请稍后');
-       if(!window.confirm('存在未支付订单，取消旧订单并继续吗？'))return null;
-       await tx.cancelOrder(blocking.trade_no);
-     }
-     return tx.createOrder(plan.id,period,coupon.trim());
-   },'订单已创建');
-   if(trade){setDialog(null);await showOrder(trade)}
+   if(!plan||!period||createLockRef.current||busy)return;
+   createLockRef.current=true;
+   try{
+     const trade=await act(async()=>{
+       const existing=firstBlockingOrder(await tx.orders());
+       if(existing){
+         setBlockingOrder(existing);setDialog('order-conflict');
+         return null;
+       }
+       return tx.createOrder(plan.id,period,coupon.trim());
+     });
+     if(trade){notify('订单已创建');await showOrder(trade)}
+   }finally{createLockRef.current=false}
+ }
+ async function abandonAndCreate(){
+   if(!blockingOrder||normalizeOrderStatus(blockingOrder.status)!==0||createLockRef.current||busy)return;
+   if(!window.confirm('确定取消旧订单并创建新订单吗？此操作不能撤销。'))return;
+   createLockRef.current=true;
+   try{
+     const trade=await act(async()=>{
+       // Verify the status again before cancellation to avoid racing a payment.
+       const current=await tx.orderDetail(blockingOrder.trade_no);
+       if(normalizeOrderStatus(current?.status)!==0){
+         throw Error('旧订单状态已变化，请先查看原订单');
+       }
+       await tx.cancelOrder(blockingOrder.trade_no);
+       const another=firstBlockingOrder(await tx.orders());
+       if(another)throw Error('还有待处理订单，请先完成原订单');
+       return tx.createOrder(plan.id,period,coupon.trim());
+     });
+     if(trade){setBlockingOrder(null);notify('新订单已创建');await showOrder(trade)}
+   }finally{createLockRef.current=false}
  }
  async function showOrder(tradeNo){
+   setPaymentError('');setPaymentLink('');setWatchingOrder(false);setWatchExpired(false);
    setDialog('order');
    const order=await act(()=>tx.orderDetail(tradeNo));
-   if(!order)return;
+   if(!order){setDialog(null);return}
    setCurrentOrder(order);
-   if(order.status===0){
+   if(normalizeOrderStatus(order.status)===0){
      const paymentList=await tx.payments().catch(()=>[]);
-     setMethods(paymentList||[]);
+     setMethods(Array.isArray(paymentList)?paymentList:[]);
      setMethod(String(order.payment_id||paymentList?.[0]?.id||''));
    }else{setMethods([]);setMethod('')}
  }
+ async function refreshOrderStatus(){
+   if(!currentOrder?.trade_no||payLockRef.current)return;
+   const trade=currentOrder.trade_no;
+   const detail=await act(()=>tx.orderDetail(trade));
+   if(!detail)return;
+   setCurrentOrder(detail);
+   if(isTerminalOrder(detail.status)){
+     setWatchingOrder(false);setWatchExpired(false);setPaymentLink('');
+     await Promise.all([loadSection('orders'),loadMain()]).catch(()=>{});
+   }
+ }
+ async function cancelCurrentOrder(){
+   if(!currentOrder||payLockRef.current||busy||normalizeOrderStatus(currentOrder.status)!==0)return;
+   if(!window.confirm('确定取消该订单吗？'))return;
+   const check=await act(()=>tx.orderCheck(currentOrder.trade_no));
+   if(check===null)return;
+   if(normalizeOrderStatus(check)!==0){notify('订单状态已变化，正在刷新');await showOrder(currentOrder.trade_no);return}
+   const result=await act(()=>tx.cancelOrder(currentOrder.trade_no),'订单已取消');
+   if(result!==null)await showOrder(currentOrder.trade_no);
+ }
  async function pay(){
-   if(!currentOrder)return;
-   const selected=methods.find(x=>String(x.id)===method);
-   if(selected?.payment==='StripeCredit'){
-     window.location.assign('/user-spa/#/order/'+encodeURIComponent(currentOrder.trade_no));
-     return;
-   }
-   const result=await act(()=>tx.checkout(currentOrder.trade_no,method?Number(method):undefined));
-   if(!result)return;
-   if(result.type===0 && typeof result.data==='string'){setQr({title:'支付二维码',value:result.data});notify('请在支付完成后刷新订单状态');return}
-   if(result.type===1 && typeof result.data==='string'){
-     const url=tx.safeExternal(result.data);
-     if(!url){fail(Error('支付平台返回了不安全的跳转地址'));return}
-     const page=window.open(url,'_blank','noopener,noreferrer');
-     if(!page)notify('支付页面可能被弹窗拦截，请在订单中重试');
-     return;
-   }
-   await showOrder(currentOrder.trade_no);
-   void loadMain();
+   if(!currentOrder?.trade_no||normalizeOrderStatus(currentOrder.status)!==0||payLockRef.current||busy)return;
+   payLockRef.current=true;setPaying(true);setPaymentError('');setPaymentLink('');
+   try{
+     const trade=currentOrder.trade_no;
+     const checked=normalizeOrderStatus(await tx.orderCheck(trade));
+     if(checked!==0){
+       await showOrder(trade);
+       setPaymentError('订单状态已更新，无需重复支付。');
+       return;
+     }
+     const selected=methods.find(x=>String(x.id)===String(method));
+     if(selected?.payment==='StripeCredit'){
+       window.location.assign('/user-spa/#/order/'+encodeURIComponent(trade));
+       return;
+     }
+     const result=await tx.checkout(trade,method?Number(method):undefined);
+     if(result.type===0&&typeof result.data==='string'){
+       setQr({title:'支付二维码',value:result.data});
+       notify('请扫码支付，系统将自动查询支付状态');
+       return;
+     }
+     if(result.type===1&&typeof result.data==='string'){
+       const url=tx.safeExternal(result.data);
+       if(!url)throw Error('支付平台返回了不安全的跳转地址');
+       setPaymentLink(url);
+       const opened=window.open(url,'_blank','noopener,noreferrer');
+       if(!opened)notify('如果支付页面未打开，请使用订单中的安全支付链接');
+       return;
+     }
+     await showOrder(trade);
+     void loadMain();
+   }catch(error){
+     setPaymentError(error?.message||'支付请求未成功，请稍后重试');
+   }finally{payLockRef.current=false;setPaying(false)}
  }
  async function createTicket(e){
    e.preventDefault();const data=new FormData(e.currentTarget);
@@ -296,6 +358,42 @@ export default function LiveApp(){
   openNotice('popup',item);
  },[session,me,news,noticeOpen,dialog,qr,route,noticeRevision,
     noticeConfig.popupEnabled,noticeConfig.scope,noticeConfig.tag,noticeConfig.frequency]);
+ // Bounded, read-only status checks. Never re-submit checkout or order-save.
+ useEffect(()=>{
+   if(!session||dialog!=='order'||!currentOrder?.trade_no||!isBlockingOrder(currentOrder.status)){
+     setWatchingOrder(false);
+     return;
+   }
+   let alive=true,running=false,attempts=0;
+   const trade=currentOrder.trade_no;
+   setWatchingOrder(true);setWatchExpired(false);
+   const check=async()=>{
+     if(!alive||running||document.visibilityState==='hidden')return;
+     if(attempts>=MAX_STATUS_POLLS){
+       if(alive){setWatchingOrder(false);setWatchExpired(true)}
+       clearInterval(timer);
+       return;
+     }
+     attempts++;running=true;
+     try{
+       const result=normalizeOrderStatus(await tx.orderCheck(trade));
+       if(!alive||result===null)return;
+       if(result!==normalizeOrderStatus(currentOrder.status)){
+         const detail=await tx.orderDetail(trade).catch(()=>null);
+         if(!alive)return;
+         setCurrentOrder(prev=>prev?.trade_no===trade?(detail||{...prev,status:result}):prev);
+         if(isTerminalOrder(result)){
+           setWatchingOrder(false);setWatchExpired(false);setPaymentLink('');
+           void loadSection('orders');void loadMain();
+         }
+       }
+     }catch{
+       // Network problems do not imply payment failure. Manual refresh stays available.
+     }finally{running=false}
+   };
+   const timer=setInterval(()=>void check(),STATUS_POLL_MS);
+   return ()=>{alive=false;clearInterval(timer)};
+ },[session,dialog,currentOrder?.trade_no,currentOrder?.status,loadMain,loadSection]);
  const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&navConfig.layout==='top'&&<nav className="desktop-nav" aria-label="主导航">{visibleNav.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
@@ -400,7 +498,15 @@ export default function LiveApp(){
    if(result)setDiscount(result.type===2?String(result.value)+'%':tx.money(result.value));
   }} onSubmit={buy}/>
  </Dialog>}
- {dialog==='order'&&currentOrder&&<Dialog title="订单详情" onClose={()=>{setDialog(null);loadSection('orders')}} wide><div className="live-order"><p>订单号：<strong className="live-break">{currentOrder.trade_no}</strong></p><p>套餐：{currentOrder.plan?.name||currentOrder.plan_id}</p><p>周期：{currentOrder.period}</p><p>金额：<strong>{tx.money(currentOrder.total_amount)}</strong></p>{methods.find(m=>String(m.id)===method)&&<p>支付手续费（估算）：{tx.money(Math.round(Number(currentOrder.total_amount||0)*Number(methods.find(m=>String(m.id)===method)?.handling_fee_percent||0)/100)+Number(methods.find(m=>String(m.id)===method)?.handling_fee_fixed||0))}</p>}<p>状态：{status(currentOrder.status)}</p></div>{currentOrder.status===0&&<><div className="field"><label>支付方式</label><select value={method} onChange={e=>setMethod(e.target.value)} disabled={Boolean(currentOrder.payment_id)}>{!methods.length&&<option value="">无在线支付方式（尝试余额支付）</option>}{methods.map(p=><option key={p.id} value={String(p.id)}>{p.name}</option>)}</select></div>{methods.find(m=>String(m.id)===method)?.payment==='StripeCredit'&&<p className="muted">Stripe 信用卡支付将由 TXBoard 安全支付组件完成。</p>}<button className="primary wide" disabled={busy} onClick={pay}>立即支付</button><button className="secondary wide" onClick={async()=>{if(!window.confirm('确定取消该订单吗？'))return;const result=await act(()=>tx.cancelOrder(currentOrder.trade_no),'订单已取消');if(result!==null)await showOrder(currentOrder.trade_no)}}>取消订单</button></>}<button className="secondary wide" onClick={()=>showOrder(currentOrder.trade_no)}>刷新订单状态</button></Dialog>}
+ {dialog==='order-conflict'&&blockingOrder&&<Dialog title="继续处理已有订单" onClose={()=>setDialog('purchase')} wide>
+  <ExistingOrderDialog order={blockingOrder} busy={busy} onContinue={()=>showOrder(blockingOrder.trade_no)}
+    onCancel={abandonAndCreate} onDismiss={()=>setDialog('purchase')}/>
+ </Dialog>}
+ {dialog==='order'&&currentOrder&&<Dialog title="订单详情" onClose={()=>{setDialog(null);void loadSection('orders')}} wide>
+  <OrderPaymentBody order={currentOrder} methods={methods} method={method} onMethod={value=>{setMethod(value);setPaymentError('');setPaymentLink('')}}
+   paying={paying} busy={busy} watching={watchingOrder} watchExpired={watchExpired} paymentError={paymentError} paymentLink={paymentLink}
+   onPay={pay} onCancel={cancelCurrentOrder} onRefresh={refreshOrderStatus} money={tx.money} statusLabel={status}/>
+ </Dialog>}
  {dialog==='ticket-create'&&<Dialog title="创建工单" onClose={()=>setDialog(null)}><form onSubmit={createTicket}><div className="field"><label>工单主题</label><input name="title" required maxLength="100"/></div><div className="field"><label>优先级</label><select name="level" defaultValue="1"><option value="0">低</option><option value="1">普通</option><option value="2">高</option></select></div><div className="field"><label>问题描述</label><textarea name="description" minLength="5" maxLength="2000" rows="5" required/></div><button className="primary wide" disabled={busy}>提交工单</button></form></Dialog>}
  {dialog==='ticket-detail'&&ticket&&<Dialog title={ticket.subject} onClose={()=>setDialog(null)} wide><p className="muted">工单 #{ticket.id} · {ticket.status===1?'已关闭':'处理中'}</p><div className="live-thread">{(ticket.message||[]).map(m=><div key={m.id} className={'live-message '+(m.is_me?'mine':'')}><strong>{m.is_me?'我':'客服'}</strong><p>{m.message}</p><small>{date(m.created_at)}</small></div>)}</div>{ticket.status===0&&<form onSubmit={sendReply}><div className="field"><label>回复</label><textarea rows="3" value={reply} required onChange={e=>setReply(e.target.value)}/></div><button className="primary" disabled={busy||!reply.trim()}>发送回复</button><button className="secondary" type="button" disabled={busy} onClick={closeCurrent}>关闭工单</button></form>}</Dialog>}
  </div>
