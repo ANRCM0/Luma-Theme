@@ -113,7 +113,7 @@ test('checkout errors are retryable, safe external link remains available and st
  await expect(detail.getByRole('alert')).toContainText('支付网关暂时无法连接');
  await detail.getByRole('button',{name:'立即支付'}).click();
  await expect(detail.getByRole('link',{name:/手动打开安全支付链接/})).toHaveAttribute('href','https://pay.example.test/order');
- await expect(detail.getByText('订单已完成')).toBeVisible({timeout:16000});
+ await expect(detail.getByText('订单已完成',{exact:true})).toBeVisible({timeout:16000});
  await expect(detail.getByRole('button',{name:'立即支付'})).toHaveCount(0);
  expect(checkouts).toBe(2);
  expect(saved).toBe(1);
