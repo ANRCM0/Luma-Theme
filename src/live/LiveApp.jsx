@@ -1,5 +1,5 @@
 import React,{useEffect,useState,useCallback} from 'react';
-import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
+import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
 import QRCode from 'qrcode';
 import * as tx from './api.js';
 import {clientsFor} from './import.js';
@@ -37,6 +37,7 @@ export default function LiveApp(){
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
  const [ticket,setTicket]=useState(null),[reply,setReply]=useState(''),[authTab,setAuthTab]=useState(()=>['register','forget'].includes(queryNow().get('tab'))?queryNow().get('tab'):'login');
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[emailCode,setEmailCode]=useState(''),[inviteCode,setInviteCode]=useState(()=>queryNow().get('code')||'');
+ const [showAuthPassword,setShowAuthPassword]=useState(false);
  const [oldPass,setOldPass]=useState(''),[newPass,setNewPass]=useState(''),[repeatPass,setRepeatPass]=useState('');
  const notify=useCallback(msg=>setToast(String(msg)),[]);
  const fail=useCallback(err=>{setError(err?.message||'请求失败')},[]);
@@ -187,11 +188,41 @@ export default function LiveApp(){
    catch{fail(Error('复制失败，请检查剪贴板权限'))}
  }
  const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions"><button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
- if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
- if(!session)return <div className="app live-portal live-login" style={window.settings?.background_url?{backgroundImage:"linear-gradient(#10252daa,#10252daa),url("+JSON.stringify(window.settings.background_url)+")",backgroundSize:"cover"}:{}}>{header}<main className="login-card"><h1>{authTab==='login'?'登录 ':authTab==='register'?'注册 ':'重置密码 '}{title}</h1><p>{guest.app_description||window.settings?.description||'欢迎使用 TXBoard'}</p>{error&&<p role="alert" className="live-error">{error}</p>}
-   {Number(guest.is_captcha)===1?<><p className="muted">站点已启用验证码，请使用 TXBoard 原生登录界面完成安全验证。登录成功后可返回本主题。</p><a className="primary wide live-link" href={'/user-spa/#/login'+(authTab==='register'?'?tab=register':authTab==='forget'?'?tab=forget':'')}>前往安全登录 / 注册</a></>:
-   <form onSubmit={signIn}><label>邮箱地址<input value={email} type="email" autoComplete="username" required onChange={e=>setEmail(e.target.value)} placeholder="请输入邮箱"/></label><label>{authTab==='forget'?'新密码':'密码'}<input type="password" autoComplete={authTab==='login'?'current-password':'new-password'} minLength={authTab==='login'?1:8} required value={password} onChange={e=>setPassword(e.target.value)}/></label>{authTab!=='login'&&<label>确认密码<input type="password" required minLength={8} value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>}{authTab==='register'&&Number(guest.is_invite_force)===1&&<label>邀请码<input value={inviteCode} required onChange={e=>setInviteCode(e.target.value)}/></label>}{(authTab==='forget'||(authTab==='register'&&Number(guest.is_email_verify)===1))&&<label>邮箱验证码<div className="live-row"><input required value={emailCode} onChange={e=>setEmailCode(e.target.value)}/><button type="button" className="secondary" disabled={busy||!email.trim()} onClick={()=>act(()=>tx.sendVerify(email.trim(),authTab==='forget'?'forget':'register'),'验证码已发送')}>发送验证码</button></div></label>}{authTab==='register'&&guest.tos_url&&<p className="muted">注册即表示你已阅读 <a href={tx.safeExternal(guest.tos_url)||'#'} target="_blank" rel="noopener noreferrer">服务条款</a></p>}<button type="submit" disabled={busy} className="primary wide">{busy?'提交中…':authTab==='login'?'登录':authTab==='register'?'注册账号':'重置密码'}</button></form>}
-   <p className="live-auth-options">{authTab!=='login'&&<button onClick={()=>{setError('');setAuthTab('login')}}>返回登录</button>}{authTab==='login'&&<><button onClick={()=>{setError('');setAuthTab('forget')}}>忘记密码？</button>{Number(guest.register_enable)!==0&&Number(guest.stop_register)!==1&&<button onClick={()=>{setError('');setAuthTab('register')}}>立即注册</button>}</>}</p>
+ if(!ready)return <div className="app live-portal">{head
+ if(!session)return <div className="app live-portal live-login" style={window.settings?.background_url?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(window.settings.background_url)+")",backgroundSize:"cover"}:{}}>
+  {header}
+  <main className="login-card live-auth-card" aria-labelledby="live-auth-title">
+   <div className="live-auth-intro">
+    <div className="live-auth-symbol" aria-hidden="true"><ShieldCheck size={28} strokeWidth={1.8}/></div>
+    <div className="live-auth-eyebrow">{title} · 账户中心</div>
+    <h1 id="live-auth-title">{authTab==='login'?'欢迎回来':authTab==='register'?'创建您的账号':'找回账号密码'}</h1>
+    <p className="live-auth-description">{authTab==='login'?'登录后即可管理订阅、订单与服务支持。':authTab==='register'?'填写以下信息，开启您的服务体验。':'通过邮箱验证码重置您的登录密码。'}</p>
+   </div>
+   {error&&<p role="alert" className="live-error">{error}</p>}
+   {Number(guest.is_captcha)===1
+    ?<div className="live-auth-captcha"><p>本站启用了安全验证码，请前往受保护的登录页面完成验证。</p><a className="primary wide live-link" href={'/user-spa/#/login'+(authTab==='register'?'?tab=register':authTab==='forget'?'?tab=forget':'')}>前往安全登录 / 注册 <ArrowRight size={17}/></a></div>
+    :<form className="live-auth-form" onSubmit={signIn}>
+      <label className="live-auth-field">
+       <span className="live-auth-label">邮箱地址</span>
+       <span className="live-auth-input-wrap"><Mail size={19} aria-hidden="true"/><input aria-label="邮箱地址" value={email} type="email" inputMode="email" autoComplete="username" required onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></span>
+      </label>
+      <label className="live-auth-field">
+       <span className="live-auth-label">{authTab==='forget'?'新密码':'登录密码'}</span>
+       <span className="live-auth-input-wrap"><LockKeyhole size={19} aria-hidden="true"/><input aria-label={authTab==='forget'?'新密码':'登录密码'} type={showAuthPassword?'text':'password'} autoComplete={authTab==='login'?'current-password':'new-password'} minLength={authTab==='login'?1:8} required value={password} onChange={e=>setPassword(e.target.value)} placeholder={authTab==='forget'?'至少 8 位字符':'请输入密码'}/><button className="live-auth-reveal" type="button" aria-label={showAuthPassword?'隐藏密码':'显示密码'} aria-pressed={showAuthPassword} onClick={()=>setShowAuthPassword(v=>!v)}>{showAuthPassword?<EyeOff size={19}/>:<Eye size={19}/>}</button></span>
+      </label>
+      {authTab!=='login'&&<label className="live-auth-field"><span className="live-auth-label">确认密码</span><span className="live-auth-input-wrap"><LockKeyhole size={19} aria-hidden="true"/><input type="password" aria-label="确认密码" autoComplete="new-password" minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="请再次输入密码"/></span></label>}
+      {authTab==='register'&&Number(guest.is_invite_force)===1&&<label className="live-auth-field"><span className="live-auth-label">邀请码</span><span className="live-auth-input-wrap"><Gift size={19} aria-hidden="true"/><input aria-label="邀请码" value={inviteCode} required onChange={e=>setInviteCode(e.target.value)} placeholder="请输入邀请码"/></span></label>}
+      {(authTab==='forget'||(authTab==='register'&&Number(guest.is_email_verify)===1))&&<label className="live-auth-field"><span className="live-auth-label">邮箱验证码</span><span className="live-auth-input-wrap live-auth-code"><input aria-label="邮箱验证码" required value={emailCode} onChange={e=>setEmailCode(e.target.value)} placeholder="请输入验证码"/><button type="button" className="live-auth-send-code" disabled={busy||!email.trim()} onClick={()=>act(()=>tx.sendVerify(email.trim(),authTab==='forget'?'forget':'register'),'验证码已发送')}>发送验证码</button></span></label>}
+      {authTab==='register'&&guest.tos_url&&<p className="live-auth-terms">注册即表示你已阅读并同意 <a href={tx.safeExternal(guest.tos_url)||'#'} target="_blank" rel="noopener noreferrer">服务条款</a></p>}
+      <button type="submit" disabled={busy} className="primary wide live-auth-submit">{busy?'提交中…':authTab==='login'?'登录':authTab==='register'?'注册账号':'重置密码'} {!busy&&<ArrowRight size={18}/>}</button>
+     </form>}
+   <div className="live-auth-options">
+    {authTab!=='login'&&<button type="button" onClick={()=>{setError('');setAuthTab('login');setShowAuthPassword(false)}}> <ArrowRight className="live-auth-back-icon" size={15}/> 返回登录</button>}
+    {authTab==='login'&&<><button type="button" onClick={()=>{setError('');setAuthTab('forget');setShowAuthPassword(false)}}>忘记密码？</button>{Number(guest.register_enable)!==0&&Number(guest.stop_register)!==1&&<button type="button" onClick={()=>{setError('');setAuthTab('register');setShowAuthPassword(false)}}>注册新账号 <ArrowRight size={15}/></button>}</>}
+   </div>
+  </main>
+  <p className="live-auth-footnote"><ShieldCheck size={15} aria-hidden="true"/> 您的账号信息通过安全连接传输</p>
+ </div>;('');setAuthTab('register')}}>立即注册</button>}</>}</p>
  </main></div>;
  const planName=subscription?.plan?.name||'Free';
  const used=Number(subscription?.u||me?.u||0)+Number(subscription?.d||me?.d||0);
