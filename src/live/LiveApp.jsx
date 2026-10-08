@@ -1,10 +1,11 @@
-import React,{useEffect,useState,useCallback} from 'react';
+import React,{useEffect,useState,useCallback,useRef} from 'react';
 import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,Bell,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
 import QRCode from 'qrcode';
 import * as tx from './api.js';
 import {clientsFor} from './import.js';
 import {resolveThemeAppearance} from './theme-config.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
+import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
 import './live.css';
 
 const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu]];
@@ -33,6 +34,8 @@ export default function LiveApp(){
  const [guest,setGuest]=useState({}),[me,setMe]=useState(null),[subscription,setSubscription]=useState(null);
  const [offers,setOffers]=useState([]),[news,setNews]=useState([]),[stats,setStats]=useState([]);
  const [noticeOpen,setNoticeOpen]=useState(false),[selectedNotice,setSelectedNotice]=useState(0),[noticeRevision,setNoticeRevision]=useState(0);
+ const [noticeMode,setNoticeMode]=useState('popup'),[noticeFilter,setNoticeFilter]=useState('all');
+ const viewedNoticesRef=useRef(new Set()),autoAttemptedRef=useRef(new Set());
  const [rows,setRows]=useState([]),[ticketRows,setTicketRows]=useState([]),[invite,setInvite]=useState(null);
  const [filter,setFilter]=useState('全部'),[profileTab,setProfileTab]=useState('基本信息'),[search,setSearch]=useState('');
  const [visibleSub,setVisibleSub]=useState(false),[qr,setQr]=useState(null),[dialog,setDialog]=useState(null);
@@ -48,6 +51,7 @@ export default function LiveApp(){
  const title=guest.app_name||window.settings?.title||'TXBoard';
  const appearance=resolveThemeAppearance(guest,window.settings,location.origin);
  const themeColor=appearance.color;
+ const noticeConfig=resolveNoticeConfig(guest,window.settings);
  const go=useCallback(next=>{setError('');setDialog(null);setQr(null);location.hash='/'+next;setRoute(next);window.scrollTo({top:0,behavior:'instant'})},[]);
  useEffect(()=>{const cb=()=>{setRoute(routeNow());setError('')};window.addEventListener('hashchange',cb);return()=>window.removeEventListener('hashchange',cb)},[]);
  useEffect(()=>{const expire=()=>{setSession(false);setMe(null);setSubscription(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
@@ -94,7 +98,7 @@ export default function LiveApp(){
    }catch(e){fail(e)}
  },[fail]);
  useEffect(()=>{if(session)void loadSection(route)},[session,route,loadSection]);
- const logout=()=>{tx.clearToken();setSession(false);setMe(null);setSubscription(null);setNews([]);setNoticeOpen(false);setRows([]);setTicketRows([]);go('login');notify('已安全退出')};
+ const logout=()=>{tx.clearToken();setSession(false);setMe(null);setSubscription(null);setNews([]);setNoticeOpen(false);viewedNoticesRef.current.clear();setRows([]);setTicketRows([]);go('login');notify('已安全退出')};
  const act=async(fn,success)=>{
    setBusy(true);setError('');
    try{const result=await fn();if(success)notify(success);return result}
@@ -192,20 +196,56 @@ export default function LiveApp(){
    catch{fail(Error('复制失败，请检查剪贴板权限'))}
  }
  const unseen=unseenNotices(news,window.localStorage,me);
+ const visibleNotices=noticeMode==='center'&&noticeFilter==='unread'?unseen:news;
+ const currentNotice=visibleNotices.includes(news[selectedNotice])?news[selectedNotice]:visibleNotices[0];
+ const selectedPosition=visibleNotices.indexOf(currentNotice);
+ const selectNotice=(item)=>{
+  const index=news.indexOf(item);
+  if(index<0)return;
+  setSelectedNotice(index);
+  const version=noticeVersion(item);
+  if(version)viewedNoticesRef.current.add(version);
+ };
+ const openNotice=(mode='center',item=news[0])=>{
+  setNoticeMode(mode);
+  setNoticeFilter('all');
+  viewedNoticesRef.current=new Set();
+  if(item)selectNotice(item);
+  else setSelectedNotice(0);
+  setNoticeOpen(true);
+ };
  const closeNotice=()=>{
-  markNoticesSeen(news,window.localStorage,me);
+  const read=news.filter(item=>viewedNoticesRef.current.has(noticeVersion(item)));
+  markNoticesSeen(read,window.localStorage,me);
+  viewedNoticesRef.current.clear();
   setNoticeRevision(v=>v+1);
   setNoticeOpen(false);
  };
+ const markAllNotices=()=>{
+  markNoticesSeen(news,window.localStorage,me);
+  viewedNoticesRef.current.clear();
+  setNoticeRevision(v=>v+1);
+  setNoticeFilter('all');
+ };
+ const switchNoticeFilter=next=>{
+  setNoticeFilter(next);
+  const first=next==='unread'?unseen[0]:news[0];
+  if(first)selectNotice(first);
+ };
  useEffect(()=>{
-  if(!session||!me||!news.length||noticeOpen||dialog||qr)return;
-  const pending=unseenNotices(news,window.localStorage,me);
-  if(pending.length){
-   setSelectedNotice(Math.max(0,news.findIndex(n=>noticeVersion(n)===noticeVersion(pending[0]))));
-   setNoticeOpen(true);
-  }
- },[session,me,news,noticeOpen,dialog,qr,noticeRevision]);
- const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>{setSelectedNotice(0);setNoticeOpen(true)}}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
+  if(!session||!me||!news.length||noticeOpen||dialog||qr||!noticeConfig.popupEnabled)return;
+  if(noticeConfig.scope==='dashboard'&&route!=='dashboard')return;
+  const userKey=String(me.id??me.email??'');
+  if(!userKey||autoAttemptedRef.current.has(userKey))return;
+  const pending=automaticNotices(news,noticeConfig,me,window.localStorage,window.sessionStorage);
+  if(!pending.length)return;
+  const item=pending[0];
+  autoAttemptedRef.current.add(userKey);
+  recordAutoNotice(item,noticeConfig,me,window.localStorage,window.sessionStorage);
+  openNotice('popup',item);
+ },[session,me,news,noticeOpen,dialog,qr,route,noticeRevision,
+    noticeConfig.popupEnabled,noticeConfig.scope,noticeConfig.tag,noticeConfig.frequency]);
+ const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
   {header}
@@ -269,22 +309,26 @@ export default function LiveApp(){
  {!NAV.some(x=>x[0]===route)&&route!=='orders'&&<Card><p>页面不存在</p><button className="primary" onClick={()=>go('dashboard')}>返回面板</button></Card>}
  </main><footer>© {new Date().getFullYear()} {title} · Powered by TXBoard {window.settings?.version&&<small>v{window.settings.version}</small>} <span>真实账户数据由服务器提供</span></footer><nav className="mobile-nav" aria-label="移动端导航">{NAV.map(([key,name,Icon])=><button key={key} className={route===key?'selected':''} onClick={()=>go(key)}><Icon size={21}/><span>{name}</span></button>)}</nav>
  {toast&&<div className="toast" role="status" aria-live="polite"><CheckCircle2 size={18}/>{toast}</div>}
- {noticeOpen&&<Dialog title="重要通知" onClose={closeNotice} wide>
-  <div className="live-notice-modal">
-   <p className="live-notice-intro">站点公告将在有新内容时自动展示。你也可以随时点击右上角的铃铛查看。</p>
-   {news.length>0?<>
-    <div className="live-notice-content-grid">
-     {news.length>1&&<div className="live-notice-list" aria-label="公告列表">{news.map((item,index)=><button type="button" key={noticeVersion(item)||index} className={selectedNotice===index?'active':''} aria-pressed={selectedNotice===index} onClick={()=>setSelectedNotice(index)}><span>{item.title||'站点公告'}</span><small>{date(item.created_at).split(' ')[0]}</small></button>)}</div>}
-     <article className="live-notice-article">
-      <div className="live-notice-category"><Bell size={15}/> 站点公告 {news.length>1&&<span>· {selectedNotice+1}/{news.length}</span>}</div>
-      <h3>{news[selectedNotice]?.title||'站点公告'}</h3>
-      {news[selectedNotice]?.created_at&&<time>{date(news[selectedNotice].created_at)}</time>}
-      <p className="live-notice-body">{noticePlainText(news[selectedNotice]?.content)||'暂无详细内容'}</p>
-      {tx.safeExternal(news[selectedNotice]?.img_url)&&<img className="live-notice-image" src={tx.safeExternal(news[selectedNotice].img_url)} loading="lazy" alt="公告配图"/>}
-     </article>
-    </div>
-   </>:<p className="live-notice-empty">暂无公告</p>}
-   <div className="live-notice-footer"><button type="button" className="primary" onClick={closeNotice}>我知道了</button></div>
+ {noticeOpen&&<Dialog title={noticeMode==='popup'?'重要通知':'公告中心'} onClose={closeNotice} wide>
+  <div className={'live-notice-modal live-notice-style-'+(noticeMode==='popup'?noticeConfig.style:'classic')}>
+   {noticeMode==='popup'
+    ?<p className="live-notice-intro">请查看这条站点公告。后续可通过右上角通知入口浏览历史公告。</p>
+    :<><p className="live-notice-intro">站点公告与通知记录</p><div className="live-notice-tabs"><button type="button" aria-pressed={noticeFilter==='all'} className={noticeFilter==='all'?'active':''} onClick={()=>switchNoticeFilter('all')}>全部公告 <span>{news.length}</span></button><button type="button" aria-pressed={noticeFilter==='unread'} className={noticeFilter==='unread'?'active':''} onClick={()=>switchNoticeFilter('unread')}>未读 <span>{unseen.length}</span></button></div></>}
+   {visibleNotices.length>0?<div className="live-notice-content-grid">
+    {visibleNotices.length>1&&<div className="live-notice-list" aria-label="公告列表">{visibleNotices.map((item,index)=><button type="button" key={noticeVersion(item)||index} className={currentNotice===item?'active':''} aria-pressed={currentNotice===item} onClick={()=>selectNotice(item)}><span>{item.title||'站点公告'}</span><small>{date(item.created_at).split(' ')[0]}{unseen.includes(item)?' · 未读':''}</small></button>)}</div>}
+    {currentNotice&&<article className="live-notice-article">
+      <div className="live-notice-category"><Bell size={15}/> {noticeMode==='popup'?'重要通知':'站点公告'} {visibleNotices.length>1&&<span>· {selectedPosition+1}/{visibleNotices.length}</span>}</div>
+      <h3>{currentNotice.title||'站点公告'}</h3>
+      {currentNotice.created_at&&<time>{date(currentNotice.created_at)}</time>}
+      {Array.isArray(currentNotice.tags)&&currentNotice.tags.length>0&&<div className="live-notice-tags">{currentNotice.tags.map((tag,i)=><span key={i}>{String(tag)}</span>)}</div>}
+      <p className="live-notice-body">{noticePlainText(currentNotice.content)||'暂无详细内容'}</p>
+      {tx.safeExternal(currentNotice.img_url)&&<img className="live-notice-image" src={tx.safeExternal(currentNotice.img_url)} loading="lazy" alt="公告配图"/>}
+     </article>}
+   </div>:<p className="live-notice-empty">{noticeFilter==='unread'?'已查看全部公告':'暂无公告'}</p>}
+   <div className="live-notice-footer">
+    {noticeMode==='center'&&news.length>0&&unseen.length>0&&<button type="button" className="secondary" onClick={markAllNotices}>全部标为已读</button>}
+    <button type="button" className="primary" onClick={closeNotice}>{noticeMode==='popup'?'我知道了':'关闭'}</button>
+   </div>
   </div>
  </Dialog>}
  {qr&&<QrDialog title={qr.title} value={qr.value} onClose={()=>setQr(null)}/>}
