@@ -384,7 +384,7 @@ test('fully depleted plans show an upgrade action before other warnings',async({
 });
 
 
-test('shop compares period prices and creates an order only after server-side confirmation',async({page})=>{
+test('shop groups subscription types and creates an order only after server-side confirmation',async({page})=>{
  const checkoutRequests=[];
  const plans=[
   {id:1,name:'基础套餐',show:true,sell:true,transfer_enable:100,device_limit:3,
@@ -431,11 +431,13 @@ test('shop compares period prices and creates an order only after server-side co
  await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
  const shop=page.getByRole('region',{name:'套餐商店'});
  await expect(shop).toBeVisible();
- await expect(shop.getByRole('button',{name:'年付',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(shop.getByRole('region',{name:'周期订阅'})).toBeVisible();
+ await expect(shop.getByRole('region',{name:'流量包订阅'})).toBeVisible();
+ await expect(shop.getByRole('group',{name:'套餐周期'})).toHaveCount(0);
  await expect(page.locator('[data-plan-id="3"]')).toHaveCount(0);
  await expect(page.locator('[data-plan-id="2"] .live-shop-recommend')).toContainText('精选套餐');
- await expect(page.locator('[data-plan-id="1"] .live-shop-price')).toContainText('¥90.00');
- await expect(page.locator('[data-plan-id="1"] .live-shop-saving')).toContainText('¥30.00');
+ await expect(page.locator('[data-plan-id="1"] .live-shop-price')).toContainText('¥10.00');
+ await expect(page.locator('[data-plan-id="1"] .live-shop-saving')).toHaveCount(0);
  await shop.getByRole('checkbox',{name:'对比 基础套餐'}).check();
  await shop.getByRole('checkbox',{name:'对比 旗舰套餐'}).check();
  await shop.getByRole('button',{name:/套餐对比/}).click();
@@ -444,8 +446,11 @@ test('shop compares period prices and creates an order only after server-side co
  await page.locator('[data-plan-id="1"]').getByRole('button',{name:/选择这个套餐/}).click();
  const purchase=page.getByRole('dialog',{name:'购买 基础套餐'});
  await expect(purchase).toBeVisible();
- await expect(purchase.getByRole('radio',{name:/年付/})).toBeChecked();
+ await expect(purchase.getByRole('radio',{name:/月付/})).toBeChecked();
+ await expect(purchase.getByLabel('订单基础价格')).toContainText('¥10.00');
+ await purchase.getByRole('radio',{name:/年付/}).check();
  await expect(purchase.getByLabel('订单基础价格')).toContainText('¥90.00');
+ await expect(purchase).toContainText('¥30.00');
  await purchase.getByLabel('优惠码').fill('AUTUMN');
  await purchase.getByRole('button',{name:'验证优惠码'}).click();
  await expect(purchase).toContainText('已验证优惠码');
@@ -461,7 +466,7 @@ test('shop compares period prices and creates an order only after server-side co
  expect(coupon).toEqual({code:'AUTUMN',plan_id:1,period:'year_price'});
 });
 
-test('mobile plan filter and comparison remain scroll-safe',async({page})=>{
+test('mobile subscription categories remain scroll-safe without period filters',async({page})=>{
  const plans=[
   {id:1,name:'月付方案',show:true,sell:true,month_price:1200,transfer_enable:40},
   {id:2,name:'一次性方案',show:true,sell:true,onetime_price:3000,transfer_enable:60},
@@ -489,10 +494,17 @@ test('mobile plan filter and comparison remain scroll-safe',async({page})=>{
  await page.getByRole('navigation',{name:'移动端导航'}).getByRole('button',{name:'购买套餐'}).click();
  const shop=page.getByRole('region',{name:'套餐商店'});
  await expect(shop.locator('.live-shop-plan')).toHaveCount(3);
- await shop.getByRole('button',{name:'一次性',exact:true}).click();
- await expect(shop.locator('.live-shop-plan')).toHaveCount(1);
- await expect(shop.locator('.live-shop-plan')).toContainText('一次性方案');
- await shop.getByRole('button',{name:'全部周期'}).click();
+ const recurring=shop.getByRole('region',{name:'周期订阅'});
+ const traffic=shop.getByRole('region',{name:'流量包订阅'});
+ await expect(recurring.locator('.live-shop-plan')).toHaveCount(2);
+ await expect(traffic.locator('.live-shop-plan')).toHaveCount(1);
+ await expect(traffic.locator('.live-shop-plan')).toContainText('一次性方案');
+ await expect(shop.getByRole('group',{name:'套餐周期'})).toHaveCount(0);
+ await traffic.locator('.live-shop-plan').getByRole('button',{name:/立即购买/}).click();
+ const purchase=page.getByRole('dialog',{name:'购买 一次性方案'});
+ await expect(purchase.getByRole('radio',{name:/一次性/})).toBeChecked();
+ await expect(purchase.getByLabel('订单基础价格')).toContainText('¥30.00');
+ await page.keyboard.press('Escape');
  await expect(shop.locator('.live-shop-plan')).toHaveCount(3);
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
  expect(overflow).toBeLessThanOrEqual(1);
