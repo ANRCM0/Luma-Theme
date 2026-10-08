@@ -8,7 +8,7 @@ export function WelcomeBanner({user,overview,config}){
  const entry=welcomeContent(overview.state,config.enabled);
  const name=String(user?.email||'用户').split('@')[0]||'用户';
  const title=config.enabled?entry.heading+', '+name:'欢迎回来, '+name;
- const description=(!config.enabled||overview.state==='normal')?'欢迎回来，轻松管理你的网络服务。':entry.description;
+ const description=(!config.enabled||overview.state==='normal')?'轻松管理你的网络服务。':entry.description;
  return <section className={'welcome card live-welcome-state live-welcome-'+entry.tone} data-welcome-state={config.enabled?overview.state:'normal'} aria-label="账户欢迎卡片">
   <div className="welcome-text">
    <span className="eyebrow">{entry.eyebrow}</span>
