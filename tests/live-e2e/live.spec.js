@@ -177,10 +177,10 @@ test('theme notice tags choose popup while the bell keeps a full searchable-by-s
  await bell.click();
  const inbox=page.getByRole('dialog',{name:'公告中心'});
  await expect(inbox).toBeVisible();
- await inbox.getByRole('button',{name:/未读/}).click();
+ await inbox.getByRole('button',{name:'筛选未读公告'}).click();
  await expect(inbox.getByRole('heading',{name:'普通公告先展示'})).toBeVisible();
  await inbox.getByRole('button',{name:'全部标为已读'}).click();
- await inbox.getByRole('button',{name:/未读/}).click();
+ await inbox.getByRole('button',{name:'筛选未读公告'}).click();
  await expect(inbox.getByText('已查看全部公告')).toBeVisible();
  await inbox.getByRole('button',{name:'关闭'}).click();
  await expect(bell.locator('.live-notice-indicator')).toHaveCount(0);
