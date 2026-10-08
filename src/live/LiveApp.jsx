@@ -45,6 +45,7 @@ export default function LiveApp(){
  const themeColor=window.settings?.theme?.color;
  const go=useCallback(next=>{setError('');setDialog(null);setQr(null);location.hash='/'+next;setRoute(next);window.scrollTo({top:0,behavior:'instant'})},[]);
  useEffect(()=>{const cb=()=>{setRoute(routeNow());setError('')};window.addEventListener('hashchange',cb);return()=>window.removeEventListener('hashchange',cb)},[]);
+ useEffect(()=>{const expire=()=>{setSession(false);setMe(null);setSubscription(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
  useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light';localStorage.setItem('vv-theme-appearance',dark?'dark':'light')},[dark]);
  useEffect(()=>{document.title=title;document.documentElement.dataset.vvAccent=themeColor||'default'},[title,themeColor]);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),4000);return()=>clearTimeout(t)},[toast]);
