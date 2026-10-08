@@ -50,6 +50,7 @@ jobs:
         run: npm run build
         env:
           TXBOARD_THEME: 'true'
+          TXBOARD_THEME_PREVIEW: 'true'
       - name: Real-mode browser smoke tests (mocked API)
         if: matrix.node == '22'
         run: npm run test:live
