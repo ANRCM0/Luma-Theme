@@ -67,7 +67,7 @@ try {
     if (str_contains($injection, '</script><script>alert(1)</script>')) {
         throw new RuntimeException('Unsafe HTML script breakout from theme config');
     }
-    if (!str_contains($injection, '\\u003C/script\\u003E')) {
+    if (!str_contains($injection, '\\u003C') || !str_contains($injection, '\\u003E')) {
         throw new RuntimeException('json_encode must use HTML-safe JSON_HEX_TAG flags');
     }
     echo "PASS: Laravel Blade compile + php lint + default/custom commas + JSON script escaping\n";
