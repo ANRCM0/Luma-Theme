@@ -48,7 +48,7 @@ test('Luma mobile menu loads node, traffic and help with their own TXBoard endpo
  await page.getByRole('button',{name:'流量记录'}).click();
  const traffic=page.getByRole('region',{name:'流量记录'});
  await expect(traffic).toContainText('1.00 GB');
- await expect(traffic).toContainText('0.50 GB');
+ await expect(traffic).toContainText('512.00 MB');
  await expect(traffic).toContainText('2 ×');
  await openMenu(page);
  await page.getByRole('button',{name:'帮助中心'}).click();
@@ -79,10 +79,12 @@ test('disabled menu functions are hidden and their routes never request private 
 });
 test('backend traffic error is visible with a retry action, not fake empty statistics',async({page})=>{
  const paths=await mockMenu(page,{trafficFailure:true});
- await page.goto('/#/traffic');
- await expect(page.getByRole('alert')).toContainText('流量接口暂时不可用');
+ await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'全部菜单'}).click();
+ await page.getByRole('button',{name:'流量记录'}).click();
+ const pageError=page.getByRole('region',{name:'流量记录'}).getByRole('alert');
+ await expect(pageError).toContainText('流量接口暂时不可用');
  await expect(page.getByText('本月暂无流量记录。')).toHaveCount(0);
  await page.getByRole('button',{name:'重试'}).click();
- await expect(page.getByRole('alert')).toContainText('流量接口暂时不可用');
+ await expect(pageError).toContainText('流量接口暂时不可用');
  expect(paths.filter(path=>path==='/api/v1/user/stat/getTrafficLog').length).toBeGreaterThanOrEqual(2);
 });
