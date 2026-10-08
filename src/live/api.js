@@ -1,4 +1,5 @@
 // TXBoard V1 API integration. Keep the token format compatible with web/user/src/api/client.ts.
+import {safeWebUrl} from './browser-safety.js';
 const AUTH_KEY = 'xboard_auth_data';
 export const PERIODS = [
   ['month_price','月付'],['quarter_price','季付'],['half_year_price','半年付'],
@@ -112,4 +113,4 @@ export const inviteDetails=()=>get('/user/invite/details',{current:1,page_size:5
 export const sendVerify=(email,purpose)=>post('/passport/comm/sendEmailVerify',{email,purpose},false);
 export const forgetPassword=(email,password,email_code)=>post('/passport/auth/forget',{email,password,email_code},false);
 export const stat=()=>get('/user/getStat');
-export const safeExternal=(value)=>{try {const url=new URL(value);return ['https:','http:'].includes(url.protocol)?url.href:null;}catch{return null;}};
+export const safeExternal=(value)=>safeWebUrl(value,{allowHttpLoopback:true});
