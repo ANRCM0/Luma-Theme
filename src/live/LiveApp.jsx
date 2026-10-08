@@ -1,9 +1,10 @@
 import React,{useEffect,useState,useCallback} from 'react';
-import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
+import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,Bell,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
 import QRCode from 'qrcode';
 import * as tx from './api.js';
 import {clientsFor} from './import.js';
 import {resolveThemeAppearance} from './theme-config.js';
+import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import './live.css';
 
 const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu]];
@@ -31,6 +32,7 @@ export default function LiveApp(){
  const [busy,setBusy]=useState(false),[toast,setToast]=useState(''),[error,setError]=useState('');
  const [guest,setGuest]=useState({}),[me,setMe]=useState(null),[subscription,setSubscription]=useState(null);
  const [offers,setOffers]=useState([]),[news,setNews]=useState([]),[stats,setStats]=useState([]);
+ const [noticeOpen,setNoticeOpen]=useState(false),[selectedNotice,setSelectedNotice]=useState(0),[noticeRevision,setNoticeRevision]=useState(0);
  const [rows,setRows]=useState([]),[ticketRows,setTicketRows]=useState([]),[invite,setInvite]=useState(null);
  const [filter,setFilter]=useState('全部'),[profileTab,setProfileTab]=useState('基本信息'),[search,setSearch]=useState('');
  const [visibleSub,setVisibleSub]=useState(false),[qr,setQr]=useState(null),[dialog,setDialog]=useState(null);
@@ -92,7 +94,7 @@ export default function LiveApp(){
    }catch(e){fail(e)}
  },[fail]);
  useEffect(()=>{if(session)void loadSection(route)},[session,route,loadSection]);
- const logout=()=>{tx.clearToken();setSession(false);setMe(null);setSubscription(null);setRows([]);setTicketRows([]);go('login');notify('已安全退出')};
+ const logout=()=>{tx.clearToken();setSession(false);setMe(null);setSubscription(null);setNews([]);setNoticeOpen(false);setRows([]);setTicketRows([]);go('login');notify('已安全退出')};
  const act=async(fn,success)=>{
    setBusy(true);setError('');
    try{const result=await fn();if(success)notify(success);return result}
@@ -189,7 +191,21 @@ export default function LiveApp(){
    try{await navigator.clipboard.writeText(value);notify('已复制到剪贴板')}
    catch{fail(Error('复制失败，请检查剪贴板权限'))}
  }
- const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions"><button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
+ const unseen=unseenNotices(news,window.localStorage,me);
+ const closeNotice=()=>{
+  markNoticesSeen(news,window.localStorage,me);
+  setNoticeRevision(v=>v+1);
+  setNoticeOpen(false);
+ };
+ useEffect(()=>{
+  if(!session||!me||!news.length||noticeOpen||dialog||qr)return;
+  const pending=unseenNotices(news,window.localStorage,me);
+  if(pending.length){
+   setSelectedNotice(Math.max(0,news.findIndex(n=>noticeVersion(n)===noticeVersion(pending[0]))));
+   setNoticeOpen(true);
+  }
+ },[session,me,news,noticeOpen,dialog,qr,noticeRevision]);
+ const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>{setSelectedNotice(0);setNoticeOpen(true)}}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
   {header}
@@ -239,7 +255,7 @@ export default function LiveApp(){
  {route==='dashboard'&&<>
   <div className="dashboard-grid">
    <div className="welcome card"><div className="welcome-text"><span className="eyebrow">WELCOME BACK</span><h1>Halo, {me?.email?.split('@')[0]||'用户'} 👋</h1><p>欢迎回来，查看你的订阅与流量信息。</p><div className="status-pill">{planName}<span>{subscription?.plan?'当前套餐':'暂无订阅'}</span></div><div className="welcome-actions"><button className="secondary" onClick={()=>go('shop')}>浏览套餐 <ArrowRight size={15}/></button><button className="welcome-help" onClick={()=>go('ticket')}>获取帮助</button></div><div className="stats"><div><span>到期时间</span><strong>{subscription?.expired_at?date(subscription.expired_at).split(' ')[0]:'长期有效'}</strong></div><div><span>流量重置</span><strong>{subscription?.reset_day?subscription.reset_day+' 天':'—'}</strong></div><div><span>剩余流量</span><strong>{tx.bytes(remaining)}</strong></div></div></div><div className="welcome-decor"><Wifi size={108} strokeWidth={1.1}/></div></div>
-   <div className="dashboard-side"><Card className="notice-card"><div className="section-title"><div><Info size={20}/><h3>重要通知</h3></div></div>{news.length?<><h4>{news[0].title}</h4><p className="muted clamp">{String(news[0].content||'').replace(/<[^>]*>/g,' ').slice(0,160)}</p></>:<p className="muted">暂无公告</p>}</Card><Card className="recommend-card"><div className="small-label">为你推荐</div>{featured?<><div className="plan-side"><div><strong>{featured.name}</strong><p>{featured.transfer_enable} GB 流量</p></div><div className="price">{tx.money(availablePeriods(featured)[0]&&featured[availablePeriods(featured)[0][0]])}</div></div><button className="primary wide" onClick={()=>openBuy(featured)}>查看套餐 <ArrowRight size={16}/></button></>:<p className="muted">暂无在售套餐</p>}</Card></div>
+   <div className="dashboard-side"><Card className="recommend-card"><div className="small-label">为你推荐</div>{featured?<><div className="plan-side"><div><strong>{featured.name}</strong><p>{featured.transfer_enable} GB 流量</p></div><div className="price">{tx.money(availablePeriods(featured)[0]&&featured[availablePeriods(featured)[0][0]])}</div></div><button className="primary wide" onClick={()=>openBuy(featured)}>查看套餐 <ArrowRight size={16}/></button></>:<p className="muted">暂无在售套餐</p>}</Card></div>
   </div><div className="section-head"><h2>订阅管理</h2><p>管理你的真实订阅信息和客户端</p></div><div className="content-grid"><Card className="subscribe-card"><div className="section-title"><div><ShieldCheck size={21}/><h3>订阅链接</h3></div><button className="link" disabled={!subUrl} onClick={()=>setQr({title:'订阅二维码',value:subUrl})}><QrCode size={16}/> 二维码</button></div><p className="muted">订阅链接属于敏感凭证，请勿公开分享。</p><div className="subscription"><span className="live-break">{subUrl?(visibleSub?subUrl:'https://••••••••••••••••'):'暂无订阅链接'}</span><button aria-label="显示或隐藏订阅链接" onClick={()=>setVisibleSub(v=>!v)} disabled={!subUrl}>{visibleSub?<EyeOff size={17}/>:<Eye size={17}/>}</button><button aria-label="复制订阅链接" onClick={()=>copy(subUrl)} disabled={!subUrl}><Copy size={17}/></button></div><div className="subhint">已用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</div><div className="live-traffic"><div style={{width:(quota?Math.min(100,used/quota*100):0)+'%'}}/></div><h3 className="client-heading">一键导入客户端</h3><div className="clients"><button disabled={!subUrl} onClick={()=>copy(subUrl)}><div className="client-icon"><Copy size={17}/></div><span>复制链接</span></button>{clientsFor(subUrl,title).map((client,i)=><button key={client.name} onClick={()=>{window.location.href=client.href}}><div className={"client-icon icon"+(i%6)}>{client.name.charAt(0)}</div><span>{client.name}</span></button>)}</div></Card><Card className="my-plan"><div className="section-title"><div><Gift size={21}/><h3>我的套餐</h3></div></div>{subscription?.plan?<div className="empty-plan"><ShieldCheck size={36}/><h3>{subscription.plan.name}</h3><p className="muted">到期时间：{date(subscription.expired_at)}</p><p className="muted">已使用 {tx.bytes(used)} / {quota?tx.bytes(quota):'—'}</p><button className="primary" onClick={()=>go('shop')}>续费或升级</button></div>:<div className="empty-plan"><ShoppingBag size={36}/><h3>暂无有效套餐</h3><button className="primary" onClick={()=>go('shop')}>前往购买</button></div>}</Card></div>
  </>}
  {route==='shop'&&<><Heading en="SUBSCRIPTION PLANS" title="购买套餐">以下套餐、价格与销售状态实时读取自 TXBoard。</Heading><div className="filters">{['全部','月付','季付','半年付','年付','一次性'].map(label=><button key={label} className={filter===label?'active':''} onClick={()=>setFilter(label)}>{label}</button>)}</div><div className="plans">{activePlans.flatMap(p=>{const options=availablePeriods(p);const matches=filter==='全部'||options.some(([,label])=>label===filter);return matches?[<Card key={p.id} className="product"><div className="plan-name">{p.name}</div><div className="product-price"><strong>{tx.money(options[0]&&p[options[0][0]])}</strong><span> 起</span></div><p className="muted">{p.transfer_enable} GB · {p.content?String(p.content).replace(/<[^>]+>/g,' ').slice(0,80):'套餐服务'}</p><hr/><div className="feature"><Wifi size={18}/>套餐流量<strong>{p.transfer_enable} GB</strong></div><div className="feature"><RefreshCcw size={18}/>可选周期<strong>{options.length} 种</strong></div><div className="plan-actions"><button className="primary wide" disabled={!options.length} onClick={()=>openBuy(p)}>选择套餐 <ArrowRight size={16}/></button></div></Card>]:[]})}</div>{!activePlans.length&&<Card>当前没有可购买的套餐。</Card>}</>}
@@ -253,6 +269,24 @@ export default function LiveApp(){
  {!NAV.some(x=>x[0]===route)&&route!=='orders'&&<Card><p>页面不存在</p><button className="primary" onClick={()=>go('dashboard')}>返回面板</button></Card>}
  </main><footer>© {new Date().getFullYear()} {title} · Powered by TXBoard {window.settings?.version&&<small>v{window.settings.version}</small>} <span>真实账户数据由服务器提供</span></footer><nav className="mobile-nav" aria-label="移动端导航">{NAV.map(([key,name,Icon])=><button key={key} className={route===key?'selected':''} onClick={()=>go(key)}><Icon size={21}/><span>{name}</span></button>)}</nav>
  {toast&&<div className="toast" role="status" aria-live="polite"><CheckCircle2 size={18}/>{toast}</div>}
+ {noticeOpen&&<Dialog title="重要通知" onClose={closeNotice} wide>
+  <div className="live-notice-modal">
+   <p className="live-notice-intro">站点公告将在有新内容时自动展示。你也可以随时点击右上角的铃铛查看。</p>
+   {news.length>0?<>
+    <div className="live-notice-content-grid">
+     {news.length>1&&<div className="live-notice-list" aria-label="公告列表">{news.map((item,index)=><button type="button" key={noticeVersion(item)||index} className={selectedNotice===index?'active':''} aria-pressed={selectedNotice===index} onClick={()=>setSelectedNotice(index)}><span>{item.title||'站点公告'}</span><small>{date(item.created_at).split(' ')[0]}</small></button>)}</div>}
+     <article className="live-notice-article">
+      <div className="live-notice-category"><Bell size={15}/> 站点公告 {news.length>1&&<span>· {selectedNotice+1}/{news.length}</span>}</div>
+      <h3>{news[selectedNotice]?.title||'站点公告'}</h3>
+      {news[selectedNotice]?.created_at&&<time>{date(news[selectedNotice].created_at)}</time>}
+      <p className="live-notice-body">{noticePlainText(news[selectedNotice]?.content)||'暂无详细内容'}</p>
+      {tx.safeExternal(news[selectedNotice]?.img_url)&&<img className="live-notice-image" src={tx.safeExternal(news[selectedNotice].img_url)} loading="lazy" alt="公告配图"/>}
+     </article>
+    </div>
+   </>:<p className="live-notice-empty">暂无公告</p>}
+   <div className="live-notice-footer"><button type="button" className="primary" onClick={closeNotice}>我知道了</button></div>
+  </div>
+ </Dialog>}
  {qr&&<QrDialog title={qr.title} value={qr.value} onClose={()=>setQr(null)}/>}
  {dialog==='purchase'&&plan&&<Dialog title={'购买 '+plan.name} onClose={()=>setDialog(null)}><p className="muted">{plan.content?String(plan.content).replace(/<[^>]+>/g,' '):'选择支付周期'}</p><div className="live-periods">{availablePeriods(plan).map(([key,label])=><label key={key} className={period===key?'live-period selected':'live-period'}><input type="radio" name="period" value={key} checked={period===key} onChange={()=>{setPeriod(key);setDiscount('')}}/>{label} <strong>{tx.money(plan[key])}</strong></label>)}</div><div className="field"><label>优惠码（可选）</label><div className="live-row"><input value={coupon} onChange={e=>setCoupon(e.target.value)}/><button className="secondary" disabled={!coupon.trim()||busy} onClick={async()=>{const result=await act(()=>tx.checkCoupon(coupon.trim(),plan.id,period));if(result)setDiscount(result.type===2?result.value+'%':tx.money(result.value))}}>验证</button></div></div>{discount&&<p className="muted">优惠码有效：{discount}</p>}<button className="primary wide" disabled={busy||!period} onClick={buy}>{busy?'处理中…':'创建真实订单'}</button></Dialog>}
  {dialog==='order'&&currentOrder&&<Dialog title="订单详情" onClose={()=>{setDialog(null);loadSection('orders')}} wide><div className="live-order"><p>订单号：<strong className="live-break">{currentOrder.trade_no}</strong></p><p>套餐：{currentOrder.plan?.name||currentOrder.plan_id}</p><p>周期：{currentOrder.period}</p><p>金额：<strong>{tx.money(currentOrder.total_amount)}</strong></p>{methods.find(m=>String(m.id)===method)&&<p>支付手续费（估算）：{tx.money(Math.round(Number(currentOrder.total_amount||0)*Number(methods.find(m=>String(m.id)===method)?.handling_fee_percent||0)/100)+Number(methods.find(m=>String(m.id)===method)?.handling_fee_fixed||0))}</p>}<p>状态：{status(currentOrder.status)}</p></div>{currentOrder.status===0&&<><div className="field"><label>支付方式</label><select value={method} onChange={e=>setMethod(e.target.value)} disabled={Boolean(currentOrder.payment_id)}>{!methods.length&&<option value="">无在线支付方式（尝试余额支付）</option>}{methods.map(p=><option key={p.id} value={String(p.id)}>{p.name}</option>)}</select></div>{methods.find(m=>String(m.id)===method)?.payment==='StripeCredit'&&<p className="muted">Stripe 信用卡支付将由 TXBoard 安全支付组件完成。</p>}<button className="primary wide" disabled={busy} onClick={pay}>立即支付</button><button className="secondary wide" onClick={async()=>{if(!window.confirm('确定取消该订单吗？'))return;const result=await act(()=>tx.cancelOrder(currentOrder.trade_no),'订单已取消');if(result!==null)await showOrder(currentOrder.trade_no)}}>取消订单</button></>}<button className="secondary wide" onClick={()=>showOrder(currentOrder.trade_no)}>刷新订单状态</button></Dialog>}
