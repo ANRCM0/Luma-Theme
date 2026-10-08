@@ -8,7 +8,7 @@ async function login(page,email){
  await page.getByLabel('登录密码').fill('password1');
  await page.getByRole('button',{name:'登录',exact:true}).click();
  await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
- await page.locator('[data-plan-id="6"]').getByRole('button',{name:/选择这个套餐/}).click();
+ await page.locator('[data-plan-id="6"]').getByRole('button',{name:/立即购买/}).click();
 }
 function fixtures(email){
  return {
