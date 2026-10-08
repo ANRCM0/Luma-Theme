@@ -4,6 +4,17 @@ export const ORDER_STATUS=Object.freeze({
 });
 export const STATUS_POLL_MS=4000;
 export const MAX_STATUS_POLLS=20;
+const bool=(value,fallback)=>value==null?fallback:!(value===false||value===0||value==='0'||value==='false');
+export function resolvePaymentConfig(guest={},settings={}){
+ const remote=guest?.frontend_theme==='vv-theme'&&guest?.theme_config&&typeof guest.theme_config==='object'&&!Array.isArray(guest.theme_config)?guest.theme_config:null;
+ const values=remote||settings?.payment||{};
+ const seconds=Number(values.payment_poll_seconds??values.pollSeconds??4);
+ return {
+  autoCheck:bool(values.payment_auto_check??values.autoCheck,true),
+  pollMs:(Number.isFinite(seconds)?Math.min(15,Math.max(4,Math.round(seconds))):4)*1000
+ };
+}
+
 export const normalizeOrderStatus=value=>{
  if(value===null||value===undefined||value==='')return null;
  const n=Number(value);
