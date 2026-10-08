@@ -497,3 +497,129 @@ test('mobile plan filter and comparison remain scroll-safe',async({page})=>{
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
  expect(overflow).toBeLessThanOrEqual(1);
 });
+
+
+test('subscription center shows verified usage, OS import choices and manual credential controls',async({page})=>{
+ const now=Math.floor(Date.now()/1000);
+ let calls=0;
+ await page.setViewportSize({width:390,height:844});
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{frontend_theme:'vv-theme',app_name:'测试订阅',theme_config:{notice_popup_enabled:'0',subscription_client_guide:'1'}},
+   '/api/v1/passport/auth/login':{auth_data:'subs-test-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:400,email:'subscriber@example.test',plan_id:9},
+   '/api/v1/user/getSubscribe':{plan_id:9,plan:{id:9,name:'高级订阅',renew:true,reset_traffic_method:1},
+    transfer_enable:100*1073741824,u:10*1073741824,d:25*1073741824,
+    expired_at:now+86400*20,reset_day:5,
+    subscribe_url:'https://panel.example.test/api/v1/client/subscribe?token=secret'},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/getStat':[],
+   '/api/v1/user/notice/fetch':{data:[],total:0}
+  };
+  if(path==='/api/v1/user/getSubscribe')calls++;
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('subscriber@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const summary=page.getByRole('region',{name:'订阅概览'});
+ await expect(summary).toContainText('高级订阅');
+ await expect(summary).toContainText('65.00 GB');
+ await expect(summary.getByRole('progressbar',{name:'流量使用比例'})).toHaveAttribute('aria-valuenow','35');
+ await expect(summary).toContainText('约 5 天后');
+ const importer=page.getByRole('region',{name:'客户端与订阅导入'});
+ await expect(importer).not.toContainText('token=secret');
+ await importer.getByRole('button',{name:'显示订阅链接'}).click();
+ await expect(importer).toContainText('token=secret');
+ await importer.getByRole('button',{name:'隐藏订阅链接'}).click();
+ await expect(importer).not.toContainText('token=secret');
+ await importer.getByRole('button',{name:'iOS'}).click();
+ await expect(importer.getByRole('button',{name:/Shadowrocket/})).toBeVisible();
+ await importer.getByRole('button',{name:'Android'}).click();
+ await expect(importer.getByRole('button',{name:/Shadowrocket/})).toHaveCount(0);
+ await expect(importer.getByRole('button',{name:/Surfboard/})).toBeVisible();
+ await summary.getByRole('button',{name:'刷新用量'}).click();
+ await expect(page.getByRole('status')).toContainText('订阅与流量数据已刷新');
+ expect(calls).toBeGreaterThanOrEqual(2);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('reset-traffic shortcut requires a server-priced plan and posts reset_price (not renewal)',async({page})=>{
+ const now=Math.floor(Date.now()/1000),orders=[];
+ await page.route('**/api/v1/**',async route=>{
+  const url=new URL(route.request().url()),path=url.pathname;
+  const fixtures={
+   '/api/v1/guest/comm/config':{app_name:'流量重置',frontend_theme:'vv-theme',theme_config:{notice_popup_enabled:'0'}},
+   '/api/v1/passport/auth/login':{auth_data:'reset-test-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:410,email:'reset@example.test',plan_id:7},
+   '/api/v1/user/getSubscribe':{plan_id:7,plan:{id:7,name:'专属套餐',renew:true,reset_traffic_method:1},
+    transfer_enable:50*1073741824,u:20*1073741824,d:10*1073741824,expired_at:now+86400*12},
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/getStat':[],
+   '/api/v1/user/order/fetch':[],
+   '/api/v1/user/order/detail':{trade_no:'RESET-01',status:0,total_amount:500,period:'reset_price',plan:{id:7,name:'专属套餐'}},
+   '/api/v1/user/order/getPaymentMethod':[]
+  };
+  if(path==='/api/v1/user/plan/fetch'){
+   const result=url.searchParams.get('id')==='7'
+    ?{id:7,name:'专属套餐',renew:true,reset_price:500,month_price:1500}:[];
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:result})});
+   return;
+  }
+  if(path==='/api/v1/user/order/save'){
+   orders.push(JSON.parse(route.request().postData()));
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:'RESET-01'})});
+   return;
+  }
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+ });
+ page.on('dialog',dialog=>dialog.accept());
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('reset@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ await page.getByRole('region',{name:'订阅概览'}).getByRole('button',{name:'重置流量'}).click();
+ const form=page.getByRole('dialog',{name:'购买 专属套餐'});
+ await expect(form).toBeVisible();
+ await expect(form).toContainText('不会延长套餐有效期');
+ await expect(form.getByLabel('订单基础价格')).toContainText('¥5.00');
+ await form.getByRole('button',{name:/确认并创建订单/}).click();
+ await expect(page.getByRole('dialog',{name:'订单详情'})).toBeVisible();
+ expect(orders).toEqual([{plan_id:7,period:'reset_price'}]);
+});
+
+test('expired subscriptions cannot start a traffic reset, and operator can hide import guide',async({page})=>{
+ const now=Math.floor(Date.now()/1000);
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const data={
+   '/api/v1/guest/comm/config':{app_name:'过期订阅',frontend_theme:'vv-theme',theme_config:{
+    notice_popup_enabled:'0',subscription_client_guide:'0',subscription_reset_action:'1'
+   }},
+   '/api/v1/passport/auth/login':{auth_data:'expired-test-token'},
+   '/api/v1/user/checkLogin':{is_login:true},
+   '/api/v1/user/info':{id:420,email:'old@example.test',plan_id:3},
+   '/api/v1/user/getSubscribe':{plan_id:3,plan:{id:3,name:'旧套餐',renew:false,reset_traffic_method:1},
+    transfer_enable:10*1073741824,u:10*1073741824,d:0,expired_at:now-86400,
+    subscribe_url:'https://panel.example.test/api/v1/client/subscribe?token=secret'},
+   '/api/v1/user/notice/fetch':{data:[],total:0},
+   '/api/v1/user/plan/fetch':[],
+   '/api/v1/user/getStat':[]
+  };
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:data[path]??[]})});
+ });
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'邮箱地址'}).fill('old@example.test');
+ await page.getByLabel('登录密码').fill('password1');
+ await page.getByRole('button',{name:'登录',exact:true}).click();
+ const summary=page.getByRole('region',{name:'订阅概览'});
+ await expect(summary).toContainText('已过期');
+ await expect(summary.getByRole('button',{name:'重置流量'})).toHaveCount(0);
+ await expect(summary.getByRole('button',{name:'续费当前套餐'})).toHaveCount(0);
+ await expect(page.getByRole('group',{name:'选择客户端平台'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'复制订阅链接'})).toBeVisible();
+});
