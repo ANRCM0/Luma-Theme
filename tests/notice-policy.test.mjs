@@ -77,5 +77,5 @@ test('public notice field names and version are packaged as independent theme se
  for(const field of ['notice_popup_enabled','notice_center_enabled','notice_popup_tag','notice_popup_frequency','notice_popup_scope','notice_popup_style']){
   assert.ok(src.includes("field_name:'"+field+"'"),field);
  }
- assert.match(src,/THEME_VERSION\|\|'0\.4\.0'/);
+ assert.match(src,/THEME_VERSION\|\|'0\.5\.0'/);
 });
