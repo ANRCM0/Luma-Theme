@@ -52,7 +52,7 @@ export default function LiveApp(){
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
  const [blockingOrder,setBlockingOrder]=useState(null),[paying,setPaying]=useState(false),[paymentError,setPaymentError]=useState(''),[paymentLink,setPaymentLink]=useState('');
  const [watchingOrder,setWatchingOrder]=useState(false),[watchExpired,setWatchExpired]=useState(false);
- const createLockRef=useRef(false),payLockRef=useRef(false);
+ const createLockRef=useRef(false),payLockRef=useRef(false),orderPollCountRef=useRef({tradeNo:null,attempts:0});
  const [ticket,setTicket]=useState(null),[reply,setReply]=useState(''),[authTab,setAuthTab]=useState(()=>['register','forget'].includes(queryNow().get('tab'))?queryNow().get('tab'):'login');
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[emailCode,setEmailCode]=useState(''),[inviteCode,setInviteCode]=useState(()=>queryNow().get('code')||'');
  const [showAuthPassword,setShowAuthPassword]=useState(false);
@@ -217,6 +217,7 @@ export default function LiveApp(){
  }
  async function showOrder(tradeNo){
    setPaymentError('');setPaymentLink('');setWatchingOrder(false);setWatchExpired(false);
+   orderPollCountRef.current={tradeNo:String(tradeNo),attempts:0};
    setCurrentOrder(null);setDialog('order');
    const order=await act(()=>tx.orderDetail(tradeNo));
    if(!order){setDialog(null);return}
@@ -365,17 +366,18 @@ export default function LiveApp(){
      setWatchingOrder(false);
      return;
    }
-   let alive=true,running=false,attempts=0;
+   let alive=true,running=false;
    const trade=currentOrder.trade_no;
+   if(orderPollCountRef.current.tradeNo!==String(trade))orderPollCountRef.current={tradeNo:String(trade),attempts:0};
    setWatchingOrder(true);setWatchExpired(false);
    const check=async()=>{
      if(!alive||running||document.visibilityState==='hidden')return;
-     if(attempts>=MAX_STATUS_POLLS){
+     if(orderPollCountRef.current.attempts>=MAX_STATUS_POLLS){
        if(alive){setWatchingOrder(false);setWatchExpired(true)}
        clearInterval(timer);
        return;
      }
-     attempts++;running=true;
+     orderPollCountRef.current.attempts++;running=true;
      try{
        const result=normalizeOrderStatus(await tx.orderCheck(trade));
        if(!alive||result===null)return;
