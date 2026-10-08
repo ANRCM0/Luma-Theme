@@ -60,6 +60,12 @@ export const login=async(email,password,captcha={})=>{
   saveToken(result?.auth_data);return result;
 };
 export const register=async(data)=>{const result=await post('/passport/auth/register',data,false);saveToken(result?.auth_data);return result;};
+export const tokenLogin=async(verify)=>{
+  const raw=await get('/passport/auth/token2Login',{verify},false);
+  const authData=raw?.data??raw;
+  saveToken(authData?.auth_data);
+  return authData;
+};
 export const verifySession=()=>get('/user/checkLogin');
 export const user=()=>get('/user/info');
 export const subscribe=()=>get('/user/getSubscribe');
