@@ -1,14 +1,15 @@
 import React,{useEffect,useState,useCallback,useRef} from 'react';
-import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,Bell,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
+import {House,ShoppingBag,UserRound,Headphones,Menu,Sun,Moon,ChevronRight,Copy,Eye,EyeOff,PanelLeftOpen,PanelLeftClose,Bell,Mail,QrCode,Gift,ShieldCheck,Wifi,Clock3,RefreshCcw,Search,Plus,LockKeyhole,Ticket,ArrowRight,Info,LogOut,Wallet,Receipt,X,CheckCircle2,AlertCircle} from 'lucide-react';
 import QRCode from 'qrcode';
 import * as tx from './api.js';
 import {clientsFor} from './import.js';
 import {resolveThemeAppearance} from './theme-config.js';
+import {resolveNavigationConfig,orderedNavigation,mobileNavigation} from './navigation-config.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
 import './live.css';
 
-const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu]];
+const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu],['orders','我的订单',Receipt]];
 const routeNow=()=>((location.hash.replace(/^#\/?/,'').split(/[/?]/)[0])||'dashboard');
 const queryNow=()=>new URLSearchParams(location.hash.split('?')[1]||'');
 const date=v=>v?new Date(Number(v)*1000).toLocaleString('zh-CN'):'—';
@@ -28,6 +29,7 @@ function QrDialog({value,title,onClose}){
 }
 export default function LiveApp(){
  const [route,setRoute]=useState(routeNow);
+ const [sidebarOverride,setSidebarOverride]=useState(null);
  const [dark,setDark]=useState(()=>localStorage.getItem('vv-theme-appearance')==='dark');
  const [ready,setReady]=useState(false),[session,setSession]=useState(false);
  const [busy,setBusy]=useState(false),[toast,setToast]=useState(''),[error,setError]=useState('');
@@ -52,6 +54,10 @@ export default function LiveApp(){
  const appearance=resolveThemeAppearance(guest,window.settings,location.origin);
  const themeColor=appearance.color;
  const noticeConfig=resolveNoticeConfig(guest,window.settings);
+ const navConfig=resolveNavigationConfig(guest,window.settings);
+ const sidebarCollapsed=sidebarOverride??navConfig.sidebarCollapsed;
+ const visibleNav=orderedNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
+ const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
  const go=useCallback(next=>{setError('');setDialog(null);setQr(null);location.hash='/'+next;setRoute(next);window.scrollTo({top:0,behavior:'instant'})},[]);
  useEffect(()=>{const cb=()=>{setRoute(routeNow());setError('')};window.addEventListener('hashchange',cb);return()=>window.removeEventListener('hashchange',cb)},[]);
  useEffect(()=>{const expire=()=>{setSession(false);setMe(null);setSubscription(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
@@ -245,7 +251,7 @@ export default function LiveApp(){
   openNotice('popup',item);
  },[session,me,news,noticeOpen,dialog,qr,route,noticeRevision,
     noticeConfig.popupEnabled,noticeConfig.scope,noticeConfig.tag,noticeConfig.frequency]);
- const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&<nav className="desktop-nav" aria-label="主导航">{NAV.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
+ const header=<header className="top"><div className="head-inner"><a className="brand" href="#/dashboard" onClick={e=>{e.preventDefault();go('dashboard')}}>{logo?<img src={logo} alt="站点 Logo"/>:<ShieldCheck size={32}/>} {title}</a>{session&&navConfig.layout==='top'&&<nav className="desktop-nav" aria-label="主导航">{visibleNav.map(([id,label,Icon])=><button key={id} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={18}/>{label}</button>)}</nav>}<div className="head-actions">{session&&noticeConfig.centerEnabled&&<button className="live-notice-trigger" aria-label="查看通知" title="查看公告" onClick={()=>openNotice('center')}><Bell size={20}/>{unseen.length>0&&<span className="live-notice-indicator" aria-hidden="true"/>}</button>}<button aria-label="切换主题" onClick={()=>setDark(x=>!x)}>{dark?<Sun size={20}/>:<Moon size={20}/>}</button>{session&&<button aria-label="退出登录" title="退出登录" onClick={logout}><LogOut size={20}/></button>}</div></div></header>;
  if(!ready)return <div className="app live-portal">{header}<main className="container"><Card>正在验证登录状态…</Card></main></div>;
  if(!session)return <div className="app live-portal live-login" style={appearance.backgroundUrl?{backgroundImage:"linear-gradient(#10252d99,#10252d99),url("+JSON.stringify(appearance.backgroundUrl)+")",backgroundSize:"cover"}:{}}>
   {header}
@@ -290,7 +296,14 @@ export default function LiveApp(){
  const subUrl=subscription?.subscribe_url;
  const inviteCodeValue=invite?.codes?.[0]?.code;
  const inviteLink=inviteCodeValue?(guest.app_url||location.origin).replace(/\/$/,'')+'/#/login?tab=register&code='+encodeURIComponent(inviteCodeValue):'';
- return <div className="app live-portal">{header}<main className="container page-transition" key={route}>
+ return <div className={'app live-portal '+(navConfig.layout==='sidebar'?'live-layout-sidebar':'live-layout-top')+(sidebarCollapsed?' live-sidebar-collapsed':'')}>{header}
+ {navConfig.layout==='sidebar'&&<aside className="live-sidebar" aria-label="桌面侧边栏">
+  <div className="live-sidebar-heading"><span>{sidebarCollapsed?'菜单':'快速导航'}</span>
+   <button type="button" aria-label={sidebarCollapsed?'展开侧边栏':'收起侧边栏'} onClick={()=>setSidebarOverride(v=>!(v??navConfig.sidebarCollapsed))}>{sidebarCollapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</button>
+  </div>
+  <nav aria-label="侧边栏导航">{visibleNav.map(([id,label,Icon])=><button key={id} title={sidebarCollapsed?label:undefined} aria-label={label} className={route===id?'selected':''} onClick={()=>go(id)}><Icon size={20}/><span>{label}</span></button>)}</nav>
+ </aside>}
+ <main className="container page-transition" key={route}>
  {error&&<div className="live-error" role="alert">{error} <button onClick={()=>setError('')}>×</button></div>}
  {route==='dashboard'&&<>
   <div className="dashboard-grid">
@@ -307,7 +320,7 @@ export default function LiveApp(){
  {route==='ticket'&&<><div className="live-ticket-header"><Heading en="SUPPORT CENTER" title="服务工单">与客服交流，所有内容均提交至真实 TXBoard 工单接口。</Heading><button className="primary" onClick={()=>setDialog('ticket-create')}><Plus size={18}/> 创建工单</button></div><Card><div className="ticket-toolbar"><h3>我的工单（{ticketRows.length}）</h3><div className="search"><Search size={17}/><input placeholder="搜索工单…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>{ticketRows.filter(x=>String(x.subject||'').includes(search)).map(t=><button key={t.id} className="live-list-row" onClick={()=>viewTicket(t)}><div><strong>{t.subject}</strong><p className="muted">#{t.id} · {date(t.updated_at)} · {t.status===1?'已关闭':'处理中'}</p></div><ChevronRight size={18}/></button>)}{!ticketRows.length&&<p className="muted">暂无工单</p>}</Card></>}
  {route==='menu'&&<><Heading en="QUICK ACCESS" title="全部菜单">快速访问常用功能。</Heading><div className="menu-grid">{[...NAV.slice(0,4),['orders','我的订单',Receipt],['invite','邀请管理',Gift],['nodes','节点列表',Wifi],['traffic','流量记录',RefreshCcw],['knowledge','帮助中心',Info],['logout','退出登录',LogOut]].map(([key,name,Icon])=><button key={key} className="card menu-item" onClick={()=>key==='logout'?logout():key==='invite'?(setProfileTab('邀请管理'),go('profile')):['nodes','traffic','knowledge'].includes(key)?window.location.assign('/user-spa/#/'+({nodes:'node',traffic:'traffic',knowledge:'knowledge'})[key]):go(key)}><Icon size={24}/><strong>{name}</strong><ChevronRight size={17}/></button>)}</div></>}
  {!NAV.some(x=>x[0]===route)&&route!=='orders'&&<Card><p>页面不存在</p><button className="primary" onClick={()=>go('dashboard')}>返回面板</button></Card>}
- </main><footer>© {new Date().getFullYear()} {title} · Powered by TXBoard {window.settings?.version&&<small>v{window.settings.version}</small>} <span>真实账户数据由服务器提供</span></footer><nav className="mobile-nav" aria-label="移动端导航">{NAV.map(([key,name,Icon])=><button key={key} className={route===key?'selected':''} onClick={()=>go(key)}><Icon size={21}/><span>{name}</span></button>)}</nav>
+ </main><footer>© {new Date().getFullYear()} {title} · Powered by TXBoard {window.settings?.version&&<small>v{window.settings.version}</small>} <span>真实账户数据由服务器提供</span></footer><nav className="mobile-nav" aria-label="移动端导航">{mobileNav.map(([key,name,Icon])=><button key={key} className={route===key?'selected':''} onClick={()=>go(key)}><Icon size={21}/><span>{name}</span></button>)}</nav>
  {toast&&<div className="toast" role="status" aria-live="polite"><CheckCircle2 size={18}/>{toast}</div>}
  {noticeOpen&&<Dialog title={noticeMode==='popup'?'重要通知':'公告中心'} onClose={closeNotice} wide>
   <div className={'live-notice-modal live-notice-style-'+(noticeMode==='popup'?noticeConfig.style:'classic')}>
