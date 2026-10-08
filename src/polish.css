@@ -131,3 +131,12 @@ html{scroll-behavior:smooth;scrollbar-gutter:stable}
 [data-theme=dark] .top.is-scrolled{background:rgba(25,36,43,.95);box-shadow:0 14px 42px rgba(0,0,0,.26)}
 @media(max-width:720px){.top,.top.is-scrolled{top:0;width:100%;margin:0;border-radius:0;border-left:0;border-right:0;box-shadow:0 4px 20px rgba(27,66,75,.07)}.top .head-inner{padding-inline:16px}}
 @media(prefers-reduced-motion:reduce){.top,.top .desktop-nav button,.top .head-actions>button,.menu-item svg:last-child{transition:none!important}}
+
+/* Magnetic header interaction: restrained pointer attraction */
+@media(hover:hover) and (pointer:fine){
+ .top .desktop-nav button,.top .head-actions>button{transform:translate3d(var(--magnetic-x,0px),var(--magnetic-y,0px),0);will-change:transform}
+ .top .desktop-nav button:hover{transform:translate3d(var(--magnetic-x,0px),calc(var(--magnetic-y,0px) - 2px),0)}
+ .top .head-actions>button:hover{transform:translate3d(var(--magnetic-x,0px),calc(var(--magnetic-y,0px) - 2px),0) scale(1.04)}
+ .top .desktop-nav button:active,.top .head-actions>button:active{transform:scale(.96)}
+}
+@media(prefers-reduced-motion:reduce){.top .desktop-nav button,.top .head-actions>button{transform:none!important;will-change:auto}}
