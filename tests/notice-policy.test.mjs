@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {markNoticesSeen} from '../src/live/notice.js';
 import {DEFAULT_NOTICE_CONFIG,resolveNoticeConfig,matchesPopupTag,automaticNotices,recordAutoNotice} from '../src/live/notice-policy.js';
 
@@ -70,7 +71,7 @@ test('always frequency repeats on a new page visit regardless of previous viewed
 });
 
 test('public notice field names and version are packaged as independent theme settings',()=>{
- const src=(await import('node:fs')).readFileSync(new URL('../scripts/package-txboard.mjs',import.meta.url),'utf8');
+ const src=readFileSync(new URL('../scripts/package-txboard.mjs',import.meta.url),'utf8');
  for(const field of ['notice_popup_enabled','notice_center_enabled','notice_popup_tag','notice_popup_frequency','notice_popup_scope','notice_popup_style']){
   assert.ok(src.includes("field_name:'"+field+"'"),field);
  }
