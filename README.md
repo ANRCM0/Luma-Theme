@@ -13,7 +13,7 @@ ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**
 - 套餐与周期从后端获取；优惠码校验、创建订单、付款渠道、支付二维码与支付跳转走真实 API。
 - 订阅地址、当前套餐、剩余流量、账号余额和站点公告来自 API；隐藏订阅链接并允许生成二维码。
 - 订单列表与订单状态、关闭待支付订单；工单提交/查看/回复/关闭；修改密码及邀请码信息。
-- 「重要通知」由首页固定卡片改为登录后弹窗；按账号记录已查看公告版本，新公告自动提醒，右上角铃铛可随时打开公告列表。公告内容以安全文本方式呈现。
+- 「重要通知」由首页固定卡片改为登录后弹窗；按账号记录已查看公告版本，新公告自动提醒，右上角铃铛可随时打开公告列表。公告内容以安全文本方式呈现。新版 `0.3.0` 可在「主题管理 → vv-theme → 设置」单独调整弹窗开关、通知中心开关、标签筛选（多个标签逗号分隔）、提醒频率（一次/会话/24 小时/每次访问）、主页范围及三种弹窗样式。
 - 对齐 TXBoard 2026-10-08 主题独立配置协议（[#99](https://github.com/ANRCM0/TXBoard/pull/99)）：优先读取公开的 `GET /api/v1/guest/comm/config` → `frontend_theme` / `theme_config`，只有确认当前主题是 `vv-theme` 时才应用新配置；旧版本继续使用 Blade 注入的 `window.settings`。
 - 主题独立配置 `theme_color`（青色/蓝色/深蓝色/黑色）、`background_url`、`custom_html`，自定义 HTML 标记为 `public:false`，不随游客配置 API 下发；主题仍从受信任的服务端 Blade 模板注入该 HTML。
 - 站点启用验证码时，安全地跳转 `/user-spa/#/login` 走 TXBoard 原生验证码组件；Stripe 信用卡支付走原生安全组件，避免主题自行处理卡信息。
@@ -28,10 +28,10 @@ ViaSpeed 风格的 React 用户前台。仓库同时提供两个**明确隔离**
    npm install
    npm test
    TXBOARD_THEME=true npm run build
-   THEME_VERSION=0.2.2 node scripts/package-txboard.mjs
+   THEME_VERSION=0.3.0 node scripts/package-txboard.mjs
    cd theme-package && zip -qr ../vv-theme-txboard.zip .
    ```
-3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。本次使用 `0.2.2`，支持覆盖升级原 `0.1.0`。
+3. 在 TXBoard 管理后台「主题管理」中上传**版本高于已安装版本**的 ZIP。本次使用 `0.3.0`，支持覆盖升级原 `0.1.0`。
 4. 切换 `frontend_theme` 为 `vv-theme`，从无缓存浏览器验证注册、登录、订阅、下单、回调、工单、移动端。未完成真实支付沙箱或实际环境回归前不要直接向用户推广。
 
 回滚：主题管理里切换回 `TXBoard`，默认用户 SPA 立即恢复，无需改 Caddyfile；不必删除已安装主题。
