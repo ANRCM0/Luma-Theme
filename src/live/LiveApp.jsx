@@ -14,6 +14,7 @@ import ShopCatalog from './ShopCatalog.jsx';
 import UserDataPage from './UserDataPages.jsx';
 import {InviteFinance,AccountSecurity} from './AccountExtras.jsx';
 import CaptchaField from './CaptchaField.jsx';
+import GiftCardPage from './GiftCardPage.jsx';
 import {userFeatureEnabled} from './user-data.js';
 import PurchaseForm from './PurchaseForm.jsx';
 import {ExistingOrderDialog,OrderPaymentBody} from './OrderPayment.jsx';
@@ -76,6 +77,7 @@ export default function LiveApp(){
  const mobileNav=mobileNavigation(navConfig.items).map(key=>NAV.find(item=>item[0]===key)).filter(Boolean);
   const canTraffic=userFeatureEnabled('traffic_log_enable',guest,userFlags);
   const canKnowledge=userFeatureEnabled('knowledge_enable',guest,userFlags);
+  const canGiftCard=userFeatureEnabled('gift_card_enable',guest,userFlags);
  const go=useCallback(next=>{setError('');setDialog(null);setQr(null);location.hash='/'+next;setRoute(next);window.scrollTo({top:0,behavior:'instant'})},[]);
  useEffect(()=>{const cb=()=>{setRoute(routeNow());setError('')};window.addEventListener('hashchange',cb);return()=>window.removeEventListener('hashchange',cb)},[]);
  useEffect(()=>{const expire=()=>{authEpochRef.current++;setSession(false);setMe(null);setSubscription(null);setUserFlags({});setNews([]);setInvite(null);setRows([]);setTicketRows([]);setCurrentOrder(null);setQr(null);go('login');notify('登录已过期，请重新登录')};window.addEventListener('txboard:unauthorized',expire);return()=>window.removeEventListener('txboard:unauthorized',expire)},[go,notify]);
@@ -484,9 +486,10 @@ export default function LiveApp(){
  {profileTab==='邀请管理'&&<InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/>}
  {profileTab==='财务记录'&&<><Card><h3>财务概览</h3><div className="finance-summary"><div><span>余额</span><strong>{tx.money(me?.balance)}</strong></div><div><span>佣金余额</span><strong>{tx.money(me?.commission_balance)}</strong></div><div><span>订单数量</span><strong>{rows.length}</strong></div></div><button className="secondary" onClick={()=>go('orders')}>查看订单明细</button></Card><InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/></>}</>}
  {route==='ticket'&&<><div className="live-ticket-header"><Heading en="SUPPORT CENTER" title="服务工单">与客服交流，所有内容均提交至真实 TXBoard 工单接口。</Heading><button className="primary" onClick={()=>setDialog('ticket-create')}><Plus size={18}/> 创建工单</button></div><Card><div className="ticket-toolbar"><h3>我的工单（{ticketRows.length}）</h3><div className="search"><Search size={17}/><input placeholder="搜索工单…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>{ticketRows.filter(x=>String(x.subject||'').includes(search)).map(t=><button key={t.id} className="live-list-row" onClick={()=>viewTicket(t)}><div><strong>{t.subject}</strong><p className="muted">#{t.id} · {date(t.updated_at)} · {t.status===1?'已关闭':'处理中'}</p></div><ChevronRight size={18}/></button>)}{!ticketRows.length&&<p className="muted">暂无工单</p>}</Card></>}
- {route==='menu'&&<><Heading en="QUICK ACCESS" title="全部菜单">快速访问常用功能。</Heading><div className="menu-grid">{[...NAV.slice(0,4),['orders','我的订单',Receipt],['invite','邀请管理',Gift],['nodes','节点列表',Wifi],...(canTraffic?[['traffic','流量记录',RefreshCcw]]:[]),...(canKnowledge?[['knowledge','帮助中心',Info]]:[]),['logout','退出登录',LogOut]].map(([key,name,Icon])=><button key={key} className="card menu-item" onClick={()=>key==='logout'?logout():key==='invite'?(setProfileTab('邀请管理'),go('profile')):go(key)}><Icon size={24}/><strong>{name}</strong><ChevronRight size={17}/></button>)}</div></>}
+ {route==='menu'&&<><Heading en="QUICK ACCESS" title="全部菜单">快速访问常用功能。</Heading><div className="menu-grid">{[...NAV.slice(0,4),['orders','我的订单',Receipt],['invite','邀请管理',Gift],['nodes','节点列表',Wifi],...(canTraffic?[['traffic','流量记录',RefreshCcw]]:[]),...(canKnowledge?[['knowledge','帮助中心',Info]]:[]),...(canGiftCard?[['gift-card','礼品卡',Gift]]:[]),['logout','退出登录',LogOut]].map(([key,name,Icon])=><button key={key} className="card menu-item" onClick={()=>key==='logout'?logout():key==='invite'?(setProfileTab('邀请管理'),go('profile')):go(key)}><Icon size={24}/><strong>{name}</strong><ChevronRight size={17}/></button>)}</div></>}
+ {route==='gift-card'&&(canGiftCard?<GiftCardPage onUpdated={loadMain}/>:<Card><p>礼品卡功能未开放</p><button className="secondary" onClick={()=>go('menu')}>返回全部菜单</button></Card>)}
  {['nodes','traffic','knowledge'].includes(route)&&(route==='traffic'&&!canTraffic||route==='knowledge'&&!canKnowledge?<Card><h3>功能未开放</h3><p>当前站点未启用此功能。</p><button className="secondary" onClick={()=>go('menu')}>返回全部菜单</button></Card>:<UserDataPage page={route} onShop={()=>go('shop')}/> )}
- {!NAV.some(x=>x[0]===route)&&!['nodes','traffic','knowledge'].includes(route)&&<Card><p>页面不存在</p><button className="primary" onClick={()=>go('dashboard')}>返回面板</button></Card>}
+ {!NAV.some(x=>x[0]===route)&&!['nodes','traffic','knowledge','gift-card'].includes(route)&&<Card><p>页面不存在</p><button className="primary" onClick={()=>go('dashboard')}>返回面板</button></Card>}
  </main><footer>© {new Date().getFullYear()} {title} · Powered by TXBoard {window.settings?.version&&<small>v{window.settings.version}</small>} <span>真实账户数据由服务器提供</span></footer><nav className="mobile-nav" aria-label="移动端导航">{mobileNav.map(([key,name,Icon])=><button key={key} className={route===key?'selected':''} onClick={()=>go(key)}><Icon size={21}/><span>{name}</span></button>)}</nav>
  {toast&&<div className="toast" role="status" aria-live="polite"><CheckCircle2 size={18}/>{toast}</div>}
  {noticeOpen&&<Dialog title={noticeMode==='popup'?'重要通知':'公告中心'} onClose={closeNotice} wide>
