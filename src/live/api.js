@@ -105,7 +105,7 @@ export const payments=()=>get('/user/order/getPaymentMethod');
 export const cancelOrder=(trade_no)=>post('/user/order/cancel',{trade_no});
 export const createOrder=(plan_id,period,coupon_code)=>post('/user/order/save',{plan_id,period,...(coupon_code?{coupon_code}:{})});
 export const checkCoupon=(code,plan_id,period)=>post('/user/coupon/check',{code,plan_id,period});
-export const checkout=(trade_no,method)=>api('/user/order/checkout',{method:'POST',body:{trade_no,...(method!==undefined?{method}:{})},preserveEnvelope:true});
+export const checkout=(trade_no,method,token)=>api('/user/order/checkout',{method:'POST',body:{trade_no,...(method!==undefined?{method}:{}),...(token?{token}:{})},preserveEnvelope:true});
 export const tickets=()=>get('/user/ticket/fetch');
 export const ticketDetail=(id)=>get('/user/ticket/fetch',{id});
 export const createTicket=(subject,level,message)=>post('/user/ticket/save',{subject,level,message});
@@ -113,10 +113,19 @@ export const replyTicket=(id,message)=>post('/user/ticket/reply',{id,message});
 export const closeTicket=(id)=>post('/user/ticket/close',{id});
 export const changePassword=(old_password,new_password)=>post('/user/changePassword',{old_password,new_password});
 export const invites=()=>get('/user/invite/fetch');
+export const transferCommission=(transfer_amount)=>post('/user/transfer',{transfer_amount});
+export const withdrawCommission=(withdraw_method,withdraw_account)=>post('/user/ticket/withdraw',{withdraw_method,withdraw_account});
+export const updateUserSettings=(values)=>post('/user/update',values);
+export const activeSessions=()=>get('/user/getActiveSession');
+export const removeSession=(session_id)=>post('/user/removeActiveSession',{session_id});
+export const resetSecurity=()=>get('/user/resetSecurity');
+export const quickLoginUrl=()=>post('/user/getQuickLoginUrl',{});
+export const stripePublicKey=(id)=>post('/user/comm/getStripePublicKey',{id});
+
 export const createInvite=()=>get('/user/invite/save');
 export const inviteDetails=()=>get('/user/invite/details',{current:1,page_size:50});
-export const sendVerify=(email,purpose)=>post('/passport/comm/sendEmailVerify',{email,purpose},false);
-export const forgetPassword=(email,password,email_code)=>post('/passport/auth/forget',{email,password,email_code},false);
+export const sendVerify=(email,purpose,captcha={})=>post('/passport/comm/sendEmailVerify',{email,purpose,...captcha},false);
+export const forgetPassword=(email,password,email_code,captcha={})=>post('/passport/auth/forget',{email,password,email_code,...captcha},false);
 export const stat=()=>get('/user/getStat');
 // TXBoard native user menu endpoints. Enforce their actual response shapes
 // instead of silently falling back to demo rows.
