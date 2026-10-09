@@ -67,7 +67,7 @@ test('shop atomics reorder categories and limit feature rows without changing se
  await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
  const groups=page.locator('.live-shop-category');
  await expect(groups).toHaveCount(2);
- await expect(groups.first().getByRole('heading',{name:'流量包订阅'})).toBeVisible();
+ await expect(groups.first().getByRole('heading',{name:'按量付费'})).toBeVisible();
  const recurring=page.getByRole('region',{name:'周期订阅'});
  await expect(recurring.getByText('精选套餐')).toBeVisible();
  await expect(recurring.locator('.live-shop-features>div')).toHaveCount(1);
