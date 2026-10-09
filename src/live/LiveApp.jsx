@@ -12,6 +12,8 @@ import {resolveWelcomeConfig,classifyWelcome} from './welcome-config.js';
 import {WelcomeBanner,WelcomeSecondaryCard} from './WelcomeCards.jsx';
 import ShopCatalog from './ShopCatalog.jsx';
 import UserDataPage from './UserDataPages.jsx';
+import {InviteFinance,AccountSecurity} from './AccountExtras.jsx';
+import CaptchaField from './CaptchaField.jsx';
 import {userFeatureEnabled} from './user-data.js';
 import PurchaseForm from './PurchaseForm.jsx';
 import {ExistingOrderDialog,OrderPaymentBody} from './OrderPayment.jsx';
@@ -52,7 +54,7 @@ export default function LiveApp(){
  const [currentOrder,setCurrentOrder]=useState(null),[methods,setMethods]=useState([]),[method,setMethod]=useState('');
  const [blockingOrder,setBlockingOrder]=useState(null),[paying,setPaying]=useState(false),[paymentError,setPaymentError]=useState(''),[paymentLink,setPaymentLink]=useState('');
  const [watchingOrder,setWatchingOrder]=useState(false),[watchExpired,setWatchExpired]=useState(false);
- const createLockRef=useRef(false),payLockRef=useRef(false),orderPollCountRef=useRef({tradeNo:null,attempts:0}),authEpochRef=useRef(0);
+ const createLockRef=useRef(false),payLockRef=useRef(false),stripeRef=useRef(null),captchaRef=useRef(null),orderPollCountRef=useRef({tradeNo:null,attempts:0}),authEpochRef=useRef(0);
  const [ticket,setTicket]=useState(null),[reply,setReply]=useState(''),[authTab,setAuthTab]=useState(()=>['register','forget'].includes(queryNow().get('tab'))?queryNow().get('tab'):'login');
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[emailCode,setEmailCode]=useState(''),[inviteCode,setInviteCode]=useState(()=>queryNow().get('code')||'');
  const [showAuthPassword,setShowAuthPassword]=useState(false);
@@ -141,12 +143,14 @@ export default function LiveApp(){
    const mode=authTab;
    const data={email:email.trim(),password,...(emailCode?{email_code:emailCode}:{}),...(inviteCode?{invite_code:inviteCode}:{})};
    const result=await act(async()=>{
-     if(mode==='login')return tx.login(email.trim(),password);
-     if(mode==='register'){if(password!==confirm)throw Error('两次输入的密码不一致');return tx.register(data)}
+     const captcha=await captchaRef.current?.getPayload()||{};
+     if(Number(guest.is_captcha)===1&&!Object.keys(captcha).length)throw Error('请先完成人机验证');
+     if(mode==='login')return tx.login(email.trim(),password,captcha);
+     if(mode==='register'){if(password!==confirm)throw Error('两次输入的密码不一致');return tx.register({...data,...captcha})}
      if(password!==confirm)throw Error('两次输入的密码不一致');
-     await tx.forgetPassword(email.trim(),password,emailCode);return true;
+     await tx.forgetPassword(email.trim(),password,emailCode,captcha);return true;
    });
-   if(!result)return;
+   if(!result){captchaRef.current?.reset();return}
    if(mode==='forget'){setAuthTab('login');setPassword('');notify('密码已重置，请重新登录');return}
    const signedToken=tx.getToken();
    await loadMain().catch(fail);
@@ -276,11 +280,9 @@ export default function LiveApp(){
        return;
      }
      const selected=methods.find(x=>String(x.id)===String(method));
-     if(selected?.payment==='StripeCredit'){
-       window.location.assign('/user-spa/#/order/'+encodeURIComponent(trade));
-       return;
-     }
-     const result=await tx.checkout(trade,method?Number(method):undefined);
+     const cardToken=selected?.payment==='StripeCredit'?await stripeRef.current?.createToken():undefined;
+     if(selected?.payment==='StripeCredit'&&!cardToken)throw Error('信用卡表单尚未就绪');
+     const result=await tx.checkout(trade,method?Number(method):undefined,cardToken);
      if(result.type===0&&typeof result.data==='string'){
        setQr({title:'支付二维码',value:result.data});
        notify('请扫码支付，系统将自动查询支付状态');
@@ -425,9 +427,7 @@ export default function LiveApp(){
     <p className="live-auth-description">{authTab==='login'?'登录后即可管理订阅、订单与服务支持。':authTab==='register'?'填写以下信息，开启您的服务体验。':'通过邮箱验证码重置您的登录密码。'}</p>
    </div>
    {error&&<p role="alert" className="live-error">{error}</p>}
-   {Number(guest.is_captcha)===1
-    ?<div className="live-auth-captcha"><p>本站启用了安全验证码，请前往受保护的登录页面完成验证。</p><a className="primary wide live-link" href={'/user-spa/#/login'+(authTab==='register'?'?tab=register':authTab==='forget'?'?tab=forget':'')}>前往安全登录 / 注册 <ArrowRight size={17}/></a></div>
-    :<form className="live-auth-form" onSubmit={signIn}>
+   {<form className="live-auth-form" onSubmit={signIn}>
       <label className="live-auth-field">
        <span className="live-auth-label">邮箱地址</span>
        <span className="live-auth-input-wrap"><Mail size={19} aria-hidden="true"/><input aria-label="邮箱地址" value={email} type="email" inputMode="email" autoComplete="username" required onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></span>
@@ -438,7 +438,8 @@ export default function LiveApp(){
       </label>
       {authTab!=='login'&&<label className="live-auth-field"><span className="live-auth-label">确认密码</span><span className="live-auth-input-wrap"><LockKeyhole size={19} aria-hidden="true"/><input type="password" aria-label="确认密码" autoComplete="new-password" minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="请再次输入密码"/></span></label>}
       {authTab==='register'&&Number(guest.is_invite_force)===1&&<label className="live-auth-field"><span className="live-auth-label">邀请码</span><span className="live-auth-input-wrap"><Gift size={19} aria-hidden="true"/><input aria-label="邀请码" value={inviteCode} required onChange={e=>setInviteCode(e.target.value)} placeholder="请输入邀请码"/></span></label>}
-      {(authTab==='forget'||(authTab==='register'&&Number(guest.is_email_verify)===1))&&<label className="live-auth-field"><span className="live-auth-label">邮箱验证码</span><span className="live-auth-input-wrap live-auth-code"><input aria-label="邮箱验证码" required value={emailCode} onChange={e=>setEmailCode(e.target.value)} placeholder="请输入验证码"/><button type="button" className="live-auth-send-code" disabled={busy||!email.trim()} onClick={()=>act(()=>tx.sendVerify(email.trim(),authTab==='forget'?'forget':'register'),'验证码已发送')}>发送验证码</button></span></label>}
+      {(authTab==='forget'||(authTab==='register'&&Number(guest.is_email_verify)===1))&&<label className="live-auth-field"><span className="live-auth-label">邮箱验证码</span><span className="live-auth-input-wrap live-auth-code"><input aria-label="邮箱验证码" required value={emailCode} onChange={e=>setEmailCode(e.target.value)} placeholder="请输入验证码"/><button type="button" className="live-auth-send-code" disabled={busy||!email.trim()} onClick={()=>act(async()=>{const captcha=await captchaRef.current?.getPayload()||{};if(Number(guest.is_captcha)===1&&!Object.keys(captcha).length)throw Error('请先完成人机验证');return tx.sendVerify(email.trim(),authTab==='forget'?'forget':'register',captcha)},'验证码已发送')}>发送验证码</button></span></label>}
+      <CaptchaField ref={captchaRef} config={guest}/>
       {authTab==='register'&&tx.safeExternal(guest.tos_url)&&<p className="live-auth-terms">注册即表示你已阅读并同意 <a href={tx.safeExternal(guest.tos_url)} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">服务条款</a></p>}
       <button type="submit" disabled={busy} className="primary wide live-auth-submit">{busy?'提交中…':authTab==='login'?'登录':authTab==='register'?'注册账号':'重置密码'} {!busy&&<ArrowRight size={18}/>}</button>
      </form>}
@@ -479,9 +480,9 @@ export default function LiveApp(){
  </>}
  {route==='orders'&&<><Heading en="ORDER HISTORY" title="我的订单">查看真实订单与支付状态。</Heading><Card><div className="ticket-toolbar"><h3>订单记录（{rows.length}）</h3><button className="secondary" onClick={()=>loadSection('orders')}>刷新</button></div>{rows.length?rows.map(o=><button className="live-list-row" key={o.trade_no} onClick={()=>showOrder(o.trade_no)}><div><strong>{o.plan?.name||'套餐 #'+o.plan_id}</strong><p className="muted">{o.trade_no} · {date(o.created_at)}</p></div><div>{tx.money(o.total_amount)} · {status(o.status)} <ChevronRight size={15}/></div></button>):<p className="muted">暂无订单</p>}</Card></>}
  {route==='profile'&&<><Heading en="ACCOUNT CENTER" title="账号设置">账户信息、安全设置与邀请管理。</Heading><div className="tabs">{['基本信息','安全设置','邀请管理','财务记录'].map(t=><button key={t} className={profileTab===t?'active':''} onClick={()=>setProfileTab(t)}>{t}</button>)}</div>{profileTab==='基本信息'&&<div className="profile-grid"><Card><h3>个人信息</h3><div className="field"><label>邮箱地址</label><input readOnly value={me?.email||''}/></div><div className="field"><label>当前套餐</label><input readOnly value={planName}/></div></Card><Card><h3>账户余额</h3><div className="account-balance">{tx.money(me?.balance)}</div><p className="muted">可用余额，金额由 TXBoard 返回</p><button className="secondary wide" onClick={()=>go('orders')}>查看订单</button></Card></div>}
- {profileTab==='安全设置'&&<Card className="form-card"><h3>修改密码</h3><form onSubmit={async e=>{e.preventDefault();if(newPass.length<8||newPass!==repeatPass){setError('请确认新密码至少 8 位且两次一致');return}const result=await act(()=>tx.changePassword(oldPass,newPass),'密码修改成功');if(result!==null){setOldPass('');setNewPass('');setRepeatPass('')}}}><div className="field"><label>当前密码</label><input type="password" required value={oldPass} onChange={e=>setOldPass(e.target.value)}/></div><div className="field"><label>新密码</label><input type="password" minLength="8" required value={newPass} onChange={e=>setNewPass(e.target.value)}/></div><div className="field"><label>确认新密码</label><input type="password" minLength="8" required value={repeatPass} onChange={e=>setRepeatPass(e.target.value)}/></div><button className="primary" disabled={busy}>修改密码</button></form></Card>}
- {profileTab==='邀请管理'&&<Card><h3>邀请管理</h3><div className="finance-summary"><div><span>邀请码</span><strong>{invite?.codes?.length||0}</strong></div><div><span>有效佣金</span><strong>{tx.money(invite?.stat?.[1])}</strong></div><div><span>佣金余额</span><strong>{tx.money(me?.commission_balance)}</strong></div></div><div className="subscription"><span className="live-break">{inviteLink||'尚未生成邀请码'}</span><button disabled={!inviteLink} aria-label="复制邀请链接" onClick={()=>copy(inviteLink)}><Copy size={16}/></button></div><button className="secondary" disabled={busy} onClick={async()=>{const result=await act(tx.createInvite,'邀请码已生成');if(result!==null)await loadSection('profile')}}>生成邀请码</button></Card>}
- {profileTab==='财务记录'&&<Card><h3>财务概览</h3><div className="finance-summary"><div><span>余额</span><strong>{tx.money(me?.balance)}</strong></div><div><span>佣金余额</span><strong>{tx.money(me?.commission_balance)}</strong></div><div><span>订单数量</span><strong>{rows.length}</strong></div></div><button className="secondary" onClick={()=>go('orders')}>查看订单明细</button><button className="secondary" onClick={()=>window.location.assign('/user-spa/#/profile')}>查看完整账户管理</button></Card>}</>}
+ {profileTab==='安全设置'&&<Card className="form-card"><h3>修改密码</h3><form onSubmit={async e=>{e.preventDefault();if(newPass.length<8||newPass!==repeatPass){setError('请确认新密码至少 8 位且两次一致');return}const result=await act(()=>tx.changePassword(oldPass,newPass),'密码修改成功');if(result!==null){setOldPass('');setNewPass('');setRepeatPass('')}}}><div className="field"><label>当前密码</label><input type="password" required value={oldPass} onChange={e=>setOldPass(e.target.value)}/></div><div className="field"><label>新密码</label><input type="password" minLength="8" required value={newPass} onChange={e=>setNewPass(e.target.value)}/></div><div className="field"><label>确认新密码</label><input type="password" minLength="8" required value={repeatPass} onChange={e=>setRepeatPass(e.target.value)}/></div><button className="primary" disabled={busy}>修改密码</button></form></Card>}{profileTab==='安全设置'&&<AccountSecurity user={me} onUpdated={loadMain} onCopy={copy}/>}
+ {profileTab==='邀请管理'&&<InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/>}
+ {profileTab==='财务记录'&&<><Card><h3>财务概览</h3><div className="finance-summary"><div><span>余额</span><strong>{tx.money(me?.balance)}</strong></div><div><span>佣金余额</span><strong>{tx.money(me?.commission_balance)}</strong></div><div><span>订单数量</span><strong>{rows.length}</strong></div></div><button className="secondary" onClick={()=>go('orders')}>查看订单明细</button></Card><InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/></>}/>}
  {route==='ticket'&&<><div className="live-ticket-header"><Heading en="SUPPORT CENTER" title="服务工单">与客服交流，所有内容均提交至真实 TXBoard 工单接口。</Heading><button className="primary" onClick={()=>setDialog('ticket-create')}><Plus size={18}/> 创建工单</button></div><Card><div className="ticket-toolbar"><h3>我的工单（{ticketRows.length}）</h3><div className="search"><Search size={17}/><input placeholder="搜索工单…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>{ticketRows.filter(x=>String(x.subject||'').includes(search)).map(t=><button key={t.id} className="live-list-row" onClick={()=>viewTicket(t)}><div><strong>{t.subject}</strong><p className="muted">#{t.id} · {date(t.updated_at)} · {t.status===1?'已关闭':'处理中'}</p></div><ChevronRight size={18}/></button>)}{!ticketRows.length&&<p className="muted">暂无工单</p>}</Card></>}
  {route==='menu'&&<><Heading en="QUICK ACCESS" title="全部菜单">快速访问常用功能。</Heading><div className="menu-grid">{[...NAV.slice(0,4),['orders','我的订单',Receipt],['invite','邀请管理',Gift],['nodes','节点列表',Wifi],...(canTraffic?[['traffic','流量记录',RefreshCcw]]:[]),...(canKnowledge?[['knowledge','帮助中心',Info]]:[]),['logout','退出登录',LogOut]].map(([key,name,Icon])=><button key={key} className="card menu-item" onClick={()=>key==='logout'?logout():key==='invite'?(setProfileTab('邀请管理'),go('profile')):go(key)}><Icon size={24}/><strong>{name}</strong><ChevronRight size={17}/></button>)}</div></>}
  {['nodes','traffic','knowledge'].includes(route)&&(route==='traffic'&&!canTraffic||route==='knowledge'&&!canKnowledge?<Card><h3>功能未开放</h3><p>当前站点未启用此功能。</p><button className="secondary" onClick={()=>go('menu')}>返回全部菜单</button></Card>:<UserDataPage page={route} onShop={()=>go('shop')}/> )}
@@ -524,7 +525,7 @@ export default function LiveApp(){
  {dialog==='order'&&currentOrder&&<Dialog title="订单详情" onClose={()=>{setDialog(null);void loadSection('orders')}} wide>
   <OrderPaymentBody order={currentOrder} methods={methods} method={method} onMethod={value=>{setMethod(value);setPaymentError('');setPaymentLink('')}}
    paying={paying} busy={busy} watching={watchingOrder} watchExpired={watchExpired} paymentError={paymentError} paymentLink={paymentLink}
-   onPay={pay} onCancel={cancelCurrentOrder} onRefresh={refreshOrderStatus} money={tx.money} statusLabel={status}/>
+   onPay={pay} onCancel={cancelCurrentOrder} onRefresh={refreshOrderStatus} money={tx.money} statusLabel={status} stripeRef={stripeRef}/>
  </Dialog>}
  {dialog==='ticket-create'&&<Dialog title="创建工单" onClose={()=>setDialog(null)}><form onSubmit={createTicket}><div className="field"><label>工单主题</label><input name="title" required maxLength="100"/></div><div className="field"><label>优先级</label><select name="level" defaultValue="1"><option value="0">低</option><option value="1">普通</option><option value="2">高</option></select></div><div className="field"><label>问题描述</label><textarea name="description" minLength="5" maxLength="2000" rows="5" required/></div><button className="primary wide" disabled={busy}>提交工单</button></form></Dialog>}
  {dialog==='ticket-detail'&&ticket&&<Dialog title={ticket.subject} onClose={()=>setDialog(null)} wide><p className="muted">工单 #{ticket.id} · {ticket.status===1?'已关闭':'处理中'}</p><div className="live-thread">{(ticket.message||[]).map(m=><div key={m.id} className={'live-message '+(m.is_me?'mine':'')}><strong>{m.is_me?'我':'客服'}</strong><p>{m.message}</p><small>{date(m.created_at)}</small></div>)}</div>{ticket.status===0&&<form onSubmit={sendReply}><div className="field"><label>回复</label><textarea rows="3" value={reply} required onChange={e=>setReply(e.target.value)}/></div><button className="primary" disabled={busy||!reply.trim()}>发送回复</button><button className="secondary" type="button" disabled={busy} onClick={closeCurrent}>关闭工单</button></form>}</Dialog>}
