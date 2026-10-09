@@ -76,3 +76,38 @@ test('shop atomics reorder categories and limit feature rows without changing se
  await expect(recurring.locator('.live-shop-price')).toContainText('¥12.00');
  await expect(groups.first().locator('.live-shop-price')).toContainText('¥9.00');
 });
+
+
+test('client catalog supports custom images, platform selection, built-in import and download links',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.route('https://cdn.example.test/hiddify.svg',route=>route.fulfill({
+  status:200,contentType:'image/svg+xml',
+  body:'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="6" fill="#54bac4"/></svg>'
+ }));
+ await page.route('https://cdn.example.test/broken.png',route=>route.fulfill({status:404,body:''}));
+ const catalog=JSON.stringify([
+  {id:'hiddify',name:'Hiddify Next',platforms:['windows','android'],
+   iconUrl:'https://cdn.example.test/hiddify.svg',order:1},
+  {id:'nova',name:'Nova',platforms:['windows'],iconUrl:'https://cdn.example.test/broken.png',
+   action:'scheme',template:'nova://import?url={urlEncoded}',order:2},
+  {id:'download',name:'官网应用',platforms:['ios'],action:'download',
+   url:'https://example.test/download',order:1}
+ ]);
+ await setup(page,{
+  subscription_client_mode:'replace',subscription_clients_json:catalog,
+  subscription_client_icon_size:42
+ });
+ const importPanel=page.getByRole('region',{name:'客户端与订阅导入'});
+ await expect(importPanel.getByRole('button',{name:'导入到 Hiddify Next'})).toBeVisible();
+ await expect(importPanel.getByRole('button',{name:'导入到 Nova'})).toBeVisible();
+ await expect(importPanel.getByRole('button',{name:'导入到 Clash'})).toHaveCount(0);
+ const icon=importPanel.getByRole('button',{name:'导入到 Hiddify Next'}).locator('.live-client-icon');
+ await expect(icon).toHaveCSS('width','42px');
+ await expect(icon.locator('img')).toHaveAttribute('src','https://cdn.example.test/hiddify.svg');
+ const broken=importPanel.getByRole('button',{name:'导入到 Nova'}).locator('.live-client-icon');
+ await expect(broken).toContainText('N');
+ await importPanel.getByRole('group',{name:'选择客户端平台'}).getByRole('button',{name:'iOS'}).click();
+ await expect(importPanel.getByRole('button',{name:'打开 官网应用'})).toBeVisible();
+ await expect(importPanel.getByRole('button',{name:'导入到 Hiddify Next'})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+});
