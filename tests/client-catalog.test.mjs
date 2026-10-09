@@ -97,7 +97,7 @@ test('theme settings register catalog, icon size and independent image fields',(
  const build=readFileSync(new URL('../scripts/package-txboard.mjs',import.meta.url),'utf8');
  for(const key of ['subscription_client_mode','subscription_clients_json','subscription_client_icon_size',
  ...PRESET_CLIENT_IDS.map(id=>'subscription_client_icon_'+id.replaceAll('-','_'))]){
-  assert.ok(build.includes('"field_name":"'+key+'"'),key+' missing from manifest');
+  assert.ok(build.includes('field_name:"'+key+'"'),key+' missing from manifest');
   assert.ok(build.includes('$theme_config[\\\"'+key+'\\\"]'),key+' missing from Blade fallback');
  }
 });
