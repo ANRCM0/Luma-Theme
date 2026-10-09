@@ -23,7 +23,7 @@ import {firstBlockingOrder,isBlockingOrder,isTerminalOrder,normalizeOrderStatus,
 import {availableCatalogPlans,planPeriods,planPrice,resolveCatalogConfig} from './catalog.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
-import './live.css';
+
 
 const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu],['orders','我的订单',Receipt]];
 const routeNow=()=>((location.hash.replace(/^#\/?/,'').split(/[/?]/)[0])||'dashboard');
