@@ -9,7 +9,8 @@ export function validMajorAmount(value){
  return /^\d+(?:\.\d{1,2})?$/.test(v)&&Number(v)>0&&Number.isSafeInteger(Math.round(Number(v)*100));
 }
 export function commissionMinimum(config,field){
- const value=field==='transfer'?config?.commission_transfer_limit??config?.commission_withdraw_limit:config?.commission_withdraw_limit;
+ const raw=field==='transfer'?config?.commission_transfer_limit:config?.commission_withdraw_limit;
+ const value=field==='transfer'&&(raw===undefined||raw===null||raw==='')?config?.commission_withdraw_limit:raw;
  const n=Number(value);
  return Number.isFinite(n)&&n>0?n:0;
 }
@@ -30,7 +31,7 @@ export function InviteFinance({user,config,guest,onUpdated,onCopy,onNavigate}){
  const minTransfer=commissionMinimum(config,'transfer'),minWithdraw=commissionMinimum(config,'withdraw');
  const methods=Array.isArray(config?.withdraw_methods)?config.withdraw_methods.map(String):[];
  const transferEnabled=userFeatureEnabled('commission_enable',guest,config);
- const withdrawEnabled=transferEnabled&&userFeatureEnabled('withdraw_close',{withdraw_close:0},{withdraw_close:0})&&Number(config?.withdraw_close??1)===0;
+ const withdrawEnabled=transferEnabled&&Number(config?.withdraw_close??1)===0;
  const featureAllowed=userFeatureEnabled('invite_enable',guest,config);
  const baseUrl=tx.safeExternal(guest?.app_url)||location.origin;
  const link=code=>baseUrl.replace(/\/$/,'')+'/#/login?tab=register&code='+encodeURIComponent(code);
@@ -66,7 +67,7 @@ export function InviteFinance({user,config,guest,onUpdated,onCopy,onNavigate}){
   if(await run(()=>tx.withdrawCommission(method,account.trim()),'提现申请已提交到工单')){setAccount('');onNavigate?.('ticket')}
  };
  if(!featureAllowed)return <div className="card live-extra-card">站点未开启邀请功能。</div>;
- return <div className="live-extra-stack" aria-label="邀请与佣金">
+ return <div className="live-extra-stack" role="region" aria-label="邀请与佣金">
   <ErrorNotice message={error}/>{success&&<p className="live-extra-success" role="status">{success}</p>}
   <div className="card live-extra-card">
    <div className="live-extra-head"><h3>邀请概览</h3><button className="secondary" disabled={busy||loading} onClick={()=>void reload()}><RefreshCcw size={15}/>刷新</button></div>
@@ -108,7 +109,7 @@ export function AccountSecurity({user,onUpdated,onCopy}){
   if(typeof result==='string')await onUpdated?.();
  };
  const quick=async()=>{const url=await run(tx.quickLoginUrl,'已生成一次性登录链接');if(!url)return;const safe=tx.safeExternal(url);if(!safe){setError('服务器返回的快捷登录地址不安全');return}await onCopy(safe)};
- return <div className="live-extra-stack" aria-label="账户安全管理">
+ return <div className="live-extra-stack" role="region" aria-label="账户安全管理">
   <ErrorNotice message={error}/>{message&&<p className="live-extra-success" role="status">{message}</p>}
   <div className="card live-extra-card"><h3>提醒设置</h3>
    <label className="live-extra-toggle"><input type="checkbox" checked={expiry} onChange={e=>setExpiry(e.target.checked)}/> 套餐到期提醒</label>
