@@ -51,7 +51,7 @@
 | `shop_tags_visible` | `1` | 套餐标签 |
 | `shop_features_visible` | `1` | 流量、设备、带宽等权益 |
 | `shop_year_savings_visible` | `0` | 年付相对 12 个月月付的节省金额提示 |
-| `shop_empty_sections_visible` | `0` | 是否显示没有可售套餐的分类 |
+| `shop_empty_sections_visible` | `1` | 是否显示没有可售套餐的分类 |
 
 年付节省是由后端提供的月付和年付金额计算的**展示值**；实际订单金额仍由服务端确认。购买弹窗仍列出后端允许的具体周期，不把月付/年付选择重新塞回套餐列表顶部。
 
