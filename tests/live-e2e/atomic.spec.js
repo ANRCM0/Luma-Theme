@@ -123,9 +123,13 @@ test('desktop header is slimmer, dashboard cards meet without the redundant subs
  await expect(header.locator('.desktop-nav').getByRole('button',{name:'购买套餐'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'订阅管理'})).toHaveCount(0);
  const upper=await page.locator('.dashboard-grid').boundingBox();
- const lower=await page.locator('.live-subscription-center').boundingBox();
- expect(lower.y-(upper.y+upper.height)).toBeGreaterThanOrEqual(10);
- expect(lower.y-(upper.y+upper.height)).toBeLessThanOrEqual(20);
+ const subscription=page.locator('.live-subscription-center');
+ // Check the exact CSS spacing, allowing fractional rendering during transitions.
+ await expect(subscription).toHaveCSS('margin-top','10px');
+ const lower=await subscription.boundingBox();
+ const visualGap=lower.y-(upper.y+upper.height);
+ expect(visualGap).toBeGreaterThanOrEqual(8);
+ expect(visualGap).toBeLessThanOrEqual(20);
 });
 test('shop starts at centered category with centered single plan and no redundant page introduction',async({page})=>{
  await page.setViewportSize({width:1440,height:900});
