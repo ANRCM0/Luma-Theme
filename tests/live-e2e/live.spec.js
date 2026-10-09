@@ -352,7 +352,7 @@ test('subscriptions near expiry use a renewal message and usable traffic metrics
  await expect(usage).toBeVisible();
  await expect(usage.getByRole('progressbar',{name:'流量使用比例'})).toHaveAttribute('aria-valuenow','95');
  await usage.getByRole('button',{name:'查看套餐'}).click();
- await expect(page.getByRole('heading',{name:'购买套餐'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'套餐商店'})).toBeVisible();
 });
 
 test('fully depleted plans show an upgrade action before other warnings',async({page})=>{
@@ -432,7 +432,7 @@ test('shop groups subscription types and creates an order only after server-side
  const shop=page.getByRole('region',{name:'套餐商店'});
  await expect(shop).toBeVisible();
  await expect(shop.getByRole('region',{name:'周期订阅'})).toBeVisible();
- await expect(shop.getByRole('region',{name:'流量包订阅'})).toBeVisible();
+ await expect(shop.getByRole('region',{name:'按量付费'})).toHaveCount(0);
  await expect(shop.getByRole('group',{name:'套餐周期'})).toHaveCount(0);
  await expect(page.locator('[data-plan-id="3"]')).toHaveCount(0);
  await expect(page.locator('[data-plan-id="2"] .live-shop-recommend')).toContainText('精选套餐');
@@ -495,7 +495,7 @@ test('mobile subscription categories remain scroll-safe without period filters',
  const shop=page.getByRole('region',{name:'套餐商店'});
  await expect(shop.locator('.live-shop-plan')).toHaveCount(3);
  const recurring=shop.getByRole('region',{name:'周期订阅'});
- const traffic=shop.getByRole('region',{name:'流量包订阅'});
+ const traffic=shop.getByRole('region',{name:'按量付费'});
  await expect(recurring.locator('.live-shop-plan')).toHaveCount(2);
  await expect(traffic.locator('.live-shop-plan')).toHaveCount(1);
  await expect(traffic.locator('.live-shop-plan')).toContainText('一次性方案');
