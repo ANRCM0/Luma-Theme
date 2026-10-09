@@ -10,7 +10,7 @@ function rewardText(rewards={}){
  if(rewards.device_limit)parts.push('设备 '+rewards.device_limit+' 台');
  return parts.length?parts.join(' · '):'由服务端分配奖励';
 }
-export default function GiftCardPage({onUpdated}){
+export default function GiftCardPage({onUpdated,atomic={}}){
  const [code,setCode]=useState(''),[preview,setPreview]=useState(null),[history,setHistory]=useState([]);
  const [detail,setDetail]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  async function load(){
@@ -39,7 +39,7 @@ export default function GiftCardPage({onUpdated}){
  };
  const showDetail=async id=>{setError('');try{setDetail(await tx.giftDetail(id))}catch(e){setError(e?.message||'无法加载兑换详情')}};
  return <section className="live-extra-stack" aria-label="礼品卡">
-  <div className="live-data-heading"><div><span className="eyebrow">GIFT CARD</span><h1>礼品卡</h1><p>兑换前先查询奖励和使用条件。</p></div></div>
+  <div className="live-data-heading"><div>{atomic.showEyebrow!==false&&<span className="eyebrow">GIFT CARD</span>}<h1>礼品卡</h1>{atomic.showPageDescription!==false&&<p>兑换前先查询奖励和使用条件。</p>}</div></div>
   {error&&<p className="live-extra-error" role="alert">{error}</p>}{message&&<p className="live-extra-success" role="status">{message}</p>}
   <div className="card live-extra-card">
    <h3>兑换礼品卡</h3><label className="live-extra-field">兑换码<input aria-label="礼品卡兑换码" value={code} onChange={e=>{setCode(e.target.value);setPreview(null)}} placeholder="GC-XXXX-XXXX" disabled={busy}/></label>
