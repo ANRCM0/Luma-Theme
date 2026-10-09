@@ -17,7 +17,7 @@ export const ATOMIC_DEFAULTS=Object.freeze({
  shop:Object.freeze({
   order:'recurring',cycle:true,traffic:true,showGroupDescription:true,
   cycleFeaturedId:0,trafficFeaturedId:0,cycleFeatureLimit:0,trafficFeatureLimit:0,
-  showTags:true,showFeatures:true,showSavings:false,showEmptySections:false
+  showTags:true,showFeatures:true,showSavings:false,showEmptySections:true
  }),
  subscription:Object.freeze({showLink:true,showQr:true,showCaution:true}),
  nodes:Object.freeze({showRate:true,showTags:true}),
@@ -58,7 +58,7 @@ export function resolveAtomicConfig(guest={},settings={}){
    showTags:flag('shop_tags_visible',true),
    showFeatures:flag('shop_features_visible',true),
    showSavings:flag('shop_year_savings_visible',false),
-   showEmptySections:flag('shop_empty_sections_visible',false)
+   showEmptySections:flag('shop_empty_sections_visible',true)
   },
   subscription:{
    showLink:flag('subscription_link_visible',true),
