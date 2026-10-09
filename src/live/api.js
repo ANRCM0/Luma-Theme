@@ -121,6 +121,11 @@ export const removeSession=(session_id)=>post('/user/removeActiveSession',{sessi
 export const resetSecurity=()=>get('/user/resetSecurity');
 export const quickLoginUrl=()=>post('/user/getQuickLoginUrl',{});
 export const stripePublicKey=(id)=>post('/user/comm/getStripePublicKey',{id});
+export const giftCheck=code=>post('/user/gift-card/check',{code});
+export const giftRedeem=code=>post('/user/gift-card/redeem',{code});
+export const giftHistory=(page=1,per_page=20)=>get('/user/gift-card/history',{page,per_page});
+export const giftDetail=id=>get('/user/gift-card/detail',{id});
+
 
 export const createInvite=()=>get('/user/invite/save');
 export const inviteDetails=()=>get('/user/invite/details',{current:1,page_size:50});
