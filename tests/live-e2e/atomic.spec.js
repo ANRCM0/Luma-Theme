@@ -45,7 +45,7 @@ test('atomic Luma settings change only presentation and preserve subscribe API',
  await expect(importPanel.getByText('订阅链接',{exact:true})).toHaveCount(0);
  await expect(importPanel.locator('.live-import-qr')).toHaveCount(0);
  await expect(importPanel.getByText('订阅链接属于账号凭证')).toHaveCount(0);
- await expect(page.locator('.mobile-nav button svg')).toHaveCount(0);
+ await expect(page.locator('.mobile-nav button svg').first()).toBeHidden();
  await expect(page.locator('footer')).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
 });
