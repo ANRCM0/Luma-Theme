@@ -4,7 +4,7 @@ import {canAttemptRenew,canAttemptReset} from './subscription-center.js';
 import {welcomeContent} from './welcome-config.js';
 
 // Welcome is deliberately a greeting, not a second copy of subscription data.
-export function WelcomeBanner({user,overview,config}){
+export function WelcomeBanner({user,overview,config,atomic={}}){
  const entry=welcomeContent(overview.state,config.enabled);
  const name=String(user?.email||'用户').split('@')[0]||'用户';
  const title=config.enabled?entry.heading+', '+name:'欢迎回来, '+name;
@@ -13,9 +13,9 @@ export function WelcomeBanner({user,overview,config}){
   <div className="welcome-text">
    <span className="eyebrow">{entry.eyebrow}</span>
    <h1>{title}</h1>
-   <p>{description}</p>
+   {atomic.welcomeDescription!==false&&<p>{description}</p>}
   </div>
-  <div className="welcome-decor" aria-hidden="true"><Wifi size={108} strokeWidth={1.1}/></div>
+  {atomic.welcomeDecoration!==false&&<div className="welcome-decor" aria-hidden="true"><Wifi size={108} strokeWidth={1.1}/></div>}
  </section>;
 }
 
