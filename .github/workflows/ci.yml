@@ -57,7 +57,7 @@ jobs:
             if (config.name !== "vv-theme") throw Error("Theme identifier changed unexpectedly");
             if (names.size !== config.configs.length) throw Error("Duplicate theme setting name");
           '
-      - name: Build live browser preview assets
+      - name: Build live TXBoard theme bundle
         run: npm run build
         env:
           TXBOARD_THEME: 'true'
