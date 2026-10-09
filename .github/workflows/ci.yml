@@ -45,6 +45,19 @@ jobs:
         env:
           TXBOARD_THEME: 'true'
           TXBOARD_THEME_PREVIEW: 'true'
+      - name: Stage and validate theme settings manifest
+        run: |
+          node scripts/package-txboard.mjs
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const config = JSON.parse(readFileSync("theme-package/config.json", "utf8"));
+            const names = new Set(config.configs.map(field => field.field_name));
+            for (const key of ["ui_density","ui_card_radius","page_shop_visible","shop_section_order","subscription_qr_visible","node_rate_visible"]) {
+              if (!names.has(key)) throw Error("Missing atomic theme field: " + key);
+            }
+            if (config.name !== "vv-theme") throw Error("Theme identifier changed unexpectedly");
+            if (names.size !== config.configs.length) throw Error("Duplicate theme setting name");
+          '
       - name: Real-mode browser smoke tests (mocked API)
         run: npm run test:live
       - name: Upload Playwright report on failure
