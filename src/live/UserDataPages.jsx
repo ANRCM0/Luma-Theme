@@ -69,7 +69,7 @@ export default function UserDataPage({page,onShop,atomic={}}){
  },[page,revision]);
  if(!config)return null;
  return <section className="live-data-page" aria-label={config.title}>
-  <div className="live-data-heading"><div><span className="eyebrow">{config.eyebrow}</span><h1>{config.title}</h1><p>{config.intro}</p></div>
+  <div className="live-data-heading"><div>{atomic.showEyebrow!==false&&<span className="eyebrow">{config.eyebrow}</span>}<h1>{config.title}</h1>{atomic.showPageDescription!==false&&<p>{config.intro}</p>}</div>
    <button type="button" className="secondary" disabled={loading} onClick={()=>setRevision(n=>n+1)}><RefreshCcw size={16}/>刷新</button>
   </div>
   <div className="card live-data-card">
