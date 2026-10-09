@@ -51,7 +51,7 @@ git push origin v0.9.2
 
 Release 自动生成更新说明。支持 `v1.0.0-beta.1` 等预发布标签，并自动标识为 Pre-release。主题包内的版本号来自标签（例如 `v0.9.2` 对应 `0.9.2`），不再固定为旧版本。构建或 Blade 校验失败时**不会**发布 Release。
 
-需要临时检查打包结果但不发布 Release，可以在 Actions 的该工作流中手动运行 `workflow_dispatch`，输入不带 `v` 的版本号。主分支和 PR 仍由独立 `Frontend CI` 负责测试；`Deploy GitHub Pages` 工作流已移除。
+需要临时检查打包结果但不发布 Release，可以在 Actions 的该工作流中手动运行 `workflow_dispatch`，输入不带 `v` 的版本号。主分支和 PR 由独立 `Frontend CI` 负责测试；新版本标签由 `Build & Release Luma Theme` 负责打包发布。仓库内没有 Pages 部署工作流。
 
 ## 安装升级
 
@@ -80,7 +80,7 @@ Release 自动生成更新说明。支持 `v1.0.0-beta.1` 等预发布标签，�
 - 主题依赖 TXBoard V1 API 协议与对应后端功能开关。生产上线仍需验证付款回调、验证码模式、特殊支付网关、邀请码限制、套餐切换和部署负载。
 - CSS 使用系统字体，登录背景可由后台配置，不再强制请求 Google Fonts 或 `viaspeed.shop`。
 - 自定义 HTML 是受信任管理员配置，不会随公开配置下发；主题背景只接受 HTTP(S) URL，不执行非 Web 协议。
-- 独立视觉演示仍可在本地运行（`npm run dev`）；仓库不再自动构建或部署 GitHub Pages。
+- 独立视觉演示仍可在本地运行（`npm run dev`）。**注意：** GitHub Pages 若仍在仓库设置中启用，即使删掉了 Pages YAML，GitHub 也会自动创建 `pages build and deployment`。要彻底停用：进入仓库 **Settings → Pages → Build and deployment → Deploy from a branch → Branch: None → Save**（界面选项随 GitHub 版本可能略有不同）。本项目的 `Frontend CI` 与 Tag 自动 Release 不依赖 GitHub Pages。
 
 ## 验证
 
