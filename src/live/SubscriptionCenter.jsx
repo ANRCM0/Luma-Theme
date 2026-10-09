@@ -1,15 +1,22 @@
 import React,{useEffect,useState} from 'react';
 import QRCode from 'qrcode';
 import {Copy,Eye,EyeOff,ExternalLink} from 'lucide-react';
-import {clientsFor,detectPlatform,PLATFORMS,validSubscriptionUrl} from './import.js';
+import {detectPlatform,PLATFORMS,validSubscriptionUrl} from './import.js';
+import {resolveImportClients} from './client-catalog.js';
 
-const clientMarks={'Clash':'C','Hiddify':'H','Sing-box':'S','Shadowrocket':'S','Quantumult X':'Q','Surge':'S','Stash':'S','NekoBox':'N','Surfboard':'S'};
+function ClientIcon({client}){
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>setFailed(false),[client.iconUrl]);
+ return <span className="live-client-icon" aria-hidden="true">
+  {client.iconUrl&&!failed?<img src={client.iconUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={()=>setFailed(true)}/>:client.mark}
+ </span>;
+}
 export default function SubscriptionCenter({subscription,siteTitle,config,atomic={},onQr,onCopy,onImport}){
  const [revealed,setRevealed]=useState(false);
  const [platform,setPlatform]=useState(detectPlatform);
  const [qrImage,setQrImage]=useState('');
  const subUrl=validSubscriptionUrl(subscription?.subscribe_url);
- const clients=clientsFor(subUrl,siteTitle,platform);
+ const clients=resolveImportClients({subscriptionUrl:subUrl,title:siteTitle,platform,config:atomic,origin:typeof window!=='undefined'?window.location.origin:'https://example.test'});
 
  useEffect(()=>{
   let cancelled=false;
@@ -37,7 +44,7 @@ export default function SubscriptionCenter({subscription,siteTitle,config,atomic
       <div className="live-client-platforms" role="group" aria-label="选择客户端平台">
        {PLATFORMS.map(p=><button key={p.id} type="button" aria-pressed={platform===p.id} className={platform===p.id?'selected':''} onClick={()=>setPlatform(p.id)}>{p.label}</button>)}
       </div>
-      {subUrl?<div className="live-client-list">{clients.map(c=><button type="button" key={c.name} aria-label={'导入到 '+c.name} onClick={()=>onImport(c)}><span className="live-client-icon" aria-hidden="true">{clientMarks[c.name]||'+'}</span><span>{c.name}</span><ExternalLink size={13} aria-hidden="true"/></button>)}</div>:<p className="live-import-empty">开通套餐后即可导入客户端</p>}
+      {clients.length?<div className="live-client-list" style={{'--luma-client-icon-size':(atomic.clientIconSize||30)+'px'}}>{clients.map(c=><button type="button" key={c.id} aria-label={(c.kind==='download'?'打开 ':'导入到 ')+c.name} onClick={()=>onImport(c)}><ClientIcon client={c}/><span>{c.name}</span><ExternalLink size={13} aria-hidden="true"/></button>)}</div>:<p className="live-import-empty">{subUrl?'当前平台暂无可用客户端':'开通套餐后即可导入客户端'}</p>}
      </div>}
      {atomic.showCaution!==false&&<p className="live-import-caution">订阅链接属于账号凭证，请勿分享。</p>}
     </div>
