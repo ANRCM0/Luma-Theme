@@ -1240,3 +1240,49 @@
  .live-node-status{font-size:11px}
  .live-knowledge-body{padding-left:10px}
 }
+
+
+/* Luma native account, commissions, gift card and payment forms. */
+.live-extra-stack{display:grid;gap:17px;min-width:0}
+.live-portal .live-extra-card{padding:23px;min-width:0}
+.live-extra-card h3{font-size:17px;margin:0 0 13px}
+.live-extra-card>.muted{font-size:12px;line-height:1.6}
+.live-extra-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.live-extra-head h3{margin:0}
+.live-extra-head button{display:flex;align-items:center;gap:5px}
+.live-extra-field{display:flex;flex-direction:column;gap:7px;margin:14px 0;color:#607984;font-size:13px;font-weight:650}
+.live-extra-field input,.live-extra-field select{width:100%;max-width:100%;border:1px solid #dde8eb;border-radius:10px;padding:11px 12px;background:#f8fbfc;color:#20303a;font-size:14px;min-height:43px}
+.live-extra-field input:focus,.live-extra-field select:focus{outline:2px solid #94e5e8}
+.live-extra-card button{display:inline-flex;align-items:center;gap:6px;font-size:13px;max-width:100%}
+.live-extra-hint{font-size:12px;color:#899ba4;line-height:1.6;margin:10px 0}
+.live-extra-error,.live-extra-success{border-radius:10px;padding:11px 14px;font-size:13px;line-height:1.6;margin:6px 0}
+.live-extra-error{background:#fff1ef;color:#a5453c}
+.live-extra-success{background:#e6f7ef;color:#237a62}
+.live-extra-list{margin:13px 0;min-width:0}
+.live-extra-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #e8f0f2;padding:13px 0;min-width:0}
+.live-extra-row>div{display:grid;gap:5px;min-width:0}
+.live-extra-row strong{font-size:13px;overflow-wrap:anywhere}
+.live-extra-row small{font-size:11px;color:#8d9ea6;overflow-wrap:anywhere}
+.live-extra-row .secondary{flex-shrink:0}
+.live-extra-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 0}
+.live-extra-toggle{display:flex;align-items:center;gap:9px;font-size:13px;margin:11px 0;color:#617983}
+.live-extra-toggle input{width:17px;height:17px;accent-color:#28afbb}
+.live-gift-preview{border-top:1px solid #e8eff1;margin-top:20px;padding-top:18px;font-size:13px;color:#637985;line-height:1.6}
+.live-gift-preview strong{font-size:16px;color:#23343c}
+.live-stripe-card{border:1px solid #e1eaed;border-radius:11px;padding:13px;margin:12px 0;min-width:0}
+.live-stripe-element{min-height:24px}
+.live-captcha{max-width:100%;min-width:0;margin:12px 0;overflow:hidden}
+.live-captcha-widget{min-width:0}
+[data-theme=dark] .live-extra-field,[data-theme=dark] .live-extra-toggle,[data-theme=dark] .live-gift-preview{color:#bfced4}
+[data-theme=dark] .live-extra-field input,[data-theme=dark] .live-extra-field select{background:#22333c;color:#e9f6f8;border-color:#455c65}
+[data-theme=dark] .live-extra-row,[data-theme=dark] .live-gift-preview,[data-theme=dark] .live-stripe-card{border-color:#405762}
+[data-theme=dark] .live-gift-preview strong{color:#f4fcff}
+[data-theme=dark] .live-extra-error{background:#512d30;color:#ffd4ce}
+[data-theme=dark] .live-extra-success{background:#214a40;color:#afe9d2}
+@media(max-width:720px){
+ .live-portal .live-extra-card{padding:18px}
+ .live-extra-row{align-items:flex-start}
+ .live-extra-row .secondary{font-size:11px;padding:8px}
+ .live-extra-actions{flex-direction:column}
+ .live-extra-actions button{justify-content:center}
+}
