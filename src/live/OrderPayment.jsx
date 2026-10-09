@@ -1,5 +1,6 @@
 import React from 'react';
 import {AlertTriangle,CheckCircle2,Clock3,ExternalLink,RefreshCcw,ShieldCheck} from 'lucide-react';
+import StripeCard from './StripeCard.jsx';
 import {isBlockingOrder,orderStateText,normalizeOrderStatus} from './order-flow.js';
 
 export function ExistingOrderDialog({order,onContinue,onCancel,onDismiss,busy}){
@@ -16,7 +17,7 @@ export function ExistingOrderDialog({order,onContinue,onCancel,onDismiss,busy}){
  </div>;
 }
 
-export function OrderPaymentBody({order,methods,method,onMethod,paying,busy,watching,watchExpired,paymentError,paymentLink,onPay,onCancel,onRefresh,money,statusLabel}){
+export function OrderPaymentBody({order,methods,method,onMethod,paying,busy,watching,watchExpired,paymentError,paymentLink,onPay,onCancel,onRefresh,money,statusLabel,stripeRef}){
  const status=normalizeOrderStatus(order?.status);
  const selected=methods.find(item=>String(item.id)===String(method));
  const handling=selected?Math.round(Number(order.total_amount||0)*Number(selected.handling_fee_percent||0)/100)+Number(selected.handling_fee_fixed||0):0;
@@ -45,7 +46,7 @@ export function OrderPaymentBody({order,methods,method,onMethod,paying,busy,watc
      {methods.map(p=><option key={p.id} value={String(p.id)}>{p.name}</option>)}
     </select>
    </div>
-   {selected?.payment==='StripeCredit'&&<p className="muted">Stripe 信用卡支付交给 TXBoard 官方安全支付组件处理。</p>}
+   {selected?.payment==='StripeCredit'&&<StripeCard key={selected.id} ref={stripeRef} paymentId={selected.id}/>}
    <button className="primary wide" type="button" disabled={paying||busy} onClick={onPay}>{paying?'正在发起支付…':'立即支付'}</button>
    {paymentLink&&<p className="live-order-payment-link">支付页面没有自动打开？<a href={paymentLink} target="_blank" rel="noopener noreferrer">手动打开安全支付链接 <ExternalLink size={13}/></a></p>}
    <button className="secondary wide" type="button" disabled={paying||busy} onClick={onCancel}>取消订单</button>
