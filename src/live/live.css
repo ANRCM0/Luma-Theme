@@ -1339,3 +1339,69 @@
  max-width:100%;
  overflow-wrap:anywhere;
 }
+
+
+/* Luma visual polish: a quieter header and a tighter dashboard rhythm. */
+.live-portal .top{
+ height:64px;
+ top:8px;
+ width:min(calc(100% - 48px),1184px);
+ margin:8px auto 0;
+ border-radius:15px;
+ box-shadow:0 5px 22px rgba(27,66,75,.05);
+}
+.live-portal .top.is-scrolled{
+ top:7px;
+ width:min(calc(100% - 56px),1120px);
+ border-radius:15px;
+ box-shadow:0 8px 26px rgba(27,66,75,.09);
+}
+.live-portal .top .head-inner{max-width:1184px;padding-inline:19px;gap:13px}
+.live-portal .top .brand{font-size:21px;gap:8px;letter-spacing:-.03em}
+.live-portal .top .brand img{width:32px;height:32px}
+.live-portal .top .brand>svg{width:28px;height:28px}
+.live-portal .top .desktop-nav{gap:3px}
+.live-portal .top .desktop-nav button{min-height:38px;padding:9px 10px;font-size:12px;gap:6px;border-radius:8px}
+.live-portal .top .desktop-nav button svg{width:16px;height:16px;flex-shrink:0}
+.live-portal .top .head-actions{gap:4px}
+.live-portal .top .head-actions>button{width:35px;height:35px;border-radius:8px}
+.live-portal .top .head-actions>button svg{width:18px;height:18px}
+.live-portal .dashboard-grid+.live-subscription-center{margin-top:15px}
+.live-portal[data-luma-density="compact"] .dashboard-grid+.live-subscription-center{margin-top:12px}
+.live-portal .live-subscription-center{scroll-margin-top:88px}
+/* The catalog starts directly with its categories: centered headings and
+   centered, equal-width plan cards (including the single-plan case). */
+.live-portal .live-shop-category-head{text-align:center;margin:12px auto 26px;max-width:700px}
+.live-portal .live-shop-category-title{justify-content:center}
+.live-portal .live-shop-category-head p{margin:10px auto 0;max-width:64ch}
+.live-portal .live-shop-grid{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),360px));
+ justify-content:center;
+ align-items:stretch;
+ gap:18px;
+}
+.live-portal .live-shop-grid>.live-shop-plan{width:100%;height:100%;min-width:0}
+.live-portal .live-shop-category:first-child{margin-top:0}
+.live-portal .live-shop-category+.live-shop-category{margin-top:34px;padding-top:30px}
+@media(max-width:1000px) and (min-width:721px){
+ .live-portal .top{width:min(calc(100% - 32px),1184px)}
+ .live-portal .top .head-inner{gap:8px;padding-inline:13px}
+ .live-portal .top .desktop-nav button{font-size:11px;padding:8px 7px}
+ .live-portal .top .brand{font-size:19px}
+ .live-portal .top .brand img{width:29px;height:29px}
+}
+@media(max-width:720px){
+ .live-portal .top,.live-portal .top.is-scrolled{
+  height:64px;top:0;width:100%;margin:0;border-radius:0;
+  box-shadow:0 3px 14px rgba(27,66,75,.045);
+ }
+ .live-portal .top .head-inner{padding-inline:16px}
+ .live-portal .top .brand{font-size:20px;min-width:0}
+ .live-portal .top .brand img{width:30px;height:30px}
+ .live-portal .top .head-actions>button{width:38px;height:38px}
+ .live-portal .dashboard-grid+.live-subscription-center{margin-top:12px}
+ .live-portal .live-shop-category-head{margin:5px auto 20px}
+ .live-portal .live-shop-category+.live-shop-category{margin-top:26px;padding-top:24px}
+ .live-portal .live-shop-grid{grid-template-columns:minmax(0,360px);justify-content:center;gap:14px}
+}
