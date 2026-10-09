@@ -140,3 +140,199 @@ html{scroll-behavior:smooth;scrollbar-gutter:stable}
  .top .desktop-nav button:active,.top .head-actions>button:active{transform:scale(.96)}
 }
 @media(prefers-reduced-motion:reduce){.top .desktop-nav button,.top .head-actions>button{transform:none!important;will-change:auto}}
+
+/* ============================================
+   UI UPGRADE - Design Intelligence (ui-ux-pro-max)
+   ============================================ */
+
+/* --- Typography Enhancement --- */
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;letter-spacing:-.01em}
+h1,h2,h3,h4{font-family:'Plus Jakarta Sans',Fredoka,'Microsoft YaHei',sans-serif;font-weight:700;letter-spacing:-.03em;line-height:1.2}
+.brand{font-family:'Plus Jakarta Sans',Fredoka,'Microsoft YaHei',sans-serif;font-weight:800;letter-spacing:-.02em}
+.rubik{font-family:'Plus Jakarta Sans',Rubik,sans-serif;font-weight:700}
+
+/* --- Enhanced Shadow System --- */
+.card{box-shadow:0 4px 12px rgba(15,23,42,.06)}
+@media(hover:hover) and (pointer:fine){
+ .card:not(.welcome):not(.shop-empty):hover{box-shadow:0 12px 32px rgba(15,23,42,.1);transform:translateY(-2px)}
+}
+
+/* --- Glassmorphism Top Bar --- */
+.top{background:rgba(255,255,255,.78);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);border:1px solid rgba(255,255,255,.3)}
+[data-theme=dark] .top{background:rgba(25,36,43,.82);border-color:rgba(158,194,199,.16)}
+
+/* --- Enhanced Navigation --- */
+.desktop-nav button{font-weight:600;border-radius:10px;transition:color .18s ease,background-color .18s ease,transform .18s cubic-bezier(.22,1,.36,1)}
+.desktop-nav button::after{content:'';position:absolute;bottom:4px;left:50%;width:0;height:2px;background:#2a9ea8;border-radius:1px;transition:width .26s cubic-bezier(.22,1,.36,1);transform:translateX(-50%)}
+.desktop-nav button:hover::after,.desktop-nav .selected::after{width:24px}
+.desktop-nav button{position:relative}
+
+/* --- Enhanced Product Cards --- */
+.product{border-radius:16px;transition:transform .26s cubic-bezier(.22,1,.36,1),box-shadow .26s cubic-bezier(.22,1,.36,1),border-color .18s ease}
+.product::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#2a9ea8,#84eaee);opacity:0;transition:opacity .26s ease}
+@media(hover:hover) and (pointer:fine){
+ .product:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(15,23,42,.12);border-color:rgba(42,158,168,.2)}
+ .product:hover::before{opacity:1}
+}
+.product.popular::before{opacity:1}
+
+/* --- Enhanced Buttons --- */
+.primary{background:#84eaee;color:#14565c;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(132,234,238,.25);transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s ease,background-color .18s ease}
+@media(hover:hover) and (pointer:fine){
+ .primary:hover{background:#66dfe6;transform:translateY(-2px);box-shadow:0 6px 20px rgba(132,234,238,.35)}
+}
+.primary:active{transform:translateY(0) scale(.98)}
+.secondary{background:#eef8f9;color:#319da6;padding:12px 20px;border-radius:10px;font-weight:600;font-size:13px;border:1px solid #e2eef0;transition:transform .18s cubic-bezier(.22,1,.36,1),background-color .18s ease,border-color .18s ease}
+@media(hover:hover) and (pointer:fine){
+ .secondary:hover{background:#dcf3f5;transform:translateY(-1px);border-color:#c7e9eb}
+}
+
+/* --- Enhanced Form Elements --- */
+.field input,.field textarea,.field select{border:1.5px solid #d9e4e7;border-radius:10px;transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#58bac3;box-shadow:0 0 0 4px rgba(79,193,202,.14);background:#fff}
+
+/* --- Enhanced Focus States --- */
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #58bac3;outline-offset:3px;border-radius:6px}
+
+/* --- Enhanced Welcome Section --- */
+.welcome{border-radius:20px;background:linear-gradient(135deg,rgba(132,234,238,.75),rgba(240,255,253,.85));border:1px solid rgba(132,234,238,.2)}
+.welcome h1{font-weight:800;letter-spacing:-.04em}
+
+/* --- Enhanced Status Pill --- */
+.status-pill{background:rgba(255,255,255,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.4);border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+
+/* --- Enhanced Ribbon --- */
+.ribbon{background:linear-gradient(135deg,#EA580C,#F97316);color:#fff;font-weight:800;font-size:10px;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 2px 8px rgba(234,88,12,.3)}
+
+/* --- Enhanced Client Icons --- */
+.client-icon{width:44px;height:44px;border-radius:12px;font-weight:800;font-size:18px;transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s ease}
+@media(hover:hover) and (pointer:fine){
+ .clients button:hover .client-icon{transform:translateY(-2px) scale(1.05);box-shadow:0 4px 12px rgba(15,23,42,.1)}
+}
+
+/* --- Enhanced Subscription Bar --- */
+.subscription{background:#f6f8fa;border:1px solid #e9eef1;border-radius:12px;transition:border-color .18s ease,box-shadow .18s ease}
+.subscription:focus-within{border-color:#76ced4;box-shadow:0 0 0 4px rgba(79,193,202,.14)}
+
+/* --- Enhanced Search --- */
+.search{border:1.5px solid #e2e8f0;border-radius:12px;transition:border-color .18s ease,box-shadow .18s ease}
+.search:focus-within{border-color:#58bac3;box-shadow:0 0 0 4px rgba(79,193,202,.14)}
+
+/* --- Enhanced Filters & Tabs --- */
+.filters button,.tabs button{border:1.5px solid #eaf0f2;border-radius:10px;font-weight:600;transition:all .18s ease}
+.filters button:hover,.tabs button:hover{border-color:#58bac3;color:#2a9ea8;background:rgba(132,234,238,.04)}
+.filters .active,.tabs .active{background:#84eaee;color:#14565c;border-color:#84eaee;box-shadow:0 2px 8px rgba(132,234,238,.25)}
+
+/* --- Enhanced Dialog --- */
+.dialog{border-radius:20px;box-shadow:0 24px 80px rgba(15,23,42,.15)}
+.dialog h2{font-weight:700;letter-spacing:-.02em}
+
+/* --- Enhanced Overlay --- */
+.overlay{background:rgba(15,23,42,.4);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+
+/* --- Enhanced FAQ --- */
+.faq-item>button{font-weight:700;font-size:14px;transition:background-color .18s ease,color .18s ease}
+.faq-item>button:hover{background:rgba(132,234,238,.04);color:#2a9ea8}
+
+/* --- Enhanced Menu Items --- */
+.menu-item{border-radius:14px;transition:transform .26s cubic-bezier(.22,1,.36,1),box-shadow .26s cubic-bezier(.22,1,.36,1),border-color .18s ease}
+@media(hover:hover) and (pointer:fine){
+ .menu-item:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(15,23,42,.1);border-color:rgba(42,158,168,.2)}
+}
+
+/* --- Enhanced Toast --- */
+.toast{border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.1);font-weight:500}
+
+/* --- Enhanced Mobile Nav --- */
+.mobile-nav{background:rgba(255,255,255,.85);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border-top:1px solid rgba(255,255,255,.3)}
+
+/* --- Enhanced Live Period --- */
+.live-period{border:1.5px solid #e3ebed;border-radius:12px;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.live-period:hover{border-color:#58bac3;background:rgba(132,234,238,.04)}
+.live-period.selected{background:#84eaee;color:#14565c;border-color:#84eaee;box-shadow:0 4px 12px rgba(132,234,238,.3)}
+
+/* --- Enhanced Live Auth --- */
+.live-auth-input-wrap{border:1.5px solid #d9e4e7;border-radius:12px;transition:border-color .18s ease,box-shadow .18s ease}
+.live-auth-input-wrap:focus-within{border-color:#58bac3;box-shadow:0 0 0 4px rgba(79,193,202,.14)}
+.live-auth-symbol{background:linear-gradient(135deg,rgba(132,234,238,.15),rgba(147,196,232,.08));border:1px solid rgba(132,234,238,.25);border-radius:16px}
+.live-auth-eyebrow{font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.live-auth-label{font-weight:700}
+.live-auth-send-code{background:rgba(132,234,238,.12);font-weight:700;border-radius:8px;transition:background-color .18s ease,transform .18s cubic-bezier(.22,1,.36,1)}
+.live-auth-send-code:hover{background:rgba(132,234,238,.2);transform:translateY(-1px)}
+.live-auth-submit{border-radius:12px;box-shadow:0 4px 12px rgba(132,234,238,.25);transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s ease}
+.live-auth-submit:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(132,234,238,.35)}
+
+/* --- Enhanced Scrollbar --- */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+
+/* --- Enhanced Selection --- */
+::selection{background:rgba(42,158,168,.2);color:inherit}
+
+/* --- Enhanced Progress Bar --- */
+.live-traffic{background:#dfedef;border-radius:999px;height:8px}
+.live-traffic>div{background:linear-gradient(90deg,#2a9ea8,#84eaee);border-radius:999px}
+
+/* --- Enhanced Ticket Rows --- */
+.live-list-row{transition:background-color .18s ease,transform .18s cubic-bezier(.22,1,.36,1)}
+@media(hover:hover) and (pointer:fine){
+ .live-list-row:hover{background:rgba(132,234,238,.04);transform:translateX(4px)}
+}
+
+/* --- Enhanced Detail Price --- */
+.detail-price strong{font-weight:800;letter-spacing:-.04em;color:#2a9fac}
+
+/* --- Enhanced Page Heading --- */
+.page-heading h1{font-weight:800;letter-spacing:-.04em;line-height:1.15}
+
+/* --- Enhanced Section Head --- */
+.section-head h2{font-weight:700;letter-spacing:-.03em}
+
+/* --- Enhanced Welcome Actions --- */
+.welcome-actions .secondary{background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.8);padding:8px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* --- Enhanced Empty States --- */
+.empty-plan,.shop-empty{border:1px dashed #d1d5db;border-radius:16px}
+.empty-symbol{background:linear-gradient(135deg,rgba(132,234,238,.12),rgba(147,196,232,.06));color:#58bac3}
+
+/* --- Enhanced Invite Tips --- */
+.invite-tips{background:linear-gradient(135deg,rgba(132,234,238,.05),rgba(147,196,232,.02));border:1px solid rgba(132,234,238,.12);border-radius:12px}
+
+/* --- Enhanced Purchase Summary --- */
+.purchase-summary{background:linear-gradient(135deg,rgba(132,234,238,.05),rgba(147,196,232,.02));border:1px solid rgba(132,234,238,.15);border-radius:12px}
+
+/* --- Enhanced Form Feedback --- */
+.form-feedback{background:linear-gradient(135deg,rgba(132,234,238,.08),rgba(147,196,232,.04));border:1px solid rgba(132,234,238,.18);border-radius:10px;color:#2a9ea8}
+
+/* --- Enhanced Finance Summary --- */
+.finance-summary>div{border-radius:14px;transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s ease}
+@media(hover:hover) and (pointer:fine){
+ .finance-summary>div:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,23,42,.08)}
+}
+
+/* --- Enhanced Language Popup --- */
+.langpop{border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.1)}
+.langpop button{border-radius:8px;transition:background-color .18s ease,color .18s ease}
+.langpop button:hover{background:rgba(132,234,238,.08);color:#2a9ea8}
+
+/* --- Responsive Typography --- */
+@media(max-width:720px){
+ .welcome h1{font-size:32px}
+ .page-heading h1{font-size:28px}
+ h1{font-size:2rem}
+ h2{font-size:1.5rem}
+ h3{font-size:1.25rem}
+}
+
+/* --- Reduced Motion --- */
+@media(prefers-reduced-motion:reduce){
+ .card,.product,.menu-item,.primary,.secondary,.desktop-nav button,.mobile-nav button,.filters button,.tabs button,.faq-item>button{transition:none!important;transform:none!important}
+}
+
+/* --- High Contrast Mode --- */
+@media(prefers-contrast:high){
+ :root{--ui-border:#000;--ui-muted:#000}
+ [data-theme=dark]{--ui-border:#fff;--ui-muted:#fff}
+}
