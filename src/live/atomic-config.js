@@ -19,7 +19,7 @@ export const ATOMIC_DEFAULTS=Object.freeze({
   cycleFeaturedId:0,trafficFeaturedId:0,cycleFeatureLimit:0,trafficFeatureLimit:0,
   showTags:true,showFeatures:true,showSavings:false,showEmptySections:true
  }),
- subscription:Object.freeze({showLink:true,showQr:true,showCaution:true}),
+ subscription:Object.freeze({showLink:true,showQr:true,showCaution:true,clientMode:'merge',clientCatalog:'',clientIconSize:30}),
  nodes:Object.freeze({showRate:true,showTags:true}),
  traffic:Object.freeze({showRate:true,showUpload:true,showDownload:true}),
  knowledge:Object.freeze({showSearch:true,showCategories:true}),
@@ -63,7 +63,11 @@ export function resolveAtomicConfig(guest={},settings={}){
   subscription:{
    showLink:flag('subscription_link_visible',true),
    showQr:flag('subscription_qr_visible',true),
-   showCaution:flag('subscription_caution_visible',true)
+   showCaution:flag('subscription_caution_visible',true),
+   clientMode:choice(pick('subscription_client_mode'),['merge','replace'],'merge'),
+   clientCatalog:typeof pick('subscription_clients_json')==='string'?pick('subscription_clients_json'): '',
+   clientIconSize:integer(pick('subscription_client_icon_size'),30,22,64),
+   clientIcons:Object.fromEntries(["clash","hiddify","sing-box","shadowrocket","quantumult-x","surge","stash","nekobox","surfboard"].map(id=>[id,typeof pick('subscription_client_icon_'+id.replaceAll('-','_'))==='string'?pick('subscription_client_icon_'+id.replaceAll('-','_')):'']))
   },
   nodes:{showRate:flag('node_rate_visible',true),showTags:flag('node_tags_visible',true)},
   traffic:{
