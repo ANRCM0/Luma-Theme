@@ -5,7 +5,7 @@ import {CATALOG_PERIODS,availableCatalogPlans,groupedCatalogPlans,normalizedDesc
 const labelFor=id=>CATALOG_PERIODS.find(p=>p.id===id)?.label||'套餐';
 const sections=[
  {id:'recurring',title:'周期订阅',description:'定期续费，购买时选择适合你的计费周期。',Icon:Gem},
- {id:'traffic',title:'流量包订阅',description:'一次性购买流量包，具体有效期与使用规则以套餐说明为准。',Icon:Package}
+ {id:'traffic',title:'按量付费',description:'一次性购买流量包，具体有效期与使用规则以套餐说明为准。',Icon:Package}
 ];
 
 export default function ShopCatalog({plans,config,atomic={},money,onBuy}){
@@ -15,7 +15,7 @@ export default function ShopCatalog({plans,config,atomic={},money,onBuy}){
  const grouped=groupedCatalogPlans(all);
  const visibleSections=sections.filter(section=>section.id==='recurring'?atomic.cycle!==false:atomic.traffic!==false)
   .sort((a,b)=>atomic.order==='traffic'?(a.id==='traffic'?-1:1):(a.id==='recurring'?-1:1))
-  .filter(section=>atomic.showEmptySections!==false||grouped[section.id].length>0);
+  .filter(section=>grouped[section.id].length>0||(section.id==='recurring'&&atomic.showEmptySections!==false));
  const entries=visibleSections.flatMap(group=>grouped[group.id].map(({plan,price})=>({
   key:group.id+':'+plan.id,kind:group.id,plan,price
  })));
@@ -29,7 +29,7 @@ export default function ShopCatalog({plans,config,atomic={},money,onBuy}){
   {all.length===0?<div className="card live-shop-empty"><Wifi size={27}/><h3>暂无可售套餐</h3><p>请稍后刷新页面查看。</p></div>
    :visibleSections.length?visibleSections.map(({id,title,description,Icon})=><section className="live-shop-category" key={id} aria-label={title}>
     <div className="live-shop-category-head">
-     <div className="live-shop-category-title"><span className="live-shop-category-icon"><Icon size={19}/></span><h2>{title}</h2></div>
+     <div className="live-shop-category-title"><h2>{title}</h2></div>
      {atomic.showGroupDescription!==false&&<p>{description}</p>}
     </div>
     {grouped[id].length>0?<div className="plans live-shop-grid">
@@ -62,13 +62,13 @@ export default function ShopCatalog({plans,config,atomic={},money,onBuy}){
        <button type="button" className="primary wide live-shop-buy" onClick={()=>onBuy(plan,price.period)}>立即购买 <ArrowRight size={17}/></button>
       </article>;
      })}
-    </div>:<p className="live-shop-category-empty">暂无可售{title==='周期订阅'?'周期套餐':'一次性流量包'}</p>}
+    </div>:<p className="live-shop-category-empty">暂无可售{id==='recurring'?'周期套餐':'一次性流量包'}</p>}
    </section>):<div className="card live-shop-empty"><p>当前未展示套餐分组，请在主题设置中开启至少一种套餐类型。</p></div>}
   {config.compareEnabled&&entries.length>1&&<div className="live-shop-compare-footer">
    <button className="secondary live-shop-compare-button" type="button" onClick={()=>setCompareOpen(x=>!x)} aria-expanded={compareOpen} aria-controls="live-plan-compare"><GitCompareArrows size={17}/> 套餐对比 ({compare.length}/3) <ChevronDown size={16}/></button>
    <div id="live-plan-compare" className="live-shop-compare" hidden={!compareOpen}>
     <div className="live-shop-compare-title"><GitCompareArrows size={18}/><strong>套餐对比</strong><span>最多选择三个方案，价格为各卡片实际展示的价格。</span></div>
-    {selected.length>=2?<div className="live-shop-compare-scroll"><table aria-label="已选套餐对比"><thead><tr><th scope="col">对比项目</th>{selected.map(e=><th key={e.key} scope="col">{e.plan.name} · {e.kind==='traffic'?'流量包':'周期'}</th>)}</tr></thead><tbody>
+    {selected.length>=2?<div className="live-shop-compare-scroll"><table aria-label="已选套餐对比"><thead><tr><th scope="col">对比项目</th>{selected.map(e=><th key={e.key} scope="col">{e.plan.name} · {e.kind==='traffic'?'按量付费':'周期'}</th>)}</tr></thead><tbody>
      <tr><th scope="row">当前展示价格</th>{selected.map(e=><td key={e.key}>{money(e.price.price)+' / '+labelFor(e.price.period)}</td>)}</tr>
      <tr><th scope="row">流量</th>{selected.map(e=><td key={e.key}>{e.plan.transfer_enable??'—'} GB</td>)}</tr>
      <tr><th scope="row">设备限制</th>{selected.map(e=><td key={e.key}>{Number(e.plan.device_limit)>0?e.plan.device_limit+' 台':'未设置限制'}</td>)}</tr>
