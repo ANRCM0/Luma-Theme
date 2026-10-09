@@ -11,7 +11,7 @@ export function WelcomeBanner({user,overview,config,atomic={}}){
  const description=(!config.enabled||overview.state==='normal')?'轻松管理你的网络服务。':entry.description;
  return <section className={'welcome card live-welcome-state live-welcome-'+entry.tone} data-welcome-state={config.enabled?overview.state:'normal'} aria-label="账户欢迎卡片">
   <div className="welcome-text">
-   <span className="eyebrow">{entry.eyebrow}</span>
+   {atomic.showEyebrow!==false&&<span className="eyebrow">{entry.eyebrow}</span>}
    <h1>{title}</h1>
    {atomic.welcomeDescription!==false&&<p>{description}</p>}
   </div>
