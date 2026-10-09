@@ -1286,3 +1286,31 @@
  .live-extra-actions{flex-direction:column}
  .live-extra-actions button{justify-content:center}
 }
+
+
+/* Luma fine-grained appearance; default settings retain existing layouts.
+   These attributes affect rendering only and never alter backend permissions. */
+.live-portal .card,.live-portal .dialog{border-radius:var(--luma-card-radius,16px)}
+.live-portal .live-shop-atomic-saving{margin:-9px 0 15px;color:#247c82;font-size:12px;font-weight:600;line-height:1.55}
+[data-theme=dark] .live-portal .live-shop-atomic-saving{color:#8bdddc}
+.live-portal.live-atomic-hide-icons .desktop-nav button svg,
+.live-portal.live-atomic-hide-icons .live-sidebar nav button svg,
+.live-portal.live-atomic-hide-icons .mobile-nav button svg{display:none}
+.live-portal[data-luma-density="compact"] .card{padding:18px}
+.live-portal[data-luma-density="compact"] .live-shop-grid{gap:12px}
+.live-portal[data-luma-density="compact"] .live-shop-category+.live-shop-category{margin-top:27px;padding-top:22px}
+.live-portal[data-luma-density="compact"] .live-shop-category-head{margin-bottom:13px}
+.live-portal[data-luma-density="compact"] .live-shop-plan{min-height:260px}
+.live-portal[data-luma-density="compact"] .live-shop-plan .live-shop-price{margin:10px 0 13px}
+.live-portal[data-luma-density="compact"] .live-shop-plan .live-shop-features{gap:8px;padding-top:12px}
+.live-portal[data-luma-density="compact"] .dashboard-grid{gap:12px}
+.live-portal[data-luma-density="compact"] .live-welcome-state{min-height:270px}
+.live-portal[data-luma-density="compact"] .dashboard-side>.live-welcome-side{min-height:270px}
+.live-portal[data-luma-density="compact"] .live-extra-stack{gap:12px}
+@media(max-width:720px){
+ .live-portal[data-luma-density="compact"] .live-welcome-state{min-height:145px;padding:21px}
+ .live-portal[data-luma-density="compact"] .dashboard-side>.live-welcome-side{min-height:0}
+ .live-portal[data-luma-density="compact"] .card{padding:16px}
+ .live-portal[data-luma-density="compact"] .live-shop-plan{min-height:0}
+ .live-portal[data-luma-density="compact"] .mobile-nav button{min-height:44px}
+}
