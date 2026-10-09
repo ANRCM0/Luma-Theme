@@ -111,3 +111,36 @@ test('client catalog supports custom images, platform selection, built-in import
  await expect(importPanel.getByRole('button',{name:'导入到 Hiddify Next'})).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
 });
+
+
+test('desktop header is slimmer, dashboard cards meet without the redundant subscription title',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await setup(page,{});
+ const header=page.locator('.live-portal .top');
+ const headerBox=await header.boundingBox();
+ expect(headerBox.height).toBeLessThanOrEqual(66);
+ expect(headerBox.width).toBeLessThanOrEqual(1186);
+ await expect(header.locator('.desktop-nav').getByRole('button',{name:'购买套餐'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'订阅管理'})).toHaveCount(0);
+ const upper=await page.locator('.dashboard-grid').boundingBox();
+ const lower=await page.locator('.live-subscription-center').boundingBox();
+ expect(lower.y-(upper.y+upper.height)).toBeGreaterThanOrEqual(10);
+ expect(lower.y-(upper.y+upper.height)).toBeLessThanOrEqual(20);
+});
+test('shop starts at centered category with centered single plan and no redundant page introduction',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await setup(page,{});
+ await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
+ const shop=page.getByRole('region',{name:'套餐商店'});
+ await expect(shop.locator('.page-heading')).toHaveCount(0);
+ await expect(shop.getByRole('heading',{name:'购买套餐'})).toHaveCount(0);
+ const recurring=shop.getByRole('region',{name:'周期订阅'});
+ const category=await recurring.boundingBox();
+ const header=await recurring.locator('.live-shop-category-head').boundingBox();
+ const card=await recurring.locator('.live-shop-plan').boundingBox();
+ expect(Math.abs(category.x+category.width/2-(header.x+header.width/2))).toBeLessThan(2);
+ expect(Math.abs(category.x+category.width/2-(card.x+card.width/2))).toBeLessThan(3);
+ await expect(shop.getByRole('region',{name:'按量付费'})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+});
