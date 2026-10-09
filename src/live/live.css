@@ -1314,3 +1314,28 @@
  .live-portal[data-luma-density="compact"] .live-shop-plan{min-height:0}
  .live-portal[data-luma-density="compact"] .mobile-nav button{min-height:44px}
 }
+
+
+/* Configurable 3rd-party client imagery: consistent proportions across platforms. */
+.live-portal .live-client-icon{
+ width:var(--luma-client-icon-size,30px);
+ height:var(--luma-client-icon-size,30px);
+ min-width:var(--luma-client-icon-size,30px);
+ min-height:var(--luma-client-icon-size,30px);
+ overflow:hidden;
+ line-height:1;
+}
+.live-portal .live-client-icon img{
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:contain;
+ border-radius:inherit;
+}
+.live-portal .live-client-list button{
+ overflow:hidden;
+}
+.live-portal .live-client-list button>span:nth-child(2){
+ max-width:100%;
+ overflow-wrap:anywhere;
+}
