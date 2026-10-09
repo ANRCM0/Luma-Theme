@@ -1405,3 +1405,25 @@
  .live-portal .live-shop-category+.live-shop-category{margin-top:26px;padding-top:24px}
  .live-portal .live-shop-grid{grid-template-columns:minmax(0,360px);justify-content:center;gap:14px}
 }
+
+
+/* October UI finishing pass: slim desktop navigation and tighter dashboard stacking. */
+@media (min-width:721px){
+ .live-portal .top:not(.is-scrolled){height:56px;top:6px;margin-top:6px;width:min(calc(100% - 52px),1140px);border-radius:13px}
+ .live-portal .top.is-scrolled{height:56px;top:6px;width:min(calc(100% - 60px),1100px);border-radius:13px}
+ .live-portal .top .head-inner{padding-inline:17px;gap:10px}
+ .live-portal .top .brand{font-size:19px}
+ .live-portal .top .brand img{width:28px;height:28px}
+ .live-portal .top .brand>svg{width:26px;height:26px}
+ .live-portal .top .desktop-nav button{min-height:33px;padding:7px 9px;font-size:12px}
+ .live-portal .top .head-actions>button{width:31px;height:31px}
+ .live-portal .top .head-actions>button svg{width:17px;height:17px}
+}
+.live-portal .dashboard-grid+.live-subscription-center{margin-top:10px}
+.live-portal[data-luma-density="compact"] .dashboard-grid+.live-subscription-center{margin-top:8px}
+.live-portal .live-shop-category-head{margin-top:0;text-align:center}
+.live-portal .live-shop-category-title{justify-content:center}
+@media(max-width:720px){
+ .live-portal .dashboard-grid+.live-subscription-center{margin-top:8px}
+ .live-portal .live-shop-category-head{margin:0 auto 18px}
+}
