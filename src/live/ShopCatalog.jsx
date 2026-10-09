@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {ArrowRight,Check,ChevronDown,GitCompareArrows,Gem,Package,ShieldCheck,Wifi} from 'lucide-react';
-import {CATALOG_PERIODS,availableCatalogPlans,groupedCatalogPlans,normalizedDescription,planFeatures,planPeriods} from './catalog.js';
+import {CATALOG_PERIODS,availableCatalogPlans,groupedCatalogPlans,normalizedDescription,planFeatures,planPeriods,annualSavings} from './catalog.js';
 
 const labelFor=id=>CATALOG_PERIODS.find(p=>p.id===id)?.label||'套餐';
 const sections=[
@@ -8,12 +8,15 @@ const sections=[
  {id:'traffic',title:'流量包订阅',description:'一次性购买流量包，具体有效期与使用规则以套餐说明为准。',Icon:Package}
 ];
 
-export default function ShopCatalog({plans,config,money,onBuy}){
+export default function ShopCatalog({plans,config,atomic={},money,onBuy}){
  const [compare,setCompare]=useState([]);
  const [compareOpen,setCompareOpen]=useState(false);
  const all=availableCatalogPlans(plans);
  const grouped=groupedCatalogPlans(all);
- const entries=sections.flatMap(group=>grouped[group.id].map(({plan,price})=>({
+ const visibleSections=sections.filter(section=>section.id==='recurring'?atomic.cycle!==false:atomic.traffic!==false)
+  .sort((a,b)=>atomic.order==='traffic'?(a.id==='traffic'?-1:1):(a.id==='recurring'?-1:1))
+  .filter(section=>atomic.showEmptySections!==false||grouped[section.id].length>0);
+ const entries=visibleSections.flatMap(group=>grouped[group.id].map(({plan,price})=>({
   key:group.id+':'+plan.id,kind:group.id,plan,price
  })));
  useEffect(()=>{
@@ -24,17 +27,20 @@ export default function ShopCatalog({plans,config,money,onBuy}){
  const toggle=key=>setCompare(keys=>keys.includes(key)?keys.filter(x=>x!==key):keys.length<3?[...keys,key]:keys);
  return <section className="live-shop" aria-label="套餐商店">
   {all.length===0?<div className="card live-shop-empty"><Wifi size={27}/><h3>暂无可售套餐</h3><p>请稍后刷新页面查看。</p></div>
-   :sections.map(({id,title,description,Icon})=><section className="live-shop-category" key={id} aria-label={title}>
+   :visibleSections.length?visibleSections.map(({id,title,description,Icon})=><section className="live-shop-category" key={id} aria-label={title}>
     <div className="live-shop-category-head">
      <div className="live-shop-category-title"><span className="live-shop-category-icon"><Icon size={19}/></span><h2>{title}</h2></div>
-     <p>{description}</p>
+     {atomic.showGroupDescription!==false&&<p>{description}</p>}
     </div>
     {grouped[id].length>0?<div className="plans live-shop-grid">
      {grouped[id].map(({plan,price})=>{
       const key=id+':'+plan.id;
-      const featured=config.featuredIds.has(String(plan.id));
+      const categoryId=Number(id==='recurring'?atomic.cycleFeaturedId:atomic.trafficFeaturedId);
+      const featured=(categoryId>0&&categoryId===Number(plan.id))||(categoryId===0&&config.featuredIds.has(String(plan.id)));
+      const featureLimit=Number(id==='recurring'?atomic.cycleFeatureLimit:atomic.trafficFeatureLimit)||0;
       const descriptionText=normalizedDescription(plan.content);
-      const properties=planFeatures(plan);
+      const properties=atomic.showFeatures===false?[]:planFeatures(plan).slice(0,featureLimit>0?featureLimit:undefined);
+      const savings=id==='recurring'&&atomic.showSavings===true?annualSavings(plan):null;
       const tags=Array.isArray(plan.tags)?plan.tags.filter(tag=>typeof tag==='string').slice(0,3):[];
       const both=grouped.recurring.some(item=>String(item.plan.id)===String(plan.id))&&grouped.traffic.some(item=>String(item.plan.id)===String(plan.id));
       return <article className={'card product live-shop-plan'+(featured?' live-shop-featured':'')} key={key} data-plan-id={plan.id} data-plan-type={id}>
@@ -46,8 +52,9 @@ export default function ShopCatalog({plans,config,money,onBuy}){
         </label>}
        </div>
        <h3>{plan.name}</h3>
-       {tags.length>0&&<div className="live-shop-tags">{tags.map((tag,i)=><span key={i}>{tag}</span>)}</div>}
+       {atomic.showTags!==false&&tags.length>0&&<div className="live-shop-tags">{tags.map((tag,i)=><span key={i}>{tag}</span>)}</div>}
        <div className="live-shop-price"><strong>{money(price.price)}</strong><span>/ {id==='traffic'?'一次性':labelFor(price.period)}</span></div>
+       {savings&&<p className="live-shop-atomic-saving">年付比按月支付节省 {money(savings.saved)}（约 {savings.percent}%）</p>}
        {config.showDescription&&descriptionText&&<p className="live-shop-description">{descriptionText}</p>}
        {properties.length>0&&<div className="live-shop-features">
         {properties.map(row=><div key={row.label}><span>{row.label}</span><strong>{row.value}</strong></div>)}
@@ -56,7 +63,7 @@ export default function ShopCatalog({plans,config,money,onBuy}){
       </article>;
      })}
     </div>:<p className="live-shop-category-empty">暂无可售{title==='周期订阅'?'周期套餐':'一次性流量包'}</p>}
-   </section>)}
+   </section>):<div className="card live-shop-empty"><p>当前未展示套餐分组，请在主题设置中开启至少一种套餐类型。</p></div>}
   {config.compareEnabled&&entries.length>1&&<div className="live-shop-compare-footer">
    <button className="secondary live-shop-compare-button" type="button" onClick={()=>setCompareOpen(x=>!x)} aria-expanded={compareOpen} aria-controls="live-plan-compare"><GitCompareArrows size={17}/> 套餐对比 ({compare.length}/3) <ChevronDown size={16}/></button>
    <div id="live-plan-compare" className="live-shop-compare" hidden={!compareOpen}>
