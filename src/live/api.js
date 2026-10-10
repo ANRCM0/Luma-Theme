@@ -1,13 +1,21 @@
-// TXBoard V1 API integration. Keep the token format compatible with web/user/src/api/client.ts.
+// TXBoard native API client. Every request targets the /txapi namespace and
+// speaks its native envelope: {data, meta?, request_id} on success and
+// {error:{code,message,fields?}, request_id} on failure. No Xboard aliases and
+// no legacy field names: the payloads below are the native DTOs verbatim.
 import {safeWebUrl} from './browser-safety.js';
-import {nodeRows,trafficRows,knowledgeRows} from './user-data.js';
+import {nodeRows,trafficRows,knowledgeRows,noticeRows,orderRows,ticketRows} from './user-data.js';
 const AUTH_KEY = 'xboard_auth_data';
+
+// Native plan periods (Plan::getAvailablePeriods keys). The legacy *_price
+// aliases are accepted by the backend on write but never returned on read.
 export const PERIODS = [
-  ['month_price','月付'],['quarter_price','季付'],['half_year_price','半年付'],
-  ['year_price','年付'],['two_year_price','两年付'],['three_year_price','三年付'],
-  ['onetime_price','一次性'],['reset_price','重置流量']
+  ['monthly','月付'],['quarterly','季付'],['half_yearly','半年付'],
+  ['yearly','年付'],['two_yearly','两年付'],['three_yearly','三年付'],
+  ['onetime','一次性'],['reset_traffic','重置流量']
 ];
-export const money = value => '¥' + (Number(value || 0) / 100).toFixed(2);
+
+// Every native amount is an integer in minor units (cents).
+export const money = minor => '¥' + (Number(minor || 0) / 100).toFixed(2);
 export const bytes = value => {
   const n=Number(value || 0);
   if (!n) return '0 B';
@@ -15,6 +23,21 @@ export const bytes = value => {
   const power=Math.min(4,Math.floor(Math.log(n)/Math.log(1024)));
   return (n/1024**power).toFixed(power>1?2:0)+' '+units[power];
 };
+// Native timestamps are ISO 8601 strings (or null), never epoch seconds.
+export const epochMs = value => {
+  if (!value) return null;
+  const ms=Date.parse(value);
+  return Number.isFinite(ms)?ms:null;
+};
+export const dateTime = value => {
+  const ms=epochMs(value);
+  return ms===null?'—':new Date(ms).toLocaleString('zh-CN');
+};
+export const dateOnly = value => {
+  const ms=epochMs(value);
+  return ms===null?'—':new Date(ms).toLocaleDateString('zh-CN');
+};
+
 export function getToken() {
   try { const token=(localStorage.getItem(AUTH_KEY)||'').trim(); return token ? (/^Bearer\s+/i.test(token)?token:'Bearer '+token) : ''; }
   catch { return ''; }
@@ -26,7 +49,7 @@ export function saveToken(value) {
 }
 export function clearToken() { localStorage.removeItem(AUTH_KEY); }
 export class ApiError extends Error {
-  constructor(message,status) { super(message); this.name='ApiError'; this.status=status; }
+  constructor(message,status,code) { super(message); this.name='ApiError'; this.status=status; this.code=code||null; }
 }
 export async function api(path,options={}) {
   const controller=new AbortController();
@@ -37,15 +60,28 @@ export async function api(path,options={}) {
   if(body!==undefined)headers['Content-Type']='application/json';
   if(requestToken)headers.Authorization=requestToken;
   try {
-    const response=await fetch('/api/v1'+path,{
+    const response=await fetch('/txapi'+path,{
       method,headers,credentials:'same-origin',signal:controller.signal,
       ...(body!==undefined?{body:JSON.stringify(body)}:{}),...rest
     });
     const result=await response.json().catch(()=>null);
+    // Native failures carry {error:{code,message}} and can still use a 2xx
+    // status, so the envelope is inspected before the HTTP status.
+    if(result&&typeof result==='object'&&result.error){
+      const code=result.error.code||null;
+      const message=result.error.message||('HTTP '+response.status);
+      if(auth&&(response.status===401||code==='UNAUTHORIZED'||code==='TOKEN_INVALID')){
+        // A stale response from an earlier account must not sign out a new login.
+        if(requestToken&&getToken()===requestToken){
+          clearToken();
+          if(typeof window!=='undefined')window.dispatchEvent(new Event('txboard:unauthorized'));
+        }
+      }
+      throw new ApiError(message,response.status,code);
+    }
     if(!response.ok) {
       const message=result?.message||('HTTP '+response.status);
-      if(auth&&(response.status===401||(response.status===403&&/login|token|auth|登录|认证|过期/i.test(message)))){
-        // A stale response from an earlier account must not sign out a new login.
+      if(auth&&(response.status===401||response.status===403)){
         if(requestToken&&getToken()===requestToken){
           clearToken();
           if(typeof window!=='undefined')window.dispatchEvent(new Event('txboard:unauthorized'));
@@ -53,12 +89,10 @@ export async function api(path,options={}) {
       }
       throw new ApiError(message,response.status);
     }
-    if(result&&typeof result==='object'&&'status' in result) {
-      if(result.status!=='success')throw new ApiError(result.message||'请求失败',response.status);
-      if(result.data===undefined)throw new ApiError(result.message||'响应缺少数据',response.status);
+    if(result&&typeof result==='object'&&'data' in result) {
       return preserveEnvelope?result:result.data;
     }
-    // Some legacy endpoints intentionally return a top-level {data,total} object.
+    // Native endpoints always wrap; this only guards a malformed response.
     return result;
   } catch(error) {
     if(error.name==='AbortError')throw new ApiError('请求超时，请检查网络连接',0);
@@ -67,76 +101,107 @@ export async function api(path,options={}) {
 }
 export const get=(path,params,auth=true)=>api(path+(params?'?'+new URLSearchParams(params).toString():''),{auth});
 export const post=(path,body,auth=true)=>api(path,{method:'POST',body,auth});
-export const guest=()=>get('/guest/comm/config',null,false);
+export const patch=(path,body)=>api(path,{method:'PATCH',body});
+export const del=(path)=>api(path,{method:'DELETE'});
+
+// --- public ---------------------------------------------------------------
+// /public/site-config returns the active theme and its public theme_config.
+export const siteConfig=async()=>{
+  const config=await get('/public/site-config',null,false);
+  if(!config||typeof config!=='object'||Array.isArray(config))return {};
+  // Some builds serialize theme_config as JSON text; normalize it once so
+  // every resolver can assume a plain object.
+  if(typeof config.theme_config==='string'){
+    try{config.theme_config=JSON.parse(config.theme_config)}
+    catch{config.theme_config=null}
+  }
+  return config;
+};
+export const guest=siteConfig;
+
+// --- auth -----------------------------------------------------------------
 export const login=async(email,password,captcha={})=>{
-  const result=await post('/passport/auth/login',{email,password,...captcha},false);
+  const result=await post('/auth/login',{email,password,...captcha},false);
+  // TXBoard returns data.auth_data already prefixed with "Bearer ".
   saveToken(result?.auth_data);return result;
 };
-export const register=async(data)=>{const result=await post('/passport/auth/register',data,false);saveToken(result?.auth_data);return result;};
+export const register=async(data)=>{const result=await post('/auth/register',data,false);saveToken(result?.auth_data);return result;};
 export const tokenLogin=async(verify)=>{
-  const raw=await get('/passport/auth/token2Login',{verify},false);
-  const authData=raw?.data??raw;
-  saveToken(authData?.auth_data);
-  return authData;
+  const result=await post('/auth/one-time-token',{verify},false);
+  saveToken(result?.auth_data);return result;
 };
-export const verifySession=()=>get('/user/checkLogin');
-export const user=()=>get('/user/info');
-export const subscribe=()=>get('/user/getSubscribe');
-export const notices=async()=>{
- // The TXBoard user endpoint returns server-ordered pages with {data,total}.
- // Load up to 500 visible notices so tag-targeted popups and the inbox can see
- // more than the first 20 entries. Never loop indefinitely on bad pagination.
- const collected=[];
- for(let current=1;current<=5;current++){
-  const result=await get('/user/notice/fetch',{current,pageSize:100});
-  const items=Array.isArray(result)?result:Array.isArray(result?.data)?result.data:[];
-  collected.push(...items);
-  const total=Number(result?.total);
-  if(items.length<100||(Number.isFinite(total)&&total>=0&&collected.length>=total))break;
- }
- return collected;
+export const logout=()=>post('/auth/logout',{});
+// There is no dedicated session probe; a successful /me read proves the token.
+export const verifySession=async()=>{
+  const me=await get('/me');
+  return {is_login:Boolean(me&&(me.id!=null||me.email)),user:me};
 };
-export const plans=()=>get('/user/plan/fetch');
-export const plan=id=>get('/user/plan/fetch',{id});
-export const orders=()=>get('/user/order/fetch');
-export const orderDetail=(trade_no)=>get('/user/order/detail',{trade_no});
-export const orderCheck=(trade_no)=>get('/user/order/check',{trade_no});
-export const payments=()=>get('/user/order/getPaymentMethod');
-export const cancelOrder=(trade_no)=>post('/user/order/cancel',{trade_no});
-export const createOrder=(plan_id,period,coupon_code)=>post('/user/order/save',{plan_id,period,...(coupon_code?{coupon_code}:{})});
-export const checkCoupon=(code,plan_id,period)=>post('/user/coupon/check',{code,plan_id,period});
-export const checkout=(trade_no,method,token)=>api('/user/order/checkout',{method:'POST',body:{trade_no,...(method!==undefined?{method}:{}),...(token?{token}:{})},preserveEnvelope:true});
-export const tickets=()=>get('/user/ticket/fetch');
-export const ticketDetail=(id)=>get('/user/ticket/fetch',{id});
-export const createTicket=(subject,level,message)=>post('/user/ticket/save',{subject,level,message});
-export const replyTicket=(id,message)=>post('/user/ticket/reply',{id,message});
-export const closeTicket=(id)=>post('/user/ticket/close',{id});
-export const changePassword=(old_password,new_password)=>post('/user/changePassword',{old_password,new_password});
-export const invites=()=>get('/user/invite/fetch');
-export const transferCommission=(transfer_amount)=>post('/user/transfer',{transfer_amount});
-export const withdrawCommission=(withdraw_method,withdraw_account)=>post('/user/ticket/withdraw',{withdraw_method,withdraw_account});
-export const updateUserSettings=(values)=>post('/user/update',values);
-export const activeSessions=()=>get('/user/getActiveSession');
-export const removeSession=(session_id)=>post('/user/removeActiveSession',{session_id});
-export const resetSecurity=()=>get('/user/resetSecurity');
-export const quickLoginUrl=()=>post('/user/getQuickLoginUrl',{});
-export const stripePublicKey=(id)=>post('/user/comm/getStripePublicKey',{id});
-export const giftCheck=code=>post('/user/gift-card/check',{code});
-export const giftRedeem=code=>post('/user/gift-card/redeem',{code});
-export const giftHistory=(page=1,per_page=20)=>get('/user/gift-card/history',{page,per_page});
-export const giftDetail=id=>get('/user/gift-card/detail',{id});
+export const sendVerify=(email,purpose,captcha={})=>post('/auth/email-code',{email,purpose,...captcha},false);
+export const forgetPassword=(email,password,email_code,captcha={})=>post('/auth/password/forgot',{email,password,email_code,...captcha},false);
+export const changePassword=(old_password,new_password)=>post('/auth/password',{old_password,new_password});
+export const quickLoginUrl=()=>post('/auth/quick-login',{}).then(result=>result?.url);
+export const activeSessions=()=>get('/auth/sessions');
+export const removeSession=sessionId=>del('/auth/sessions/'+encodeURIComponent(sessionId));
 
+// --- account --------------------------------------------------------------
+export const user=()=>get('/me');
+export const subscribe=()=>get('/me/subscription');
+export const userCommConfig=()=>get('/me/site-config');
+export const stat=()=>get('/me/dashboard-stats');
+// Rotates the subscription secret so old subscription URLs stop working.
+export const resetSecurity=()=>post('/me/subscription-credentials/rotate',{}).then(result=>result?.subscribe_url);
+export const preferences=()=>get('/me/preferences');
+export const updateUserSettings=(values)=>patch('/me/preferences',values);
+export const serverNodes=async()=>nodeRows(await api('/me/nodes',{cache:'no-store'}));
 
-export const createInvite=()=>get('/user/invite/save');
-export const inviteDetails=()=>get('/user/invite/details',{current:1,page_size:50});
-export const sendVerify=(email,purpose,captcha={})=>post('/passport/comm/sendEmailVerify',{email,purpose,...captcha},false);
-export const forgetPassword=(email,password,email_code,captcha={})=>post('/passport/auth/forget',{email,password,email_code,...captcha},false);
-export const stat=()=>get('/user/getStat');
-// TXBoard native user menu endpoints. Enforce their actual response shapes
-// instead of silently falling back to demo rows.
-export const userCommConfig=()=>get('/user/comm/config');
-export const trafficLog=async()=>trafficRows(await get('/user/stat/getTrafficLog'));
-export const serverNodes=async()=>nodeRows(await api('/user/server/fetch',{cache:'no-store'}));
-export const knowledgeArticles=async(language)=>knowledgeRows(await get('/user/knowledge/fetch',language?{language}:null));
+// --- catalog --------------------------------------------------------------
+export const plans=()=>get('/plans');
+export const plan=planId=>get('/plans/'+encodeURIComponent(planId));
+
+// --- orders ---------------------------------------------------------------
+export const orders=async()=>orderRows(await get('/orders'));
+export const orderDetail=tradeNo=>get('/orders/'+encodeURIComponent(tradeNo)+'/detail');
+// Status reads use the lightweight order projection, never the detail one.
+export const orderCheck=async tradeNo=>{
+  const order=await get('/orders/'+encodeURIComponent(tradeNo));
+  return order?.status??null;
+};
+export const createOrder=(plan_id,period,coupon_code)=>
+  post('/orders',{plan_id,period,...(coupon_code?{coupon_code}:{})}).then(result=>result?.trade_no);
+export const cancelOrder=tradeNo=>post('/orders/'+encodeURIComponent(tradeNo)+'/cancel',{});
+export const checkout=(tradeNo,method,token)=>api('/orders/'+encodeURIComponent(tradeNo)+'/checkout',{method:'POST',body:{...(method!==undefined?{method}:{}),...(token?{token}:{})},preserveEnvelope:true});
+export const payments=()=>get('/billing/payment-methods');
+export const checkCoupon=(code,plan_id,period)=>post('/billing/coupons/check',{code,plan_id,period});
+
+// --- tickets --------------------------------------------------------------
+export const tickets=async()=>ticketRows(await get('/tickets'));
+export const ticketDetail=id=>get('/tickets/'+encodeURIComponent(id));
+export const createTicket=(subject,level,message)=>post('/tickets',{subject,level,message}).then(result=>result?.id);
+export const replyTicket=(id,message)=>post('/tickets/'+encodeURIComponent(id)+'/messages',{message});
+export const closeTicket=(id)=>post('/tickets/'+encodeURIComponent(id)+'/close',{});
+
+// --- content --------------------------------------------------------------
+export const notices=async()=>noticeRows(await get('/notices'));
+export const knowledgeArticles=async language=>knowledgeRows(await get('/knowledge',language?{language}:null));
+
+// --- traffic --------------------------------------------------------------
+export const trafficLog=async()=>trafficRows(await get('/traffic/logs'));
+
+// --- invites & commissions ------------------------------------------------
+export const invites=()=>get('/invites');
+export const createInvite=()=>post('/invites',{});
+export const commissions=async()=>orderRows(await get('/billing/commissions'));
+export const transferCommission=(transfer_amount)=>post('/billing/commission-transfer',{transfer_amount});
+export const withdrawCommission=(withdraw_method,withdraw_account)=>post('/billing/withdrawals',{withdraw_method,withdraw_account});
+export const wallet=()=>get('/billing/wallet');
+
+// --- gift cards -----------------------------------------------------------
+export const giftCheck=code=>post('/gift-cards/check',{code});
+export const giftRedeem=code=>post('/gift-cards/redeem',{code});
+export const giftHistory=(page=1,per_page=15)=>get('/gift-cards/history',{page,per_page});
+export const giftDetail=id=>get('/gift-cards/history/'+encodeURIComponent(id));
+
+// --- payments -------------------------------------------------------------
+export const stripePublicKey=id=>post('/billing/stripe-public-key',{id});
 
 export const safeExternal=(value)=>safeWebUrl(value,{origin:typeof location!=='undefined'?location.origin:'https://example.test',allowHttpLoopback:typeof location!=='undefined'&&['localhost','127.0.0.1','::1'].includes(location.hostname)});

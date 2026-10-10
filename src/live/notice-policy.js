@@ -2,6 +2,7 @@ import {noticeVersion,readSeenNotices} from './notice.js';
 
 // All options are stored under theme_vv-theme through the existing TXBoard theme manifest.
 // Legacy TXBoard builds get the same values via Blade-injected window.settings.notice.
+import {liveThemeConfig} from './theme-config.js';
 export const DEFAULT_NOTICE_CONFIG=Object.freeze({
  popupEnabled:true,centerEnabled:true,tag:'',frequency:'once',
  scope:'all',style:'classic'
@@ -13,9 +14,7 @@ const enabled=(raw,fallback)=>raw==null?fallback:!(raw===false||raw===0||raw==='
 const popupAllowed=item=>enabled(item?.popup,true); // Respect TXBoard admin notice '弹窗展示'.
 
 export function resolveNoticeConfig(guest={},settings={}){
- const remote=guest?.frontend_theme==='vv-theme'&&guest?.theme_config&&
-  typeof guest.theme_config==='object'&&!Array.isArray(guest.theme_config)?guest.theme_config:null;
- const source=remote||settings?.notice||{};
+ const source=liveThemeConfig(guest)||settings?.notice||{};
  const frequency=String(source.notice_popup_frequency??source.frequency??'once');
  const scope=String(source.notice_popup_scope??source.scope??'all');
  const style=String(source.notice_popup_style??source.style??'classic');

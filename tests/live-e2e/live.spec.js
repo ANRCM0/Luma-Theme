@@ -1,34 +1,35 @@
 import {test,expect} from '@playwright/test';
+// TXBoard native protocol: /txapi prefix, {data,meta?,request_id} envelope.
+const wrap=(data,requestId='req-e2e')=>({data,request_id:requestId});
 
 test('theme requires the actual login endpoint and rejects login failures',async({page})=>{
  const paths=[];
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
    const path=new URL(route.request().url()).pathname;
    paths.push(path);
-   const body=path==='/api/v1/guest/comm/config'
-     ? {status:'success',data:{app_name:'测试站点',is_captcha:0,register_enable:1}}
-     : {status:'fail',message:'账户或密码错误',data:false};
+   const body=path==='/txapi/public/site-config'
+     ? {data:{app_name:'测试站点',is_captcha:0,register_enable:1},request_id:'req-config'}
+     : {error:{code:'INVALID_CREDENTIALS',message:'账户或密码错误'},request_id:'req-login-fail'};
    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
- });
- await page.goto('/');
+ });await page.goto('/');
  await page.locator('input[type=email]').fill('sample@example.com');
  await page.locator('input[type=password]').fill('sample-password');
  await page.getByRole('button',{name:'登录',exact:true}).click();
  await expect(page.getByRole('alert')).toContainText('账户或密码错误');
- expect(paths).toContain('/api/v1/passport/auth/login');
+ expect(paths).toContain('/txapi/auth/login');
  await expect(page.getByText('WELCOME BACK')).toHaveCount(0);
 });
 
 
 test('mobile authentication keeps input text visible in light and dark themes',async({page})=>{
  await page.setViewportSize({width:390,height:844});
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   await route.fulfill({
    status:200,contentType:'application/json',
-   body:JSON.stringify(path==='/api/v1/guest/comm/config'
-    ?{status:'success',data:{app_name:'测试站点',is_captcha:0,register_enable:1,is_email_verify:1}}
-    :{status:'fail',message:'仅供测试',data:false})
+   body:JSON.stringify(path==='/txapi/public/site-config'
+    ?wrap({app_name:'测试站点',is_captcha:0,register_enable:1,is_email_verify:1})
+    :{error:{code:'TEST',message:'仅供测试'},request_id:'req-auth'})
   });
  });
  await page.goto('/');
@@ -67,16 +68,16 @@ test('mobile authentication keeps input text visible in light and dark themes',a
 
 
 test('latest TXBoard public theme_config controls live colors and login background',async({page})=>{
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const url=new URL(route.request().url());
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(
-   url.pathname==='/api/v1/guest/comm/config'
-    ?{status:'success',data:{
+   url.pathname==='/txapi/public/site-config'
+    ?wrap({
       app_name:'新版 TXBoard',frontend_theme:'vv-theme',
       theme_config:{theme_color:'black',background_url:'/images/welcome.webp'},
       is_captcha:0,register_enable:1
-     }}
-    :{status:'fail',message:'not signed in',data:false}
+     })
+    :{error:{code:'UNAUTHORIZED',message:'not signed in'},request_id:'req-config-2'}
   )});
  });
  await page.goto('/');
@@ -94,22 +95,21 @@ test('new TXBoard announcements pop up after login, not as a dashboard card',asy
   {id:20,title:'使用说明',content:'<strong>请保护账号</strong>',created_at:1690000000,updated_at:1690000001}
  ];
  const paths=[];
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   paths.push(path);
   let data;
   switch(path){
-   case '/api/v1/guest/comm/config':data={app_name:'测试站点',is_captcha:0,register_enable:1};break;
-   case '/api/v1/passport/auth/login':data={auth_data:'test-real-token'};break;
-   case '/api/v1/user/checkLogin':data={is_login:true};break;
-   case '/api/v1/user/info':data={id:51,email:'notices@example.test'};break;
-   case '/api/v1/user/notice/fetch':data={data:announcements,total:announcements.length};break;
-   case '/api/v1/user/plan/fetch':data=[];break;
-   case '/api/v1/user/getSubscribe':data={};break;
-   case '/api/v1/user/getStat':data=[];break;
+   case '/txapi/public/site-config':data={app_name:'测试站点',is_captcha:0,register_enable:1};break;
+   case '/txapi/auth/login':data={auth_data:'Bearer test-real-token'};break;
+   case '/txapi/me':data={id:51,email:'notices@example.test'};break;
+   case '/txapi/notices':data=announcements;break;
+   case '/txapi/plans':data=[];break;
+   case '/txapi/me/subscription':data={};break;
+   case '/txapi/me/dashboard-stats':data=[];break;
    default:data=[];break;
   }
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(data))});
  });
  await page.setViewportSize({width:390,height:844});
  await page.goto('/');
@@ -119,7 +119,7 @@ test('new TXBoard announcements pop up after login, not as a dashboard card',asy
  await expect(page.getByRole('dialog',{name:'重要通知'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'维护通知'})).toBeVisible();
  await expect(page.getByText('今晚维护')).toBeVisible();
- expect(paths).toContain('/api/v1/user/notice/fetch');
+ expect(paths).toContain('/txapi/notices');
  await expect(page.locator('.notice-card')).toHaveCount(0);
  const modal=page.getByRole('dialog',{name:'重要通知'});
  await modal.getByRole('button',{name:/使用说明/}).click();
@@ -145,22 +145,21 @@ test('theme notice tags choose popup while the bell keeps a full searchable-by-s
   {id:90,title:'普通公告先展示',content:'普通内容',tags:['general'],updated_at:1810000001,created_at:1810000001},
   {id:80,title:'紧急维护公告',content:'紧急内容',tags:['important'],updated_at:1810000000,created_at:1810000000}
  ];
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'测试主题',frontend_theme:'vv-theme',theme_config:{
+   '/txapi/public/site-config':{app_name:'测试主题',frontend_theme:'vv-theme',theme_config:{
     notice_popup_enabled:'1',notice_center_enabled:'1',notice_popup_tag:'important',
     notice_popup_frequency:'once',notice_popup_scope:'all',notice_popup_style:'feature'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:77,email:'tags@example.test'},
-   '/api/v1/user/notice/fetch':{data:announcements,total:2},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/getSubscribe':{},
-   '/api/v1/user/getStat':[]
+   '/txapi/auth/login':{auth_data:'Bearer token'},
+   '/txapi/me':{id:77,email:'tags@example.test'},
+   '/txapi/notices':announcements,
+   '/txapi/plans':[],
+   '/txapi/me/subscription':{},
+   '/txapi/me/dashboard-stats':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('tags@example.test');
@@ -189,27 +188,27 @@ test('theme notice tags choose popup while the bell keeps a full searchable-by-s
 });
 
 test('notification popup and bell can be independently disabled in theme settings',async({page})=>{
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{frontend_theme:'vv-theme',app_name:'Test',theme_config:{
+   '/txapi/public/site-config':{frontend_theme:'vv-theme',app_name:'Test',theme_config:{
     notice_popup_enabled:'0',notice_center_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:78,email:'disabled@example.test'},
-   '/api/v1/user/notice/fetch':{data:[{id:1,title:'公告',content:'内容'}],total:1},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/getSubscribe':{},
-   '/api/v1/user/getStat':[]
+   '/txapi/auth/login':{auth_data:'Bearer token'},
+   '/txapi/me':{id:78,email:'disabled@example.test'},
+   '/txapi/notices':[{id:1,title:'公告',content:'内容'}],
+   '/txapi/plans':[],
+   '/txapi/me/subscription':{},
+   '/txapi/me/dashboard-stats':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('disabled@example.test');
  await page.getByLabel('登录密码').fill('valid-password');
  await page.getByRole('button',{name:'登录',exact:true}).click();
- await expect(page.locator('[data-welcome-state="no_plan"]')).toBeVisible();
+ // Native /me has no signup date, so a plan-less account is onboarding.
+ await expect(page.locator('[data-welcome-state="new"]')).toBeVisible();
  await expect(page.getByRole('dialog',{name:'重要通知'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'查看通知'})).toHaveCount(0);
 });
@@ -217,23 +216,22 @@ test('notification popup and bell can be independently disabled in theme setting
 
 test('sidebar layout renders sorted desktop links with collapse control and safe business routing',async({page})=>{
  await page.setViewportSize({width:1280,height:900});
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'布局测试站',frontend_theme:'vv-theme',theme_config:{
+   '/txapi/public/site-config':{app_name:'布局测试站',frontend_theme:'vv-theme',theme_config:{
     layout_mode:'sidebar',sidebar_collapsed_default:'1',
     nav_items:'ticket,orders,!shop,menu,dashboard,!profile',notice_popup_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'signed-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:701,email:'sidebar@example.test'},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/getSubscribe':{},
-   '/api/v1/user/order/fetch':[]
+   '/txapi/auth/login':{auth_data:'Bearer signed-token'},
+   '/txapi/me':{id:701,email:'sidebar@example.test'},
+   '/txapi/plans':[],
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/me/subscription':{},
+   '/txapi/orders':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('sidebar@example.test');
@@ -255,22 +253,21 @@ test('sidebar layout renders sorted desktop links with collapse control and safe
 
 test('mobile navigation honors visibility/order and keeps the menu escape hatch',async({page})=>{
  await page.setViewportSize({width:390,height:844});
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'移动布局',frontend_theme:'vv-theme',theme_config:{
+   '/txapi/public/site-config':{app_name:'移动布局',frontend_theme:'vv-theme',theme_config:{
     layout_mode:'sidebar',nav_items:'orders,ticket,!shop,!profile,dashboard,menu',notice_popup_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'signed-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:702,email:'mobile@example.test'},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/getSubscribe':{},
-   '/api/v1/user/order/fetch':[]
+   '/txapi/auth/login':{auth_data:'Bearer signed-token'},
+   '/txapi/me':{id:702,email:'mobile@example.test'},
+   '/txapi/plans':[],
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/me/subscription':{},
+   '/txapi/orders':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('mobile@example.test');
@@ -293,21 +290,20 @@ test('mobile navigation honors visibility/order and keeps the menu escape hatch'
 test('a newly registered user sees onboarding and the configured wallet side card',async({page})=>{
  const now=Math.floor(Date.now()/1000);
  await page.setViewportSize({width:390,height:844});
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'欢迎测试',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
+   '/txapi/public/site-config':{app_name:'欢迎测试',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
     welcome_enabled:'1',welcome_new_hours:48,welcome_secondary_card:'wallet',notice_popup_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'welcome-session'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{email:'fresh@example.test',created_at:now-3600,plan_id:0,balance:3450},
-   '/api/v1/user/getSubscribe':{plan_id:0,transfer_enable:0,expired_at:0,u:0,d:0},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[]
+   '/txapi/auth/login':{auth_data:'Bearer welcome-session'},
+   '/txapi/me':{email:'fresh@example.test',plan_id:0,balance_minor:3450,commission_balance_minor:0,expired_at:null,traffic:{upload_bytes:0,download_bytes:0,limit_bytes:0}},
+   '/txapi/me/subscription':{plan:null,traffic_limit_bytes:0,upload_bytes:0,download_bytes:0,expired_at:null,next_reset_at:null,subscribe_url:''},
+   '/txapi/plans':[],
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('fresh@example.test');
@@ -324,22 +320,20 @@ test('a newly registered user sees onboarding and the configured wallet side car
 
 test('subscriptions near expiry use a renewal message and usable traffic metrics',async({page})=>{
  const now=Math.floor(Date.now()/1000);
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'订阅提醒',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
+   '/txapi/public/site-config':{app_name:'订阅提醒',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
     welcome_enabled:'1',welcome_expiry_hours:'72',welcome_secondary_card:'usage',notice_popup_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'welcome-session'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{email:'expiring@example.test',created_at:now-30*86400,plan_id:3},
-   '/api/v1/user/getSubscribe':{plan_id:3,plan:{id:3,name:'高级套餐',transfer_enable:100},
-    transfer_enable:100*1073741824,u:60*1073741824,d:35*1073741824,expired_at:now+36*3600,reset_day:15},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[]
+   '/txapi/auth/login':{auth_data:'Bearer welcome-session'},
+   '/txapi/me':{email:'expiring@example.test',plan_id:3,balance_minor:0,commission_balance_minor:0,expired_at:new Date(now*1000+36*3600000).toISOString(),traffic:{upload_bytes:60*1073741824,download_bytes:35*1073741824,limit_bytes:100*1073741824}},
+   '/txapi/me/subscription':{plan:{id:3,name:'高级套餐',traffic_limit_bytes:100*1073741824},traffic_limit_bytes:100*1073741824,upload_bytes:60*1073741824,download_bytes:35*1073741824,expired_at:new Date(now*1000+36*3600000).toISOString(),reset_day:15,next_reset_at:null},
+   '/txapi/plans':[],
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('expiring@example.test');
@@ -357,22 +351,20 @@ test('subscriptions near expiry use a renewal message and usable traffic metrics
 
 test('fully depleted plans show an upgrade action before other warnings',async({page})=>{
  const now=Math.floor(Date.now()/1000);
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'流量提醒',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
+   '/txapi/public/site-config':{app_name:'流量提醒',frontend_theme:'vv-theme',is_captcha:0,theme_config:{
     welcome_enabled:'1',welcome_secondary_card:'recommend',notice_popup_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'welcome-session'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{email:'noquota@example.test',created_at:now-30*86400,plan_id:4},
-   '/api/v1/user/getSubscribe':{plan_id:4,plan:{id:4,name:'普通套餐',transfer_enable:10},
-    transfer_enable:10*1073741824,u:4*1073741824,d:6*1073741824,expired_at:now+48*3600},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[]
+   '/txapi/auth/login':{auth_data:'Bearer welcome-session'},
+   '/txapi/me':{email:'noquota@example.test',plan_id:4,balance_minor:0,commission_balance_minor:0,expired_at:new Date(now*1000+48*3600000).toISOString(),traffic:{upload_bytes:4*1073741824,download_bytes:6*1073741824,limit_bytes:10*1073741824}},
+   '/txapi/me/subscription':{plan:{id:4,name:'普通套餐',traffic_limit_bytes:10*1073741824},traffic_limit_bytes:10*1073741824,upload_bytes:4*1073741824,download_bytes:6*1073741824,expired_at:new Date(now*1000+48*3600000).toISOString()},
+   '/txapi/plans':[],
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('noquota@example.test');
@@ -387,42 +379,40 @@ test('fully depleted plans show an upgrade action before other warnings',async({
 test('shop groups subscription types and creates an order only after server-side confirmation',async({page})=>{
  const checkoutRequests=[];
  const plans=[
-  {id:1,name:'基础套餐',show:true,sell:true,transfer_enable:100,device_limit:3,
-   month_price:1000,year_price:9000,quarter_price:2800,content:'<p>快速连接</p>'},
-  {id:2,name:'旗舰套餐',show:true,sell:true,transfer_enable:200,device_limit:5,
-   month_price:2000,year_price:17000,content:'覆盖多种终端'},
-  {id:3,name:'限时免费套餐',show:false,sell:false,transfer_enable:1,month_price:0}
+  {id:1,name:'基础套餐',content:'<p>快速连接</p>',tags:[],traffic_limit_bytes:100*1073741824,speed_limit_mbps:null,device_limit:3,capacity_limit:null,reset_traffic_method:null,prices:[{period:'monthly',amount_minor:1000},{period:'quarterly',amount_minor:2800},{period:'yearly',amount_minor:9000}],renewable:true},
+  {id:2,name:'旗舰套餐',content:'覆盖多种终端',tags:[],traffic_limit_bytes:200*1073741824,speed_limit_mbps:null,device_limit:5,capacity_limit:null,reset_traffic_method:null,prices:[{period:'monthly',amount_minor:2000},{period:'yearly',amount_minor:17000}],renewable:true},
+  {id:3,name:'限时免费套餐',content:'',tags:[],traffic_limit_bytes:1*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:null,prices:[],renewable:false}
  ];
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const url=new URL(route.request().url());
   const path=url.pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'套餐测试',frontend_theme:'vv-theme',theme_config:{
-    shop_default_period:'year_price',shop_featured_ids:'2',
+   '/txapi/public/site-config':{app_name:'套餐测试',frontend_theme:'vv-theme',theme_config:{
+    shop_default_period:'yearly',shop_featured_ids:'2',
     shop_compare_enabled:'1',shop_show_savings:'1',notice_popup_enabled:'0'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'purchase-test-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:901,email:'shop@example.test',plan_id:0},
-   '/api/v1/user/plan/fetch':plans,
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getSubscribe':{plan_id:0},
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/order/fetch':[],
-   '/api/v1/user/order/detail':{trade_no:'ORDER-SERVER-01',status:0,plan:{id:1,name:'基础套餐'},total_amount:8500,period:'year_price'},
-   '/api/v1/user/order/getPaymentMethod':[{id:5,name:'测试支付',handling_fee_percent:0,handling_fee_fixed:0}]
+   '/txapi/auth/login':{auth_data:'Bearer purchase-test-token'},
+   '/txapi/me':{id:901,email:'shop@example.test',plan_id:0},
+   '/txapi/plans':plans,
+   '/txapi/notices':[],
+   '/txapi/me/subscription':{plan_id:0},
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/orders':[],
+   '/txapi/orders/ORDER-SERVER-01/detail':{id:1,trade_no:'ORDER-SERVER-01',status:0,plan:{id:1,name:'基础套餐',traffic_limit_bytes:100*1073741824},amount_minor:8500,period:'yearly',type:0,plan_id:1,payment_id:null,paid_at:null,created_at:'2026-01-01T00:00:00+00:00'},
+   '/txapi/billing/payment-methods':[{id:5,name:'测试支付',provider:'MockPay',icon:null,fee_fixed_minor:0,fee_percent:0}]
   };
-  if(path==='/api/v1/user/order/save'){
+  if(path==='/txapi/orders'&&route.request().method()==='POST'){
    checkoutRequests.push(JSON.parse(route.request().postData()||'{}'));
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:'ORDER-SERVER-01'})});
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap({trade_no:'ORDER-SERVER-01'}))});
    return;
   }
-  if(path==='/api/v1/user/coupon/check'){
+  if(path==='/txapi/billing/coupons/check'){
    checkoutRequests.push({coupon:JSON.parse(route.request().postData()||'{}')});
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:{type:2,value:15}})});
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap({id:1,name:'秋季优惠',code:'AUTUMN',type:2,value_minor:null,percent:15}))});
    return;
   }
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  if(path==='/txapi/plans/1'){await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(plans[0]))});return}
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('shop@example.test');
@@ -461,31 +451,30 @@ test('shop groups subscription types and creates an order only after server-side
  await expect(page.getByRole('dialog',{name:'订单详情'})).toBeVisible();
  await expect(page.getByRole('dialog',{name:'订单详情'})).toContainText('¥85.00');
  const order=checkoutRequests.find(x=>x.plan_id===1);
- expect(order).toEqual({plan_id:1,period:'year_price',coupon_code:'AUTUMN'});
+ expect(order).toEqual({plan_id:1,period:'yearly',coupon_code:'AUTUMN'});
  const coupon=checkoutRequests.find(x=>x.coupon)?.coupon;
- expect(coupon).toEqual({code:'AUTUMN',plan_id:1,period:'year_price'});
+ expect(coupon).toEqual({code:'AUTUMN',plan_id:1,period:'yearly'});
 });
 
 test('mobile subscription categories remain scroll-safe without period filters',async({page})=>{
  const plans=[
-  {id:1,name:'月付方案',show:true,sell:true,month_price:1200,transfer_enable:40},
-  {id:2,name:'一次性方案',show:true,sell:true,onetime_price:3000,transfer_enable:60},
-  {id:3,name:'年付方案',show:true,sell:true,year_price:9900,transfer_enable:90}
+  {id:1,name:'月付方案',content:'',tags:[],traffic_limit_bytes:40*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:null,prices:[{period:'monthly',amount_minor:1200}],renewable:true},
+  {id:2,name:'一次性方案',content:'',tags:[],traffic_limit_bytes:60*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:null,prices:[{period:'onetime',amount_minor:3000}],renewable:false},
+  {id:3,name:'年付方案',content:'',tags:[],traffic_limit_bytes:90*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:null,prices:[{period:'yearly',amount_minor:9900}],renewable:true}
  ];
  await page.setViewportSize({width:390,height:844});
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'手机商店',frontend_theme:'vv-theme',theme_config:{shop_default_period:'all',notice_popup_enabled:'0'}},
-   '/api/v1/passport/auth/login':{auth_data:'mobile-shop-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:902,email:'mobile-shop@example.test'},
-   '/api/v1/user/plan/fetch':plans,
-   '/api/v1/user/getSubscribe':{},
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0}
+   '/txapi/public/site-config':{app_name:'手机商店',frontend_theme:'vv-theme',theme_config:{shop_default_period:'all',notice_popup_enabled:'0'}},
+   '/txapi/auth/login':{auth_data:'Bearer mobile-shop-token'},
+   '/txapi/me':{id:902,email:'mobile-shop@example.test'},
+   '/txapi/plans':plans,
+   '/txapi/me/subscription':{},
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/notices':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('mobile-shop@example.test');
@@ -515,23 +504,21 @@ test('subscription center shows verified usage, OS import choices and manual cre
  const now=Math.floor(Date.now()/1000);
  let calls=0;
  await page.setViewportSize({width:390,height:844});
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{frontend_theme:'vv-theme',app_name:'测试订阅',theme_config:{notice_popup_enabled:'0',subscription_client_guide:'1'}},
-   '/api/v1/passport/auth/login':{auth_data:'subs-test-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:400,email:'subscriber@example.test',plan_id:9},
-   '/api/v1/user/getSubscribe':{plan_id:9,plan:{id:9,name:'高级订阅',renew:true,reset_traffic_method:1},
-    transfer_enable:100*1073741824,u:10*1073741824,d:25*1073741824,
-    expired_at:now+86400*20,reset_day:5,
-    subscribe_url:'https://panel.example.test/api/v1/client/subscribe?token=secret'},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/notice/fetch':{data:[],total:0}
+   '/txapi/public/site-config':{frontend_theme:'vv-theme',app_name:'测试订阅',theme_config:{notice_popup_enabled:'0',subscription_client_guide:'1'}},
+   '/txapi/auth/login':{auth_data:'Bearer subs-test-token'},
+   '/txapi/me':{id:400,email:'subscriber@example.test',plan_id:9},
+   '/txapi/me/subscription':{plan:{id:9,name:'高级订阅',traffic_limit_bytes:100*1073741824},traffic_limit_bytes:100*1073741824,upload_bytes:10*1073741824,download_bytes:25*1073741824,
+    expired_at:new Date(now*1000+86400*20000).toISOString(),reset_day:5,next_reset_at:null,
+    subscribe_url:'https://panel.example.test/txapi/client/subscribe?token=secret'},
+   '/txapi/plans':[],
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/notices':[]
   };
-  if(path==='/api/v1/user/getSubscribe')calls++;
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  if(path==='/txapi/me/subscription')calls++;
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('subscriber@example.test');
@@ -563,33 +550,33 @@ test('subscription center shows verified usage, OS import choices and manual cre
 
 test('reset-traffic shortcut requires a server-priced plan and posts reset_price (not renewal)',async({page})=>{
  const now=Math.floor(Date.now()/1000),orders=[];
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const url=new URL(route.request().url()),path=url.pathname;
   const fixtures={
-   '/api/v1/guest/comm/config':{app_name:'流量重置',frontend_theme:'vv-theme',theme_config:{notice_popup_enabled:'0'}},
-   '/api/v1/passport/auth/login':{auth_data:'reset-test-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:410,email:'reset@example.test',plan_id:7},
-   '/api/v1/user/getSubscribe':{plan_id:7,plan:{id:7,name:'专属套餐',renew:true,reset_traffic_method:1},
-    transfer_enable:50*1073741824,u:20*1073741824,d:10*1073741824,expired_at:now+86400*12},
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/order/fetch':[],
-   '/api/v1/user/order/detail':{trade_no:'RESET-01',status:0,total_amount:500,period:'reset_price',plan:{id:7,name:'专属套餐'}},
-   '/api/v1/user/order/getPaymentMethod':[]
+   '/txapi/public/site-config':{app_name:'流量重置',frontend_theme:'vv-theme',theme_config:{notice_popup_enabled:'0'}},
+   '/txapi/auth/login':{auth_data:'Bearer reset-test-token'},
+   '/txapi/me':{id:410,email:'reset@example.test',plan_id:7},
+   '/txapi/me/subscription':{plan:{id:7,name:'专属套餐',traffic_limit_bytes:50*1073741824},traffic_limit_bytes:50*1073741824,upload_bytes:20*1073741824,download_bytes:10*1073741824,expired_at:new Date(now*1000+86400*12000).toISOString(),reset_day:null,next_reset_at:null},
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/orders':[],
+   '/txapi/orders/RESET-01/detail':{id:1,trade_no:'RESET-01',status:0,amount_minor:500,period:'reset_traffic',type:0,plan_id:7,plan:{id:7,name:'专属套餐',traffic_limit_bytes:50*1073741824},payment_id:null,paid_at:null,created_at:'2026-01-01T00:00:00+00:00'},
+   '/txapi/billing/payment-methods':[]
   };
-  if(path==='/api/v1/user/plan/fetch'){
-   const result=url.searchParams.get('id')==='7'
-    ?{id:7,name:'专属套餐',renew:true,reset_price:500,month_price:1500}:[];
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:result})});
+  if(path==='/txapi/plans/7'){
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap({id:7,name:'专属套餐',content:'',tags:[],traffic_limit_bytes:50*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:1,prices:[{period:'monthly',amount_minor:1500},{period:'reset_traffic',amount_minor:500}],renewable:true}))});
    return;
   }
-  if(path==='/api/v1/user/order/save'){
+  if(path==='/txapi/plans'){
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap([{id:7,name:'专属套餐',content:'',tags:[],traffic_limit_bytes:50*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:1,prices:[{period:'monthly',amount_minor:1500},{period:'reset_traffic',amount_minor:500}],renewable:true}]))});
+   return;
+  }
+  if(path==='/txapi/orders'&&route.request().method()==='POST'){
    orders.push(JSON.parse(route.request().postData()));
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:'RESET-01'})});
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap({trade_no:'RESET-01'}))});
    return;
   }
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:fixtures[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(fixtures[path]??[]))});
  });
  page.on('dialog',dialog=>dialog.accept());
  await page.goto('/');
@@ -603,28 +590,27 @@ test('reset-traffic shortcut requires a server-priced plan and posts reset_price
  await expect(form.getByLabel('订单基础价格')).toContainText('¥5.00');
  await form.getByRole('button',{name:/确认并创建订单/}).click();
  await expect(page.getByRole('dialog',{name:'订单详情'})).toBeVisible();
- expect(orders).toEqual([{plan_id:7,period:'reset_price'}]);
+ expect(orders).toEqual([{plan_id:7,period:'reset_traffic'}]);
 });
 
 test('expired subscriptions cannot start a traffic reset, and operator can hide import guide',async({page})=>{
  const now=Math.floor(Date.now()/1000);
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const data={
-   '/api/v1/guest/comm/config':{app_name:'过期订阅',frontend_theme:'vv-theme',theme_config:{
+   '/txapi/public/site-config':{app_name:'过期订阅',frontend_theme:'vv-theme',theme_config:{
     notice_popup_enabled:'0',subscription_client_guide:'0',subscription_reset_action:'1'
    }},
-   '/api/v1/passport/auth/login':{auth_data:'expired-test-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:420,email:'old@example.test',plan_id:3},
-   '/api/v1/user/getSubscribe':{plan_id:3,plan:{id:3,name:'旧套餐',renew:false,reset_traffic_method:1},
-    transfer_enable:10*1073741824,u:10*1073741824,d:0,expired_at:now-86400,
-    subscribe_url:'https://panel.example.test/api/v1/client/subscribe?token=secret'},
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/plan/fetch':[],
-   '/api/v1/user/getStat':[]
+   '/txapi/auth/login':{auth_data:'Bearer expired-test-token'},
+   '/txapi/me':{id:420,email:'old@example.test',plan_id:3},
+   '/txapi/me/subscription':{plan:{id:3,name:'旧套餐',traffic_limit_bytes:10*1073741824},traffic_limit_bytes:10*1073741824,upload_bytes:10*1073741824,download_bytes:0,expired_at:new Date(now*1000-86400000).toISOString(),next_reset_at:null,
+    subscribe_url:'https://panel.example.test/txapi/client/subscribe?token=secret'},
+   '/txapi/notices':[],
+   // Non-renewable catalog entry: the expired plan must not offer renewal.
+   '/txapi/plans':[{id:3,name:'旧套餐',content:'',tags:[],traffic_limit_bytes:10*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:1,prices:[{period:'monthly',amount_minor:1000}],renewable:false}],
+   '/txapi/me/dashboard-stats':[]
   };
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'success',data:data[path]??[]})});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(data[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('old@example.test');

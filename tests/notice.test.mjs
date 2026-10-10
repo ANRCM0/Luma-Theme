@@ -12,13 +12,15 @@ const memory=()=>({
 
 test('TXBoard announcements are only shown once per version and account',()=>{
  const storage=memory(),accountA={id:21,email:'a@example.test'},accountB={id:22};
- const first={id:4,title:'公告 A',created_at:100,updated_at:120};
+ // Native /notices returns no updated_at, so the seen-version key is the id
+ // plus created_at; there is no second timestamp to compare against.
+ const first={id:4,title:'公告 A',created_at:100};
  const another={id:5,title:'公告 B',created_at:110};
  assert.equal(unseenNotices([first,another],storage,accountA).length,2);
  markNoticesSeen([first,another],storage,accountA);
  assert.deepEqual(unseenNotices([first,another],storage,accountA),[]);
  assert.equal(unseenNotices([first,another],storage,accountB).length,2);
- const changed={...first,updated_at:121};
+ const changed={...first,created_at:121};
  assert.deepEqual(unseenNotices([changed,another],storage,accountA),[changed]);
  assert.equal(noticeVersion(changed),'4:121');
  assert.match(noticeStorageKey(accountA),/21/);

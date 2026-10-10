@@ -20,7 +20,7 @@ import {resolveAtomicConfig,atomicPageVisible} from './atomic-config.js';
 import PurchaseForm from './PurchaseForm.jsx';
 import {ExistingOrderDialog,OrderPaymentBody} from './OrderPayment.jsx';
 import {firstBlockingOrder,isBlockingOrder,isTerminalOrder,normalizeOrderStatus,MAX_STATUS_POLLS,resolvePaymentConfig} from './order-flow.js';
-import {availableCatalogPlans,planPeriods,planPrice,resolveCatalogConfig} from './catalog.js';
+import {availableCatalogPlans,planPeriods,planPrice,resetPrice,resolveCatalogConfig} from './catalog.js';
 import {unseenNotices,markNoticesSeen,noticeVersion,noticePlainText} from './notice.js';
 import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-policy.js';
 
@@ -28,7 +28,7 @@ import {resolveNoticeConfig,automaticNotices,recordAutoNotice} from './notice-po
 const NAV=[['dashboard','我的面板',House],['shop','购买套餐',ShoppingBag],['profile','账号设置',UserRound],['ticket','服务工单',Headphones],['menu','全部菜单',Menu],['orders','我的订单',Receipt]];
 const routeNow=()=>((location.hash.replace(/^#\/?/,'').split(/[/?]/)[0])||'dashboard');
 const queryNow=()=>new URLSearchParams(location.hash.split('?')[1]||'');
-const date=v=>v?new Date(Number(v)*1000).toLocaleString('zh-CN'):'—';
+const date=v=>tx.dateTime(v);
 const status=s=>({0:'待支付',1:'开通中',2:'已取消',3:'已完成',4:'已折抵'})[s]||'未知';
 const availablePeriods=p=>planPeriods(p).map(({id,label})=>[id,label]);
 function Card({children,className=''}){return <section className={'card '+className}>{children}</section>}
@@ -171,7 +171,7 @@ export default function LiveApp(){
    setResetMode(false);setPlan(item);setPeriod(initial);setCoupon('');setDiscount('');setDialog('purchase');
  }
  async function renewCurrent(){
-   const id=Number(subscription?.plan_id||me?.plan_id);
+   const id=Number(subscription?.plan?.id||me?.plan_id);
    if(!Number.isSafeInteger(id)||id<=0){go('shop');return}
    const current=await act(()=>tx.plan(id));
    if(!current)return;
@@ -181,18 +181,18 @@ export default function LiveApp(){
  }
  async function resetTraffic(){
    if(!canAttemptReset(subscription,me)){notify('当前订阅不符合流量重置的基本条件');return}
-   const id=Number(subscription?.plan_id||me?.plan_id);
+   const id=Number(subscription?.plan?.id||me?.plan_id);
    // The per-user plan endpoint enforces backend purchase eligibility and
-   // translates reset_traffic from the stored plan prices to reset_price cents.
+   // reads reset_traffic from the plan's native prices[] as minor units.
    const current=await act(()=>tx.plan(id));
    if(!current)return;
-   const price=current?.reset_price;
+   const price=resetPrice(current);
    if(price===null||price===undefined||!Number.isFinite(Number(price))||Number(price)<0){
      notify('当前套餐没有开放付费流量重置，请查看套餐或联系客服');
      return;
    }
    if(!window.confirm('流量重置会创建一笔新订单，不会延长套餐有效期。继续吗？'))return;
-   setResetMode(true);setPlan(current);setPeriod('reset_price');
+   setResetMode(true);setPlan(current);setPeriod('reset_traffic');
    setCoupon('');setDiscount('');setDialog('purchase');
  }
  async function refreshSubscription(){
@@ -284,8 +284,8 @@ export default function LiveApp(){
        return;
      }
      const selected=methods.find(x=>String(x.id)===String(method));
-     const cardToken=selected?.payment==='StripeCredit'?await stripeRef.current?.createToken():undefined;
-     if(selected?.payment==='StripeCredit'&&!cardToken)throw Error('信用卡表单尚未就绪');
+     const cardToken=selected?.provider==='StripeCredit'?await stripeRef.current?.createToken():undefined;
+     if(selected?.provider==='StripeCredit'&&!cardToken)throw Error('信用卡表单尚未就绪');
      const result=await tx.checkout(trade,method?Number(method):undefined,cardToken);
      if(result.type===0&&typeof result.data==='string'){
        setQr({title:'支付二维码',value:result.data});
@@ -457,6 +457,8 @@ export default function LiveApp(){
  const overview=classifyWelcome(me,subscription,welcomeConfig);
  const planName=subscription?.plan?.name||'Free';
  const activePlans=availableCatalogPlans(offers);
+ // Renewal ability comes from the /plans catalog entry for the current plan.
+ const currentCatalogPlan=activePlans.find(p=>String(p.id)===String(subscription?.plan?.id))||null;
  const featured=activePlans.find(p=>catalogConfig.featuredIds.has(String(p.id)))||activePlans[0];
  const inviteCodeValue=invite?.codes?.[0]?.code;
  const inviteBase=safeWebUrl(guest.app_url||location.origin,{allowHttpLoopback:true})||location.origin;
@@ -474,18 +476,18 @@ export default function LiveApp(){
  {route==='dashboard'&&<>
   <div className="dashboard-grid">
    <WelcomeBanner user={me} overview={overview} config={welcomeConfig} atomic={atomicConfig}/>
-   <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} config={subscriptionConfig} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go} onRenew={renewCurrent} onReset={resetTraffic} onRefresh={refreshSubscription} busy={busy}/></div>
+   <div className="dashboard-side"><WelcomeSecondaryCard mode={welcomeConfig.secondaryCard} featured={featured} subscription={subscription} user={me} overview={overview} config={subscriptionConfig} formatBytes={tx.bytes} formatMoney={tx.money} availablePeriods={availablePeriods} onBuy={openBuy} onNavigate={go} onRenew={renewCurrent} onReset={resetTraffic} onRefresh={refreshSubscription} busy={busy} catalogPlan={currentCatalogPlan}/></div>
   </div>{atomicConfig.showDashboardSubscription&&<SubscriptionCenter subscription={subscription} siteTitle={title} config={subscriptionConfig} atomic={atomicConfig.subscription}
    onQr={url=>setQr({title:'订阅二维码',value:url})}
    onCopy={copy}
    onImport={client=>{if(client?.href)window.location.href=client.href}}/>}
  </>}
  {route==='shop'&&atomicPageVisible(atomicConfig,'shop')&&<ShopCatalog plans={activePlans} config={catalogConfig} atomic={atomicConfig.shop} money={tx.money} onBuy={openBuy}/>}
- {route==='orders'&&atomicPageVisible(atomicConfig,'orders')&&<><Heading atomic={atomicConfig} en="ORDER HISTORY" title="我的订单">查看真实订单与支付状态。</Heading><Card><div className="ticket-toolbar"><h3>订单记录（{rows.length}）</h3><button className="secondary" onClick={()=>loadSection('orders')}>刷新</button></div>{rows.length?rows.map(o=><button className="live-list-row" key={o.trade_no} onClick={()=>showOrder(o.trade_no)}><div><strong>{o.plan?.name||'套餐 #'+o.plan_id}</strong><p className="muted">{o.trade_no} · {date(o.created_at)}</p></div><div>{tx.money(o.total_amount)} · {status(o.status)} <ChevronRight size={15}/></div></button>):<p className="muted">暂无订单</p>}</Card></>}
- {route==='profile'&&atomicPageVisible(atomicConfig,'profile')&&<><Heading atomic={atomicConfig} en="ACCOUNT CENTER" title="账号设置">账户信息、安全设置与邀请管理。</Heading><div className="tabs">{['基本信息','安全设置',...(atomicConfig.pages.invite?['邀请管理']:[]),'财务记录'].map(t=><button key={t} className={profileTab===t?'active':''} onClick={()=>setProfileTab(t)}>{t}</button>)}</div>{profileTab==='基本信息'&&<div className="profile-grid"><Card><h3>个人信息</h3><div className="field"><label>邮箱地址</label><input readOnly value={me?.email||''}/></div><div className="field"><label>当前套餐</label><input readOnly value={planName}/></div></Card><Card><h3>账户余额</h3><div className="account-balance">{tx.money(me?.balance)}</div><p className="muted">可用余额，金额由 TXBoard 返回</p><button className="secondary wide" onClick={()=>go('orders')}>查看订单</button></Card></div>}
+ {route==='orders'&&atomicPageVisible(atomicConfig,'orders')&&<><Heading atomic={atomicConfig} en="ORDER HISTORY" title="我的订单">查看真实订单与支付状态。</Heading><Card><div className="ticket-toolbar"><h3>订单记录（{rows.length}）</h3><button className="secondary" onClick={()=>loadSection('orders')}>刷新</button></div>{rows.length?rows.map(o=><button className="live-list-row" key={o.trade_no} onClick={()=>showOrder(o.trade_no)}><div><strong>{o.plan?.name||'套餐 #'+o.plan_id}</strong><p className="muted">{o.trade_no} · {date(o.created_at)}</p></div><div>{tx.money(o.amount_minor)} · {status(o.status)} <ChevronRight size={15}/></div></button>):<p className="muted">暂无订单</p>}</Card></>}
+ {route==='profile'&&atomicPageVisible(atomicConfig,'profile')&&<><Heading atomic={atomicConfig} en="ACCOUNT CENTER" title="账号设置">账户信息、安全设置与邀请管理。</Heading><div className="tabs">{['基本信息','安全设置',...(atomicConfig.pages.invite?['邀请管理']:[]),'财务记录'].map(t=><button key={t} className={profileTab===t?'active':''} onClick={()=>setProfileTab(t)}>{t}</button>)}</div>{profileTab==='基本信息'&&<div className="profile-grid"><Card><h3>个人信息</h3><div className="field"><label>邮箱地址</label><input readOnly value={me?.email||''}/></div><div className="field"><label>当前套餐</label><input readOnly value={planName}/></div></Card><Card><h3>账户余额</h3><div className="account-balance">{tx.money(me?.balance_minor)}</div><p className="muted">可用余额，金额由 TXBoard 返回</p><button className="secondary wide" onClick={()=>go('orders')}>查看订单</button></Card></div>}
  {profileTab==='安全设置'&&<Card className="form-card"><h3>修改密码</h3><form onSubmit={async e=>{e.preventDefault();if(newPass.length<8||newPass!==repeatPass){setError('请确认新密码至少 8 位且两次一致');return}const result=await act(()=>tx.changePassword(oldPass,newPass),'密码修改成功');if(result!==null){setOldPass('');setNewPass('');setRepeatPass('')}}}><div className="field"><label>当前密码</label><input type="password" required value={oldPass} onChange={e=>setOldPass(e.target.value)}/></div><div className="field"><label>新密码</label><input type="password" minLength="8" required value={newPass} onChange={e=>setNewPass(e.target.value)}/></div><div className="field"><label>确认新密码</label><input type="password" minLength="8" required value={repeatPass} onChange={e=>setRepeatPass(e.target.value)}/></div><button className="primary" disabled={busy}>修改密码</button></form></Card>}{profileTab==='安全设置'&&<AccountSecurity user={me} onUpdated={loadMain} onCopy={copy}/>}
  {profileTab==='邀请管理'&&atomicConfig.pages.invite&&<InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/>}
- {profileTab==='财务记录'&&<><Card><h3>财务概览</h3><div className="finance-summary"><div><span>余额</span><strong>{tx.money(me?.balance)}</strong></div><div><span>佣金余额</span><strong>{tx.money(me?.commission_balance)}</strong></div><div><span>订单数量</span><strong>{rows.length}</strong></div></div><button className="secondary" onClick={()=>go('orders')}>查看订单明细</button></Card><InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/></>}</>}
+ {profileTab==='财务记录'&&<><Card><h3>财务概览</h3><div className="finance-summary"><div><span>余额</span><strong>{tx.money(me?.balance_minor)}</strong></div><div><span>佣金余额</span><strong>{tx.money(me?.commission_balance_minor)}</strong></div><div><span>订单数量</span><strong>{rows.length}</strong></div></div><button className="secondary" onClick={()=>go('orders')}>查看订单明细</button></Card><InviteFinance user={me} config={userFlags} guest={guest} onUpdated={async()=>{await loadMain();await loadSection('profile')}} onCopy={copy} onNavigate={go}/></>}</>}
  {route==='ticket'&&atomicPageVisible(atomicConfig,'ticket')&&<><div className="live-ticket-header"><Heading atomic={atomicConfig} en="SUPPORT CENTER" title="服务工单">与客服交流，所有内容均提交至真实 TXBoard 工单接口。</Heading><button className="primary" onClick={()=>setDialog('ticket-create')}><Plus size={18}/> 创建工单</button></div><Card><div className="ticket-toolbar"><h3>我的工单（{ticketRows.length}）</h3><div className="search"><Search size={17}/><input placeholder="搜索工单…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>{ticketRows.filter(x=>String(x.subject||'').includes(search)).map(t=><button key={t.id} className="live-list-row" onClick={()=>viewTicket(t)}><div><strong>{t.subject}</strong><p className="muted">#{t.id} · {date(t.updated_at)} · {t.status===1?'已关闭':'处理中'}</p></div><ChevronRight size={18}/></button>)}{!ticketRows.length&&<p className="muted">暂无工单</p>}</Card></>}
  {route==='menu'&&<><Heading atomic={atomicConfig} en="QUICK ACCESS" title="全部菜单">快速访问常用功能。</Heading><div className="menu-grid">{[...NAV.slice(0,4).filter(([key])=>atomicPageVisible(atomicConfig,key)),...(atomicConfig.pages.orders?[['orders','我的订单',Receipt]]:[]),...(atomicConfig.pages.invite?[['invite','邀请管理',Gift]]:[]),...(atomicConfig.pages.nodes?[['nodes','节点列表',Wifi]]:[]),...(canTraffic?[['traffic','流量记录',RefreshCcw]]:[]),...(canKnowledge?[['knowledge','帮助中心',Info]]:[]),...(canGiftCard?[['gift-card','礼品卡',Gift]]:[]),['logout','退出登录',LogOut]].map(([key,name,Icon])=><button key={key} className="card menu-item" onClick={()=>key==='logout'?logout():key==='invite'?(setProfileTab('邀请管理'),go('profile')):go(key)}><Icon size={24}/><strong>{name}</strong><ChevronRight size={17}/></button>)}</div></>}
  {route==='gift-card'&&(canGiftCard?<GiftCardPage onUpdated={loadMain} atomic={atomicConfig}/>:<Card><p>礼品卡功能未开放</p><button className="secondary" onClick={()=>go('menu')}>返回全部菜单</button></Card>)}
@@ -519,7 +521,7 @@ export default function LiveApp(){
  {dialog==='purchase'&&plan&&<Dialog title={'购买 '+plan.name} onClose={()=>setDialog(null)} wide>
   <PurchaseForm resetMode={resetMode} plan={plan} period={period} setPeriod={setPeriod} coupon={coupon} setCoupon={setCoupon} discount={discount} setDiscount={setDiscount} busy={busy} formatMoney={tx.money} onVerify={async()=>{
    const result=await act(()=>tx.checkCoupon(coupon.trim(),plan.id,period));
-   if(result)setDiscount(result.type===2?String(result.value)+'%':tx.money(result.value));
+   if(result)setDiscount(result.type===2?String(result.percent)+'%':tx.money(result.value_minor));
   }} onSubmit={buy}/>
  </Dialog>}
  {dialog==='order-conflict'&&blockingOrder&&<Dialog title="继续处理已有订单" onClose={()=>setDialog('purchase')} wide>
@@ -532,6 +534,6 @@ export default function LiveApp(){
    onPay={pay} onCancel={cancelCurrentOrder} onRefresh={refreshOrderStatus} money={tx.money} statusLabel={status} stripeRef={stripeRef}/>
  </Dialog>}
  {dialog==='ticket-create'&&<Dialog title="创建工单" onClose={()=>setDialog(null)}><form onSubmit={createTicket}><div className="field"><label>工单主题</label><input name="title" required maxLength="100"/></div><div className="field"><label>优先级</label><select name="level" defaultValue="1"><option value="0">低</option><option value="1">普通</option><option value="2">高</option></select></div><div className="field"><label>问题描述</label><textarea name="description" minLength="5" maxLength="2000" rows="5" required/></div><button className="primary wide" disabled={busy}>提交工单</button></form></Dialog>}
- {dialog==='ticket-detail'&&ticket&&<Dialog title={ticket.subject} onClose={()=>setDialog(null)} wide><p className="muted">工单 #{ticket.id} · {ticket.status===1?'已关闭':'处理中'}</p><div className="live-thread">{(ticket.message||[]).map(m=><div key={m.id} className={'live-message '+(m.is_me?'mine':'')}><strong>{m.is_me?'我':'客服'}</strong><p>{m.message}</p><small>{date(m.created_at)}</small></div>)}</div>{ticket.status===0&&<form onSubmit={sendReply}><div className="field"><label>回复</label><textarea rows="3" value={reply} required onChange={e=>setReply(e.target.value)}/></div><button className="primary" disabled={busy||!reply.trim()}>发送回复</button><button className="secondary" type="button" disabled={busy} onClick={closeCurrent}>关闭工单</button></form>}</Dialog>}
+ {dialog==='ticket-detail'&&ticket&&<Dialog title={ticket.subject} onClose={()=>setDialog(null)} wide><p className="muted">工单 #{ticket.id} · {ticket.status===1?'已关闭':'处理中'}</p><div className="live-thread">{(ticket.messages||[]).map(m=><div key={m.id} className={'live-message '+(m.is_me?'mine':'')}><strong>{m.is_me?'我':'客服'}</strong><p>{m.message}</p><small>{date(m.created_at)}</small></div>)}</div>{ticket.status===0&&<form onSubmit={sendReply}><div className="field"><label>回复</label><textarea rows="3" value={reply} required onChange={e=>setReply(e.target.value)}/></div><button className="primary" disabled={busy||!reply.trim()}>发送回复</button><button className="secondary" type="button" disabled={busy} onClick={closeCurrent}>关闭工单</button></form>}</Dialog>}
  </div>
 }

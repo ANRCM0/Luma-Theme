@@ -7,10 +7,13 @@ export function noticeStorageKey(user){
  return identity==null||String(identity).trim()===''?null:PREFIX+encodeURIComponent(String(identity));
 }
 
-export function noticeVersion(notice){
- if(notice?.id==null)return null;
- return String(notice.id)+':'+String(notice.updated_at??notice.created_at??0);
-}
+export const noticeVersion=(notice)=>{
+ if(notice?.id!=null)return String(notice.id)+':'+String(notice.created_at??0);
+ // Notices without a stable id still need a per-item identity for the
+ // unseen/read badges; fall back to title + publish time.
+ if(notice?.title==null)return null;
+ return 'n:'+String(notice.title)+':'+String(notice.created_at??0);
+};
 
 export function readSeenNotices(storage,user){
  const key=noticeStorageKey(user);

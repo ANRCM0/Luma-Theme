@@ -45,7 +45,8 @@ test('once per version respects read history; disabled popup suppresses all auto
  assert.deepEqual(automaticNotices(announcements,config,account,local,session),[announcements[0]]);
  markNoticesSeen([announcements[0]],local,account);
  assert.deepEqual(automaticNotices(announcements,config,account,local,session),[]);
- assert.deepEqual(automaticNotices([{...announcements[0],updated_at:101}],config,account,local,session).map(x=>x.updated_at),[101]);
+ // A changed created_at is what re-arms the popup (no updated_at natively).
+ assert.deepEqual(automaticNotices([{...announcements[0],created_at:101}],config,account,local,session).map(x=>x.created_at),[101]);
  assert.deepEqual(automaticNotices(announcements,{...config,popupEnabled:false},account,local,session),[]);
 });
 

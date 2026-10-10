@@ -1,4 +1,5 @@
-// TXBoard V1 order status lifecycle. The backend is always authoritative.
+// TXBoard native order status lifecycle. The backend is always authoritative.
+import {liveThemeConfig} from './theme-config.js';
 export const ORDER_STATUS=Object.freeze({
  UNPAID:0,PROCESSING:1,CANCELED:2,COMPLETED:3,DISCOUNTED:4
 });
@@ -6,8 +7,7 @@ export const STATUS_POLL_MS=4000;
 export const MAX_STATUS_POLLS=20;
 const bool=(value,fallback)=>value==null?fallback:!(value===false||value===0||value==='0'||value==='false');
 export function resolvePaymentConfig(guest={},settings={}){
- const remote=guest?.frontend_theme==='vv-theme'&&guest?.theme_config&&typeof guest.theme_config==='object'&&!Array.isArray(guest.theme_config)?guest.theme_config:null;
- const values=remote||settings?.payment||{};
+ const values=liveThemeConfig(guest)||settings?.payment||{};
  const seconds=Number(values.payment_poll_seconds??values.pollSeconds??4);
  return {
   autoCheck:bool(values.payment_auto_check??values.autoCheck,true),

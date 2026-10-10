@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import {GIB,DEFAULT_WELCOME_CONFIG,resolveWelcomeConfig,subscriptionMetrics,classifyWelcome,welcomeContent} from '../src/live/welcome-config.js';
 
 const NOW=1770000000000;
-const now=NOW/1000;
+const iso=offsetMs=>new Date(NOW+offsetMs).toISOString();
 const config=DEFAULT_WELCOME_CONFIG;
-const account={email:'person@example.test',created_at:now-90*86400,plan_id:1};
-const sub=(extra={})=>({plan_id:1,plan:{id:1,name:'基础套餐',transfer_enable:100},transfer_enable:100*GIB,u:5*GIB,d:20*GIB,expired_at:now+30*86400,...extra});
+// Native GET /me has no created_at, so "new" users are plan-less accounts.
+const account={email:'person@example.test',plan_id:1};
+const sub=(extra={})=>({plan_id:1,plan:{id:1,name:'基础套餐',traffic_limit_bytes:100*GIB},
+ traffic_limit_bytes:100*GIB,upload_bytes:5*GIB,download_bytes:20*GIB,expired_at:iso(30*86400000),...extra});
 const status=(user=account,subData=sub(),policy=config)=>classifyWelcome(user,subData,policy,NOW).state;
 
 test('welcome settings use live TXBoard theme_config, fall back to server Blade config',()=>{
@@ -18,50 +20,57 @@ test('welcome settings use live TXBoard theme_config, fall back to server Blade 
  });
 });
 
-test('registered users without a subscription become new or not-subscribed',()=>{
- assert.equal(status({email:'new@example.test',created_at:now-3600,plan_id:0},{plan_id:0}), 'new');
- assert.equal(status({email:'old@example.test',created_at:now-30*86400,plan_id:0},{plan_id:0}), 'no_plan');
- assert.equal(status({email:'missing@example.test',plan_id:0},{}),'no_plan');
- assert.equal(status({created_at:now-3600,plan_id:1},sub()),'normal');
- assert.equal(status({created_at:now-3600,plan_id:0},{plan_id:0},{...config,newUserHours:0}), 'no_plan');
+test('plan-less accounts are onboarding, since native /me carries no signup date',()=>{
+ // GET /me exposes no created_at, so account age cannot be derived. A
+ // plan-less account is onboarding while the new-user window is open, and
+ // only becomes 'no_plan' when the operator disables that window.
+ assert.equal(status({email:'new@example.test',plan_id:0},{plan_id:0}), 'new');
+ assert.equal(status({email:'old@example.test',plan_id:0},{plan_id:0}), 'new');
+ assert.equal(status({email:'missing@example.test',plan_id:0},{}),'new');
+ assert.equal(status({plan_id:1},sub()),'normal');
+ assert.equal(status({plan_id:0},{plan_id:0},{...config,newUserHours:0}), 'no_plan');
 });
 
 test('expired subscriptions take precedence over exhausted or low traffic',()=>{
- assert.equal(status(account,sub({expired_at:now-3*3600,u:100*GIB,d:10*GIB})),'expired');
- assert.equal(status(account,sub({expired_at:now,u:0,d:0})),'expired');
- assert.equal(status(account,sub({expired_at:now+3600,u:100*GIB,d:0})),'exhausted');
+ assert.equal(status(account,sub({expired_at:iso(-3*3600000),upload_bytes:100*GIB,download_bytes:10*GIB})),'expired');
+ assert.equal(status(account,sub({expired_at:iso(0),upload_bytes:0,download_bytes:0})),'expired');
+ assert.equal(status(account,sub({expired_at:iso(3600000),upload_bytes:100*GIB,download_bytes:0})),'exhausted');
 });
 
 test('expiration window precedes low traffic but never overrides complete exhaustion',()=>{
- assert.equal(status(account,sub({expired_at:now+60*3600,u:95*GIB,d:0})),'expiring');
- assert.equal(status(account,sub({expired_at:now+96*3600,u:95*GIB,d:0})),'low_traffic');
- assert.equal(status(account,sub({expired_at:0,u:95*GIB,d:0})),'low_traffic');
- assert.equal(status(account,sub({expired_at:0,u:5*GIB,d:10*GIB})),'normal');
+ assert.equal(status(account,sub({expired_at:iso(60*3600000),upload_bytes:95*GIB,download_bytes:0})),'expiring');
+ assert.equal(status(account,sub({expired_at:iso(96*3600000),upload_bytes:95*GIB,download_bytes:0})),'low_traffic');
+ assert.equal(status(account,sub({expired_at:null,upload_bytes:95*GIB,download_bytes:0})),'low_traffic');
+ assert.equal(status(account,sub({expired_at:null,upload_bytes:5*GIB,download_bytes:10*GIB})),'normal');
 });
 
 test('small quotas use the lesser of GiB and percentage thresholds',()=>{
- const small=sub({plan:{id:1,name:'small',transfer_enable:5},transfer_enable:5*GIB,u:3*GIB,d:0});
+ const small=sub({plan:{id:1,name:'small',traffic_limit_bytes:5*GIB},traffic_limit_bytes:5*GIB,upload_bytes:3*GIB,download_bytes:0});
  assert.equal(status(account,small),'normal');
- assert.equal(status(account,{...small,u:4.6*GIB}),'low_traffic');
- assert.equal(status(account,{...small,u:5*GIB}),'exhausted');
- assert.equal(status(account,sub({u:70*GIB,d:0,transfer_enable:100*GIB}),{...config,trafficLowGB:0}),'normal');
- assert.equal(status(account,sub({u:70*GIB,d:0,transfer_enable:100*GIB}),{...config,trafficLowPercent:0}),'normal');
+ assert.equal(status(account,{...small,upload_bytes:4.6*GIB}),'low_traffic');
+ assert.equal(status(account,{...small,upload_bytes:5*GIB}),'exhausted');
+ const full=sub({traffic_limit_bytes:100*GIB,plan:{id:1,name:'p',traffic_limit_bytes:100*GIB},upload_bytes:70*GIB,download_bytes:0});
+ assert.equal(status(account,full,{...config,trafficLowGB:0}),'normal');
+ assert.equal(status(account,full,{...config,trafficLowPercent:0}),'normal');
 });
 
 test('unknown quotas and perpetual plans do not trigger fabricated warnings',()=>{
- assert.equal(status(account,{plan_id:1,expired_at:0,transfer_enable:null,u:0,d:0}), 'normal');
- assert.equal(subscriptionMetrics(account,{plan_id:1,expired_at:0,transfer_enable:null,u:0,d:0}).remaining,null);
- assert.equal(status(account,sub({expired_at:null,u:0,d:0})),'normal');
+ assert.equal(status(account,{plan_id:1,expired_at:null,traffic_limit_bytes:null,upload_bytes:0,download_bytes:0}), 'normal');
+ assert.equal(subscriptionMetrics(account,{plan_id:1,expired_at:null,traffic_limit_bytes:null,upload_bytes:0,download_bytes:0}).remaining,null);
+ assert.equal(status(account,sub({expired_at:null,upload_bytes:0,download_bytes:0})),'normal');
 });
 
-test('TXBoard uses bytes in subscribe and GiB in plan; timestamps can be seconds or milliseconds',()=>{
- const met=subscriptionMetrics(account,sub({transfer_enable:50*GIB,plan:{transfer_enable:100},u:10*GIB,d:15*GIB}));
+test('TXBoard reports native byte fields and ISO 8601 timestamps only',()=>{
+ const met=subscriptionMetrics(account,sub({traffic_limit_bytes:50*GIB,plan:{id:1,traffic_limit_bytes:100*GIB},upload_bytes:10*GIB,download_bytes:15*GIB}));
  assert.equal(met.total,50*GIB);
  assert.equal(met.used,25*GIB);
  assert.equal(met.remaining,25*GIB);
- const fallback=subscriptionMetrics(account,sub({transfer_enable:0,plan:{id:1,transfer_enable:70},u:0,d:5*GIB}));
+ assert.equal(met.expiry,NOW+30*86400000);
+ // The account DTO carries the same figures nested under traffic.*.
+ const fallback=subscriptionMetrics(account,{plan_id:1,traffic_limit_bytes:0,plan:{id:1,traffic_limit_bytes:70*GIB},upload_bytes:0,download_bytes:5*GIB});
  assert.equal(fallback.total,70*GIB);
- assert.equal(subscriptionMetrics({created_at:NOW},sub({expired_at:NOW+24*3600000})).expiry,(NOW+24*3600000)/1000);
+ // Epoch seconds are not accepted: an ISO string is the only native format.
+ assert.equal(subscriptionMetrics(account,{plan_id:1,expired_at:1780000000}).expiry,null);
 });
 
 test('state messages and their actions are consistent, including the generic-off fallback',()=>{

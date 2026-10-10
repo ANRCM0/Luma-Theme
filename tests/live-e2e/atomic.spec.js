@@ -1,25 +1,22 @@
 import {test,expect} from '@playwright/test';
-const wrap=data=>({status:'success',data});
+const wrap=data=>({data,request_id:'req-atomic'});
 async function setup(page,theme){
- await page.route('**/api/v1/**',async route=>{
+ await page.route('**/txapi/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   const content={
-   '/api/v1/guest/comm/config':{frontend_theme:'vv-theme',app_name:'Atomic Luma',is_captcha:0,theme_config:{notice_popup_enabled:'0',...theme}},
-   '/api/v1/passport/auth/login':{auth_data:'atomic-test-token'},
-   '/api/v1/user/checkLogin':{is_login:true},
-   '/api/v1/user/info':{id:130,email:'atomic@example.test',plan_id:0,balance:1000},
-   '/api/v1/user/getSubscribe':{plan_id:0,subscribe_url:'https://sub.example.test/link/123'},
-   '/api/v1/user/plan/fetch':[
-    {id:1,name:'周期基础',show:true,sell:true,month_price:1200,year_price:13000,transfer_enable:60,device_limit:3,speed_limit:200,tags:['推荐']},
-    {id:2,name:'流量一次性',show:true,sell:true,onetime_price:900,transfer_enable:30}
+   '/txapi/public/site-config':{frontend_theme:'vv-theme',app_name:'Atomic Luma',is_captcha:0,theme_config:{notice_popup_enabled:'0',...theme}},
+   '/txapi/auth/login':{auth_data:'Bearer atomic-test-token'},
+   '/txapi/me':{id:130,email:'atomic@example.test',plan_id:0,balance:1000},
+   '/txapi/me/subscription':{plan:{id:0,name:'Free'},subscribe_url:'https://sub.example.test/link/123',traffic_limit_bytes:0,upload_bytes:0,download_bytes:0,expired_at:null},
+   '/txapi/plans':[
+    {id:1,name:'周期基础',content:'',tags:['推荐'],traffic_limit_bytes:60*1073741824,speed_limit_mbps:200,device_limit:3,capacity_limit:null,reset_traffic_method:null,prices:[{period:'monthly',amount_minor:1200},{period:'yearly',amount_minor:13000}],renewable:true},
+    {id:2,name:'流量一次性',content:'',tags:[],traffic_limit_bytes:30*1073741824,speed_limit_mbps:null,device_limit:null,capacity_limit:null,reset_traffic_method:null,prices:[{period:'onetime',amount_minor:900}],renewable:false}
    ],
-   '/api/v1/user/notice/fetch':{data:[],total:0},
-   '/api/v1/user/getStat':[],
-   '/api/v1/user/comm/config':{traffic_log_enable:1,knowledge_enable:1},
-   '/api/v1/user/server/fetch':{data:[{id:88,name:'Tokyo',rate:2,tags:['Premium'],is_online:true}]}
+   '/txapi/notices':[],
+   '/txapi/me/dashboard-stats':[],
+   '/txapi/me/nodes':[{id:88,name:'Tokyo',rate:2,tags:['Premium'],is_online:true}]
   };
-  const body=path==='/api/v1/user/server/fetch'?content[path]:wrap(content[path]??[]);
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(content[path]??[]))});
  });
  await page.goto('/');
  await page.getByRole('textbox',{name:'邮箱地址'}).fill('atomic@example.test');

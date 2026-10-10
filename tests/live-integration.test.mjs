@@ -8,14 +8,14 @@ globalThis.localStorage={getItem:key=>values.get(key)??null,setItem:(key,val)=>v
 const originalFetch=globalThis.fetch;
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
 
-test('authenticated API requests use TXBoard bearer key and same-origin /api/v1',async()=>{
+test('authenticated API requests use TXBoard bearer key and same-origin /txapi',async()=>{
  saveToken('test-secret');
  const calls=[];
- globalThis.fetch=async(url,options)=>{calls.push({url,options});return reply({status:'success',data:[{id:8,name:'Live'}]})};
+ globalThis.fetch=async(url,options)=>{calls.push({url,options});return reply({data:[{id:8,name:'Live'}],request_id:'req-1'})};
  try{
   const result=await plans();
   assert.equal(result[0].name,'Live');
-  assert.equal(calls[0].url,'/api/v1/user/plan/fetch');
+  assert.equal(calls[0].url,'/txapi/plans');
   assert.equal(calls[0].options.headers.Authorization,'Bearer test-secret');
   assert.equal(getToken(),'Bearer test-secret');
  }finally{globalThis.fetch=originalFetch;clearToken()}
@@ -23,27 +23,28 @@ test('authenticated API requests use TXBoard bearer key and same-origin /api/v1'
 
 test('login stores a real returned bearer instead of granting demo session',async()=>{
  let body;
- globalThis.fetch=async(url,opts)=>{body=JSON.parse(opts.body);return reply({status:'success',data:{auth_data:'sample-bearer'}})};
+ globalThis.fetch=async(url,opts)=>{body=JSON.parse(opts.body);return reply({data:{auth_data:'Bearer sample-bearer',user:{id:1}},request_id:'req-2'})};
  try{await login('valid@example.com','p455word');assert.equal(body.email,'valid@example.com');assert.equal(getToken(),'Bearer sample-bearer')}
  finally{clearToken();globalThis.fetch=originalFetch}
 });
 
 test('API errors fail closed and never invent success payloads',async()=>{
- globalThis.fetch=async()=>reply({status:'fail',message:'无效密码',data:false});
+ globalThis.fetch=async()=>reply({error:{code:'INVALID_CREDENTIALS',message:'无效密码'},request_id:'req-3'});
  try{await assert.rejects(()=>login('x@example.com','bad'),/无效密码/);assert.equal(getToken(),'')}
  finally{globalThis.fetch=originalFetch}
 });
 
 test('checkout preserves TXBoard type discriminant for QR/redirect payments',async()=>{
- globalThis.fetch=async()=>reply({status:'success',type:1,data:'https://pay.example.com/order'});
+ globalThis.fetch=async()=>reply({type:1,data:'https://pay.example.com/order',request_id:'req-4'});
  try{const r=await checkout('TN123',9);assert.equal(r.type,1);assert.equal(r.data,'https://pay.example.com/order')}
  finally{globalThis.fetch=originalFetch}
 });
 
 test('ticket saves the real subject, priority and message',async()=>{
  let payload;
- globalThis.fetch=async(url,opts)=>{payload=JSON.parse(opts.body);return reply({status:'success',data:true})};
- try{assert.equal(await createTicket('安装问题',2,'真实问题描述'),true);assert.deepEqual(payload,{subject:'安装问题',level:2,message:'真实问题描述'})}
+ globalThis.fetch=async(url,opts)=>{payload=JSON.parse(opts.body);return reply({data:{id:77},request_id:'req-5'})};
+ // POST /tickets answers with the new ticket id, not a boolean.
+ try{assert.equal(await createTicket('安装问题',2,'真实问题描述'),77);assert.deepEqual(payload,{subject:'安装问题',level:2,message:'真实问题描述'})}
  finally{globalThis.fetch=originalFetch}
 });
 
@@ -58,36 +59,45 @@ test('live mode has no fake subscription, fake plan prices or demo auth bypass',
  assert.ok(!source.includes('进入演示'));
 });
 
-
-test('notice history follows TXBoard pagination and stops at server total',async()=>{
+test('notice list comes from the TXBoard /notices endpoint',async()=>{
  const requests=[];
  globalThis.fetch=async(url)=>{
   const parsed=new URL(url,'https://test.local');
-  const current=Number(parsed.searchParams.get('current'));
-  requests.push(current);
-  const items=current===1
-   ?Array.from({length:100},(_,i)=>({id:i+1,title:'公告 '+i}))
-   :[{id:101,title:'重要提醒'}];
-  return reply({status:'success',data:{data:items,total:101}});
+  requests.push(parsed.pathname);
+  return reply({data:[{id:1,title:'公告 1'},{id:2,title:'重要提醒'}],request_id:'req-6'});
  };
  try{
   const all=await notices();
-  assert.equal(all.length,101);
-  assert.equal(all[100].title,'重要提醒');
-  assert.deepEqual(requests,[1,2]);
+  assert.equal(all.length,2);
+  assert.equal(all[1].title,'重要提醒');
+  assert.deepEqual(requests,['/txapi/notices']);
  }finally{globalThis.fetch=originalFetch}
 });
 
 
-test('order status check sends authenticated, read-only trade number to TXBoard',async()=>{
+test('order status check sends an authenticated read-only trade number to TXBoard',async()=>{
  let requested;
- globalThis.fetch=async(url,opts)=>{requested={url,opts};return reply({status:'success',data:3})};
+ // GET /orders/{tradeNo} returns the whole order; orderCheck unwraps status.
+ globalThis.fetch=async(url,opts)=>{requested={url,opts};return reply({data:{trade_no:'TN-456',status:3},request_id:'req-7'})};
  try{
   saveToken('order-check-token');
   assert.equal(await orderCheck('TN-456'),3);
-  assert.equal(requested.url,'/api/v1/user/order/check?trade_no=TN-456');
+  assert.equal(requested.url,'/txapi/orders/TN-456');
   assert.equal(requested.opts.method,'GET');
   assert.equal(requested.opts.headers.Authorization,'Bearer order-check-token');
+ }finally{clearToken();globalThis.fetch=originalFetch}
+});
+
+test('cancelling an order uses POST /orders/{trade_no}/cancel',async()=>{
+ const {cancelOrder}=await import('../src/live/api.js');
+ let requested;
+ globalThis.fetch=async(url,opts)=>{requested={url,opts};return reply({data:true,request_id:'req-8'})};
+ try{
+  saveToken('cancel-token');
+  assert.equal(await cancelOrder('TN-789'),true);
+  assert.equal(requested.url,'/txapi/orders/TN-789/cancel');
+  assert.equal(requested.opts.method,'POST');
+  assert.equal(requested.opts.headers.Authorization,'Bearer cancel-token');
  }finally{clearToken();globalThis.fetch=originalFetch}
 });
 
@@ -97,9 +107,9 @@ test('a stale 401 from the previous account cannot invalidate a newer login toke
  globalThis.fetch=()=>new Promise(resolve=>{resolveOld=resolve});
  try{
   saveToken('old-account');
-  const pending=api('/user/info');
+  const pending=api('/me');
   saveToken('new-account');
-  resolveOld(reply({message:'Token expired'},401));
+  resolveOld(reply({error:{code:'UNAUTHORIZED',message:'Token expired'},request_id:'req-9'},401));
   await assert.rejects(pending,/Token expired/);
   assert.equal(getToken(),'Bearer new-account');
  }finally{clearToken();globalThis.fetch=originalFetch}

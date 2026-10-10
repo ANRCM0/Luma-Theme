@@ -17,7 +17,12 @@ test('shop remains title-free, centered, and renames traffic packs as pay-as-you
 });
 
 test('onetime category only shows when sellable onetime offers exist',()=>{
- const grouped=groupedCatalogPlans([{id:1,show:true,sell:true,month_price:1000},{id:2,show:false,sell:true,onetime_price:500}]);
+ // GET /plans already excludes hidden/unsellable plans, so the client no
+ // longer filters on show/sell; a plan needs a priced period to appear.
+ const grouped=groupedCatalogPlans([
+  {id:1,renewable:true,prices:[{period:'monthly',amount_minor:1000}]},
+  {id:2,renewable:true,prices:[]}
+ ]);
  assert.equal(grouped.recurring.length,1);
  assert.equal(grouped.traffic.length,0);
  const shop=source('src/live/ShopCatalog.jsx');

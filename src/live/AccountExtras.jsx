@@ -14,12 +14,7 @@ export function commissionMinimum(config,field){
  const n=Number(value);
  return Number.isFinite(n)&&n>0?n:0;
 }
-const date=v=>{
- if(!v)return '—';
- const t=String(v).includes(' ')?String(v).replace(' ','T'):String(v);
- const d=new Date(t);
- return Number.isNaN(d.valueOf())?'—':d.toLocaleString('zh-CN');
-};
+const date=v=>tx.dateTime(v);
 function ErrorNotice({message}){return message?<p className="live-extra-error" role="alert">{message}</p>:null}
 function Confirmation({children}){return <p className="live-extra-hint">{children}</p>}
 
@@ -27,7 +22,7 @@ export function InviteFinance({user,config,guest,onUpdated,onCopy,onNavigate}){
  const [invite,setInvite]=useState(null),[history,setHistory]=useState([]),[loading,setLoading]=useState(true);
  const [error,setError]=useState(''),[success,setSuccess]=useState(''),[busy,setBusy]=useState(false);
  const [transfer,setTransfer]=useState(''),[method,setMethod]=useState(''),[account,setAccount]=useState('');
- const available=Number(invite?.stat?.[4]??user?.commission_balance??0);
+ const available=Number(invite?.stat?.[4]??user?.commission_balance_minor??0);
  const minTransfer=commissionMinimum(config,'transfer'),minWithdraw=commissionMinimum(config,'withdraw');
  const methods=Array.isArray(config?.withdraw_methods)?config.withdraw_methods.map(String):[];
  const transferEnabled=userFeatureEnabled('commission_enable',guest,config);
@@ -38,13 +33,13 @@ export function InviteFinance({user,config,guest,onUpdated,onCopy,onNavigate}){
  const reload=async()=>{
   setLoading(true);
   try{
-   const [data,details]=await Promise.all([tx.invites(),tx.inviteDetails().catch(()=>({data:[]}))]);
-   setInvite(data);setHistory(Array.isArray(details?.data)?details.data:[]);
+   const [data,details]=await Promise.all([tx.invites(),tx.commissions().catch(()=>[])]);
+   setInvite(data);setHistory(Array.isArray(details)?details:[]);
   }catch(e){setError(e?.message||'邀请数据加载失败')}finally{setLoading(false)}
  };
  useEffect(()=>{let mounted=true;(async()=>{
   setLoading(true);
-  try{const [data,details]=await Promise.all([tx.invites(),tx.inviteDetails().catch(()=>({data:[]}))]);if(mounted){setInvite(data);setHistory(Array.isArray(details?.data)?details.data:[])}}catch(e){if(mounted)setError(e?.message||'获取邀请数据失败')}finally{if(mounted)setLoading(false)}
+  try{const [data,details]=await Promise.all([tx.invites(),tx.commissions().catch(()=>[])]);if(mounted){setInvite(data);setHistory(Array.isArray(details)?details:[])}}catch(e){if(mounted)setError(e?.message||'获取邀请数据失败')}finally{if(mounted)setLoading(false)}
  })();return()=>{mounted=false}},[]);
  const run=async(fn,msg)=>{
   if(busy)return false;
@@ -88,7 +83,7 @@ export function InviteFinance({user,config,guest,onUpdated,onCopy,onNavigate}){
    <Confirmation>提现将创建工单，由管理员处理。{minWithdraw>0?'最低金额 ¥'+minWithdraw.toFixed(2):''}</Confirmation>
    <button className="primary" disabled={busy||!method||!account.trim()} onClick={()=>void withdrawAction()}>提交提现申请</button>
   </div>}
-  <div className="card live-extra-card"><h3>佣金记录</h3>{history.length?<div className="live-extra-list">{history.map((row,i)=><div key={i} className="live-extra-row"><span>{row.created_at?new Date(Number(row.created_at)*1000).toLocaleDateString('zh-CN'):'—'}</span><strong>{tx.money(row.get_amount)}</strong></div>)}</div>:<p className="muted">暂无佣金记录</p>}</div>
+  <div className="card live-extra-card"><h3>佣金记录</h3>{history.length?<div className="live-extra-list">{history.map((row,i)=><div key={i} className="live-extra-row"><span>{tx.dateOnly(row.created_at)}</span><strong>{tx.money(row.earned_minor)}</strong></div>)}</div>:<p className="muted">暂无佣金记录</p>}</div>
  </div>;
 }
 

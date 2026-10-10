@@ -50,7 +50,7 @@ export default function GiftCardPage({onUpdated,atomic={}}){
   </div>
   <div className="card live-extra-card"><div className="live-extra-head"><h3>兑换记录</h3><button className="secondary" disabled={loading||busy} onClick={()=>void load()}><RefreshCcw size={15}/>刷新</button></div>
    {loading?<p className="muted">正在加载…</p>:history.length?<div className="live-extra-list">{history.map(item=><div className="live-extra-row" key={item.id}>
-    <div><strong>{item.template_name||'礼品卡'}</strong><small>{rewardText(item.rewards_given)} · {item.created_at?new Date(Number(item.created_at)*1000).toLocaleDateString('zh-CN'):'—'}</small></div>
+    <div><strong>{item.template_name||'礼品卡'}</strong><small>{rewardText(item.rewards_given)} · {tx.dateOnly(item.created_at)}</small></div>
     <button className="secondary" onClick={()=>void showDetail(item.id)}>查看详情</button></div>)}</div>:<p className="muted">暂无兑换记录</p>}
   </div>
   {detail&&<div className="card live-extra-card" aria-label="兑换详情"><div className="live-extra-head"><h3>兑换详情</h3><button className="secondary" onClick={()=>setDetail(null)}>关闭</button></div>

@@ -8,6 +8,8 @@ const pages={
  traffic:{title:'流量记录',eyebrow:'TRAFFIC HISTORY',intro:'查看本月流量记录及节点倍率。',fetch:tx.trafficLog},
  knowledge:{title:'帮助中心',eyebrow:'HELP CENTER',intro:'安装、订阅与常见问题。',fetch:tx.knowledgeArticles}
 };
+// /traffic/logs is the one native endpoint that reports record_at as integer
+// seconds; every other timestamp is an ISO 8601 string.
 function asDate(value){
  const seconds=Number(value);
  return Number.isFinite(seconds)&&seconds>0?new Date(seconds*1000).toLocaleString('zh-CN'):'—';
@@ -17,7 +19,7 @@ function TrafficContent({rows,config={}}){
   <thead><tr><th>时间</th>{config.showUpload!==false&&<th>上传</th>}{config.showDownload!==false&&<th>下载</th>}{config.showRate!==false&&<th>倍率</th>}<th>合计</th></tr></thead>
   <tbody>{rows.map((row,i)=>{
    const rate=positiveTrafficRate(row);
-   const upload=Number(row.u)||0,download=Number(row.d)||0;
+   const upload=Number(row.upload_bytes)||0,download=Number(row.download_bytes)||0;
    return <tr key={String(row.record_at)+'-'+i}><td>{asDate(row.record_at)}</td>{config.showUpload!==false&&<td>{tx.bytes(upload/rate)}</td>}{config.showDownload!==false&&<td>{tx.bytes(download/rate)}</td>}{config.showRate!==false&&<td><span className="live-data-tag">{rate} ×</span></td>}<td>{tx.bytes((upload+download)/rate)}</td></tr>;
   })}</tbody>
  </table></div>:<p className="live-data-empty">本月暂无流量记录。</p>;

@@ -1,5 +1,9 @@
-// User dashboard presentation rules. TXBoard remains the authority for
-// subscription, traffic and expiry data; these rules do not change entitlements.
+// User dashboard presentation rules over the native account and subscription
+// DTOs. TXBoard remains the authority for subscription, traffic and expiry;
+// these rules do not change entitlements. Timestamps are ISO 8601 strings.
+import {liveThemeConfig} from './theme-config.js';
+import {epochMs} from './api.js';
+
 export const GIB=1073741824;
 export const DEFAULT_WELCOME_CONFIG=Object.freeze({
  enabled:true,
@@ -20,16 +24,9 @@ const nonnegative=raw=>{
  const value=Number(raw);
  return Number.isFinite(value)&&value>=0?value:null;
 };
-const epochSeconds=raw=>{
- const n=nonnegative(raw);
- return n===null||n===0?null:n>1e12?n/1000:n;
-};
 
 export function resolveWelcomeConfig(guest={},settings={}){
- const remote=guest?.frontend_theme==='vv-theme'&&guest?.theme_config&&
-  typeof guest.theme_config==='object'&&!Array.isArray(guest.theme_config)
-  ?guest.theme_config:null;
- const source=remote||settings?.welcome||{};
+ const source=liveThemeConfig(guest)||settings?.welcome||{};
  const card=String(source.welcome_secondary_card??source.secondaryCard??'recommend');
  return {
   enabled:bool(source.welcome_enabled??source.enabled,true),
@@ -41,38 +38,39 @@ export function resolveWelcomeConfig(guest={},settings={}){
  };
 }
 
+// Reads the native /me + /me/subscription pair. The account DTO exposes
+// traffic.upload_bytes/download_bytes/limit_bytes; the subscription DTO is
+// preferred when present because it is the entitlement source of truth.
 export function subscriptionMetrics(user={},subscription={}){
- const planId=Number(subscription?.plan_id??user?.plan_id??0);
- const hasPlan=Boolean((Number.isFinite(planId)&&planId>0)||subscription?.plan?.id);
- const up=nonnegative(subscription?.u),down=nonnegative(subscription?.d);
+ const planId=Number(subscription?.plan?.id??user?.plan_id??0);
+ const hasPlan=Number.isSafeInteger(planId)&&planId>0;
+ const up=nonnegative(subscription?.upload_bytes??user?.traffic?.upload_bytes);
+ const down=nonnegative(subscription?.download_bytes??user?.traffic?.download_bytes);
  const used=(up??0)+(down??0);
- // The subscribe endpoint returns transfer_enable as a byte count, and the
- // plan object expresses it in GiB. Never confuse the two units.
- const subQuota=nonnegative(subscription?.transfer_enable);
- const userQuota=nonnegative(user?.transfer_enable);
- const planGB=nonnegative(subscription?.plan?.transfer_enable);
- const total=subQuota!==null&&subQuota>0?subQuota
-  :userQuota!==null&&userQuota>0?userQuota
-  :planGB!==null&&planGB>0?planGB*GIB:null;
+ // A zero/absent subscription quota must fall through to the account traffic
+ // object and then the plan allowance; `??` alone stops at the first 0.
+ const positive=value=>{const n=nonnegative(value);return n!==null&&n>0?n:null};
+ const total=positive(subscription?.traffic_limit_bytes)
+  ??positive(user?.traffic?.limit_bytes)
+  ??positive(subscription?.plan?.traffic_limit_bytes);
  const remaining=total===null?null:Math.max(0,total-used);
- const expiry=epochSeconds(subscription?.expired_at??user?.expired_at);
- const created=epochSeconds(user?.created_at);
- return {hasPlan,used,total,remaining,expiry,created,planName:subscription?.plan?.name||null};
+ const expiry=epochMs(subscription?.expired_at??user?.expired_at);
+ return {hasPlan,used,total,remaining,expiry,planName:subscription?.plan?.name||null};
 }
 
 export function classifyWelcome(user={},subscription={},config=DEFAULT_WELCOME_CONFIG,nowMs=Date.now()){
  const metrics=subscriptionMetrics(user,subscription);
- const now=nowMs/1000;
- const details={...metrics,expiryHours:metrics.expiry===null?null:(metrics.expiry-now)/3600};
+ const details={...metrics,expiryHours:metrics.expiry===null?null:(metrics.expiry-nowMs)/3600000};
  let state='normal';
  if(!metrics.hasPlan){
-  const ageHours=metrics.created===null?null:(now-metrics.created)/3600;
-  state=ageHours!==null&&ageHours>=0&&ageHours<=config.newUserHours?'new':'no_plan';
- }else if(metrics.expiry!==null&&metrics.expiry<=now){
+  // The native /me DTO does not expose a registration timestamp, so a user
+  // without a plan is treated as a new user inside the configured window.
+  state=config.newUserHours>0?'new':'no_plan';
+ }else if(metrics.expiry!==null&&metrics.expiry<=nowMs){
   state='expired';
  }else if(metrics.remaining!==null&&metrics.remaining<=0){
   state='exhausted';
- }else if(metrics.expiry!==null&&metrics.expiry>now&&metrics.expiry-now<=config.expiryHours*3600){
+ }else if(metrics.expiry!==null&&metrics.expiry-nowMs<=config.expiryHours*3600000){
   state='expiring';
  }else if(metrics.remaining!==null&&metrics.total>0){
   const limit=Math.min(config.trafficLowGB*GIB,metrics.total*config.trafficLowPercent/100);

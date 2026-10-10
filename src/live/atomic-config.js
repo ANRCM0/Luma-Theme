@@ -1,6 +1,7 @@
 // Fine-grained PRESENTATION settings for Luma. All flags are opt-in overrides
 // on the existing TXBoard theme_config mechanism, never API permissions.
 // Defaults intentionally preserve the current simplified Luma experience.
+import {liveThemeConfig} from './theme-config.js';
 const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);
 const bool=(raw,fallback)=>raw==null||raw===''?fallback:!([false,0,'0','false','off'].includes(raw));
 const integer=(raw,fallback,min,max)=>{
@@ -26,7 +27,7 @@ export const ATOMIC_DEFAULTS=Object.freeze({
  auth:Object.freeze({showOptionalInvite:false})
 });
 export function resolveAtomicConfig(guest={},settings={}){
- const remote=guest?.frontend_theme==='vv-theme'&&isObject(guest?.theme_config)?guest.theme_config:null;
+ const remote=liveThemeConfig(guest);
  const legacy=isObject(settings?.atomic)?settings.atomic:{};
  const pick=(key,oldKey)=>remote?remote[key]:legacy[oldKey||key];
  const flag=(key,defaultValue,oldKey)=>bool(pick(key,oldKey),defaultValue);

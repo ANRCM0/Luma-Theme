@@ -1,11 +1,11 @@
 import React from 'react';
 import {ArrowRight,CheckCircle2,LockKeyhole,Tag} from 'lucide-react';
-import {annualSavings,planPeriods,planPrice} from './catalog.js';
+import {annualSavings,planPeriods,planPrice,resetPrice} from './catalog.js';
 
 export default function PurchaseForm({plan,period,setPeriod,coupon,setCoupon,discount,setDiscount,busy,formatMoney,onVerify,onSubmit,resetMode=false}){
- const options=resetMode?[{id:'reset_price',label:'重置流量'}]:planPeriods(plan);
- const rawReset=Number(plan?.reset_price);
- const price=resetMode?(plan?.reset_price!==null&&plan?.reset_price!==undefined&&Number.isFinite(rawReset)&&rawReset>=0?Math.round(rawReset):null):planPrice(plan,period);
+ const options=resetMode?[{id:'reset_traffic',label:'重置流量'}]:planPeriods(plan);
+ const resetAmount=resetPrice(plan);
+ const price=resetMode?resetAmount:planPrice(plan,period);
  const saving=resetMode?null:annualSavings(plan,period);
  return <div className="live-purchase">
   <p className="live-purchase-subtitle">{resetMode?'第一步 · 核对流量重置价格':'第一步 · 选择周期与核对基础价格'}</p>{resetMode&&<p className="muted">该订单仅用于当前套餐流量重置，不会延长套餐有效期。是否允许重置由 TXBoard 下单接口最终判断。</p>}

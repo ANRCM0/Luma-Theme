@@ -1,5 +1,6 @@
 // vv-theme presentation-only navigation, backed by TXBoard theme package fields.
 // Hiding a navigation item never changes TXBoard permissions or API access.
+import {liveThemeConfig} from './theme-config.js';
 export const NAV_DEFINITIONS=Object.freeze([
  {id:'dashboard',label:'我的面板'},
  {id:'shop',label:'购买套餐'},
@@ -46,9 +47,7 @@ export function serializeNavItems(items){
 
 const flag=(raw,fallback=false)=>raw==null?fallback:!(raw===false||raw===0||raw==='0'||raw==='false');
 export function resolveNavigationConfig(guest={},settings={}){
- const remote=guest?.frontend_theme==='vv-theme'&&guest?.theme_config&&
-  typeof guest.theme_config==='object'&&!Array.isArray(guest.theme_config)?guest.theme_config:null;
- const values=remote||settings?.navigation||{};
+ const values=liveThemeConfig(guest)||settings?.navigation||{};
  const requested=String(values.layout_mode??values.mode??'top');
  return {
   layout:requested==='sidebar'?'sidebar':'top',

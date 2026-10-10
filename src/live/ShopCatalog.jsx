@@ -70,10 +70,10 @@ export default function ShopCatalog({plans,config,atomic={},money,onBuy}){
     <div className="live-shop-compare-title"><GitCompareArrows size={18}/><strong>套餐对比</strong><span>最多选择三个方案，价格为各卡片实际展示的价格。</span></div>
     {selected.length>=2?<div className="live-shop-compare-scroll"><table aria-label="已选套餐对比"><thead><tr><th scope="col">对比项目</th>{selected.map(e=><th key={e.key} scope="col">{e.plan.name} · {e.kind==='traffic'?'按量付费':'周期'}</th>)}</tr></thead><tbody>
      <tr><th scope="row">当前展示价格</th>{selected.map(e=><td key={e.key}>{money(e.price.price)+' / '+labelFor(e.price.period)}</td>)}</tr>
-     <tr><th scope="row">流量</th>{selected.map(e=><td key={e.key}>{e.plan.transfer_enable??'—'} GB</td>)}</tr>
+     <tr><th scope="row">流量</th>{selected.map(e=><td key={e.key}>{e.plan.traffic_limit_bytes!=null?Math.round(Number(e.plan.traffic_limit_bytes)/1073741824)+' GB':'—'}</td>)}</tr>
      <tr><th scope="row">设备限制</th>{selected.map(e=><td key={e.key}>{Number(e.plan.device_limit)>0?e.plan.device_limit+' 台':'未设置限制'}</td>)}</tr>
-     <tr><th scope="row">速度上限</th>{selected.map(e=><td key={e.key}>{Number(e.plan.speed_limit)>0?e.plan.speed_limit+' Mbps':'未设置限制'}</td>)}</tr>
-     <tr><th scope="row">可购周期</th>{selected.map(e=><td key={e.key}>{e.kind==='traffic'?'一次性':planPeriods(e.plan).filter(p=>p.id!=='onetime_price').length+' 种'}</td>)}</tr>
+     <tr><th scope="row">速度上限</th>{selected.map(e=><td key={e.key}>{Number(e.plan.speed_limit_mbps)>0?e.plan.speed_limit_mbps+' Mbps':'未设置限制'}</td>)}</tr>
+     <tr><th scope="row">可购周期</th>{selected.map(e=><td key={e.key}>{e.kind==='traffic'?'一次性':planPeriods(e.plan).filter(p=>p.id!=='onetime').length+' 种'}</td>)}</tr>
     </tbody></table></div>:<p className="muted">勾选至少两个套餐后，可以在这里比较价格和权益。</p>}
    </div>
   </div>}
