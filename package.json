@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
+    "check:theme-package": "TXBOARD_THEME=true npm run build && THEME_VERSION=\"$(node -p \"require('./theme-package/config.json').version\")\" node scripts/package-txboard.mjs && git diff --exit-code -- theme-package/",
     "test:e2e": "playwright test",
     "test:live": "playwright test --config playwright.live.config.js"
   },
