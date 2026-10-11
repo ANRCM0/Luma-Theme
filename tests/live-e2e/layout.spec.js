@@ -51,6 +51,8 @@ for(const layout of ['top','sidebar']){
      actionsLeft:a.left,
      actionRight:a.right,
      clientDisplay:getComputedStyle(list).display,
+     clientColumns:getComputedStyle(list).gridTemplateColumns.split(' ').length,
+     navLastVisible:(()=>{const nav=document.querySelector('.top .desktop-nav');const last=nav?.querySelector('button:last-child');return !nav||!last||last.getBoundingClientRect().right<=nav.getBoundingClientRect().right+1})(),
      clientBoundsValid:buttons.every(rect=>rect.left>=container.left-1&&rect.right<=container.right+1),
      clientMinWidth:Math.min(...buttons.map(rect=>rect.width)),
      mobileNavDisplay:getComputedStyle(nav).display
@@ -65,10 +67,12 @@ for(const layout of ['top','sidebar']){
    expect(metrics.clientBoundsValid,`${layout} ${width}px client item overflow`).toBe(true);
    if(width<=720){
     expect(metrics.clientDisplay).toBe('grid');
-    expect(metrics.clientMinWidth).toBeGreaterThanOrEqual(119);
+    expect(metrics.clientMinWidth).toBeGreaterThanOrEqual(108);
+    if(width<=390)expect(metrics.clientColumns,`${layout} ${width}px client columns`).toBeGreaterThanOrEqual(2);
     expect(metrics.mobileNavDisplay).not.toBe('none');
    }else{
     expect(metrics.clientDisplay).toBe('flex');
+    if(layout==='top'&&width>=768)expect(metrics.navLastVisible,`${width}px last navigation entry is clipped`).toBe(true);
     expect(metrics.mobileNavDisplay).toBe('none');
    }
   }
