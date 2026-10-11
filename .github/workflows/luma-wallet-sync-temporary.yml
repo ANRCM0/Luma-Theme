@@ -1,0 +1,44 @@
+name: Temporary wallet asset sync
+on:
+  push:
+    branches:
+      - 'fix/luma-wallet-stability-20261011'
+permissions:
+  contents: write
+jobs:
+  sync-assets:
+    if: github.repository == 'ANRCM0/Luma-Theme' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout wallet fix
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Test unit behavior
+        run: npm test
+      - name: Build production TXBoard theme
+        env:
+          TXBOARD_THEME: 'true'
+        run: npm run build
+      - name: Stage installable theme
+        run: |
+          export THEME_VERSION="$(node -p "require('./theme-package/config.json').version")"
+          node scripts/package-txboard.mjs
+      - name: Commit only derived assets to wallet branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add theme-package/
+          if git diff --cached --quiet; then
+            echo "Theme assets already synchronized"
+            exit 0
+          fi
+          git commit -m "build(theme): sync wallet stability source and assets"
+          git push origin "HEAD:$GITHUB_REF_NAME"
