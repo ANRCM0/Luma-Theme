@@ -55,6 +55,13 @@ test('atomic page visibility hides navigation and rejects hidden page rendering'
  await expect(page.getByRole('button',{name:'邀请管理'})).toHaveCount(0);
  await page.goto('/#/shop');
  await expect(page.getByText('此页面已在 Luma 主题设置中隐藏。')).toBeVisible();
+ // The notice alone is insufficient: an invisible page must not still
+ // render private UI or offer the hidden purchase action.
+ await expect(page.getByRole('region',{name:'套餐商店'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'立即购买'})).toHaveCount(0);
+ await page.goto('/#/nodes');
+ await expect(page.getByText('此页面已在 Luma 主题设置中隐藏。')).toBeVisible();
+ await expect(page.getByText('Tokyo',{exact:true})).toHaveCount(0);
 });
 test('shop atomics reorder categories and limit feature rows without changing server prices',async({page})=>{
  await setup(page,{
