@@ -1656,6 +1656,28 @@
   border: 1px solid #c5ebe4;
 }
 
+/* All welcome-tone cards retain PALE backgrounds in dark mode. Dark-theme
+   near-white text tokens would wash out the heading and description here. */
+.live-portal .live-welcome-state h1 {
+  color: #173d46;
+}
+
+.live-portal .live-welcome-state .welcome-text > p {
+  color: #405e66;
+}
+
+.live-portal .live-welcome-state .eyebrow {
+  color: #176f79;
+}
+
+.live-portal .live-welcome-warning .eyebrow {
+  color: #89571e;
+}
+
+[data-theme="dark"] .live-portal .top .brand {
+  color: #147581;
+}
+
 .live-portal .live-welcome-side {
   display: flex;
   flex-direction: column;
