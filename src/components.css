@@ -2502,6 +2502,7 @@
   color: var(--color-accent);
   border-color: var(--color-accent-border);
   background: var(--color-accent-soft);
+  font-weight: var(--font-weight-bold);
 }
 
 .live-client-list {
@@ -4162,8 +4163,8 @@
   justify-content: center;
   align-items: center;
   gap: 5px;
-  width: 92px;
-  min-height: 77px;
+  width: 82px;
+  min-height: 72px;
   padding: 8px 5px;
   border-radius: var(--radius-md);
   text-align: center;
@@ -4193,14 +4194,30 @@
   color: var(--color-accent);
 }
 
-.live-portal .live-client-list button:nth-child(2n) .live-client-icon {
-  background: #e9f0ff;
-  color: #597dce;
+/* 按客户端顺序精确配色，匹配截图视觉 */
+.live-portal .live-client-list button:nth-child(1) .live-client-icon {
+  background: #e7edff;
+  color: #6b79d9;
 }
 
-.live-portal .live-client-list button:nth-child(3n) .live-client-icon {
-  background: #f1eeff;
-  color: #8973cc;
+.live-portal .live-client-list button:nth-child(2) .live-client-icon {
+  background: #ecf9ef;
+  color: #5aaf72;
+}
+
+.live-portal .live-client-list button:nth-child(3) .live-client-icon {
+  background: #fff0e8;
+  color: #e4a26a;
+}
+
+.live-portal .live-client-list button:nth-child(4) .live-client-icon {
+  background: #e8f0ff;
+  color: #5c86d9;
+}
+
+.live-portal .live-client-list button:nth-child(5) .live-client-icon {
+  background: #f5e8ff;
+  color: #ad7bd4;
 }
 
 .live-import-caution {
@@ -4320,7 +4337,7 @@
 }
 
 .live-portal .dashboard-grid + .live-subscription-center {
-  margin-top: 10px;
+  margin-top: 18px;
 }
 
 .live-portal .live-subscription-center {
