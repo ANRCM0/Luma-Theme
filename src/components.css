@@ -141,6 +141,8 @@
 
 .desktop-nav button {
   position: relative;
+  display: inline-flex;
+  align-items: center;
   min-height: 38px;
   padding: 9px 10px;
   border-radius: 8px;
