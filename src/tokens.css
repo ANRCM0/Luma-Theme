@@ -6,11 +6,11 @@
 
 :root {
   /* --- Color System --- */
-  --color-accent: #2a9ea8;
+  --color-accent: #147581;
   --color-accent-soft: #e5f8f9;
   --color-accent-bright: #84eaee;
   --color-accent-contrast: #14565c;
-  --color-accent-hover: #238b95;
+  --color-accent-hover: #0e6470;
   --color-accent-border: #77ccd3;
 
   --color-surface: #ffffff;
@@ -20,8 +20,8 @@
 
   --color-text: #293740;
   --color-text-strong: #1a2a32;
-  --color-text-muted: #778892;
-  --color-text-subtle: #9aa9b0;
+  --color-text-muted: #5a6c76;
+  --color-text-subtle: #61727d;
   --color-text-inverse: #e3edf0;
 
   --color-border: #e5edef;
