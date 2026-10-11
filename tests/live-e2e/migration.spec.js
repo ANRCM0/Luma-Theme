@@ -41,7 +41,7 @@ async function mock(page,{captcha=false,stripe=false}={}){
    '/txapi/gift-cards/redeem':{message:'兑换成功',template_name:'流量奖励',rewards:{transfer_enable:1073741824}}
   };
   if(path==='/txapi/orders/STRIPE-ORDER/checkout'){
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({type:2,data:true,request_id:'req-checkout'})});
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap({type:2,data:true}))});
    return;
   }
   if(path==='/txapi/orders'&&method==='POST'){

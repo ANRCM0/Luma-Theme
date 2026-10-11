@@ -54,8 +54,8 @@ export class ApiError extends Error {
 export async function api(path,options={}) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),12000);
-  const {auth=true,method='GET',body,preserveEnvelope=false,...rest}=options;
-  const headers={Accept:'application/json'};
+  const {auth=true,method='GET',body,preserveEnvelope=false,headers:extraHeaders={},...rest}=options;
+  const headers={Accept:'application/json',...extraHeaders};
   const requestToken=auth?getToken():'';
   if(body!==undefined)headers['Content-Type']='application/json';
   if(requestToken)headers.Authorization=requestToken;
@@ -100,6 +100,21 @@ export async function api(path,options={}) {
   } finally {clearTimeout(timer);}
 }
 export const get=(path,params,auth=true)=>api(path+(params?'?'+new URLSearchParams(params).toString():''),{auth});
+// Aggregate native paginated lists. Never mistake only the first 20 rows for
+// the user's entire order/ticket/notice history; fail explicitly at the cap.
+export async function getAllPages(path,normalize=rows=>rows,{perPage=100,maxPages=50}={}){
+  const rows=[];
+  for(let page=1;page<=maxPages;page++){
+    const query=new URLSearchParams({page:String(page),per_page:String(perPage)});
+    const envelope=await api(path+'?'+query,{preserveEnvelope:true});
+    if(!envelope||!Array.isArray(envelope.data))throw Error('分页接口响应格式异常');
+    rows.push(...envelope.data);
+    const last=envelope.meta?.last_page??1;
+    if(!Number.isSafeInteger(last)||last<1)throw Error('分页信息无效');
+    if(page>=last)return normalize(rows);
+  }
+  throw Error('记录过多，无法完整读取。请联系管理员。');
+}
 export const post=(path,body,auth=true)=>api(path,{method:'POST',body,auth});
 export const patch=(path,body)=>api(path,{method:'PATCH',body});
 export const del=(path)=>api(path,{method:'DELETE'});
@@ -159,7 +174,7 @@ export const plans=()=>get('/plans');
 export const plan=planId=>get('/plans/'+encodeURIComponent(planId));
 
 // --- orders ---------------------------------------------------------------
-export const orders=async()=>orderRows(await get('/orders'));
+export const orders=()=>getAllPages('/orders',orderRows);
 export const orderDetail=tradeNo=>get('/orders/'+encodeURIComponent(tradeNo)+'/detail');
 // Status reads use the lightweight order projection, never the detail one.
 export const orderCheck=async tradeNo=>{
@@ -169,28 +184,28 @@ export const orderCheck=async tradeNo=>{
 export const createOrder=(plan_id,period,coupon_code)=>
   post('/orders',{plan_id,period,...(coupon_code?{coupon_code}:{})}).then(result=>result?.trade_no);
 export const cancelOrder=tradeNo=>post('/orders/'+encodeURIComponent(tradeNo)+'/cancel',{});
-export const checkout=(tradeNo,method,token)=>api('/orders/'+encodeURIComponent(tradeNo)+'/checkout',{method:'POST',body:{...(method!==undefined?{method}:{}),...(token?{token}:{})},preserveEnvelope:true});
+export const checkout=(tradeNo,method,token)=>api('/orders/'+encodeURIComponent(tradeNo)+'/checkout',{method:'POST',body:{...(method!==undefined?{method}:{}),...(token?{token}:{})}});
 export const payments=()=>get('/billing/payment-methods');
 export const checkCoupon=(code,plan_id,period)=>post('/billing/coupons/check',{code,plan_id,period});
 
 // --- tickets --------------------------------------------------------------
-export const tickets=async()=>ticketRows(await get('/tickets'));
+export const tickets=()=>getAllPages('/tickets',ticketRows);
 export const ticketDetail=id=>get('/tickets/'+encodeURIComponent(id));
 export const createTicket=(subject,level,message)=>post('/tickets',{subject,level,message}).then(result=>result?.id);
 export const replyTicket=(id,message)=>post('/tickets/'+encodeURIComponent(id)+'/messages',{message});
 export const closeTicket=(id)=>post('/tickets/'+encodeURIComponent(id)+'/close',{});
 
 // --- content --------------------------------------------------------------
-export const notices=async()=>noticeRows(await get('/notices'));
+export const notices=()=>getAllPages('/notices',noticeRows);
 export const knowledgeArticles=async language=>knowledgeRows(await get('/knowledge',language?{language}:null));
 
 // --- traffic --------------------------------------------------------------
-export const trafficLog=async()=>trafficRows(await get('/traffic/logs'));
+export const trafficLog=()=>getAllPages('/traffic/logs',trafficRows);
 
 // --- invites & commissions ------------------------------------------------
 export const invites=()=>get('/invites');
 export const createInvite=()=>post('/invites',{});
-export const commissions=async()=>orderRows(await get('/billing/commissions'));
+export const commissions=()=>getAllPages('/billing/commissions',orderRows);
 export const transferCommission=(transfer_amount)=>post('/billing/commission-transfer',{transfer_amount});
 export const withdrawCommission=(withdraw_method,withdraw_account)=>post('/billing/withdrawals',{withdraw_method,withdraw_account});
 export const wallet=()=>get('/billing/wallet');
@@ -203,5 +218,23 @@ export const giftDetail=id=>get('/gift-cards/history/'+encodeURIComponent(id));
 
 // --- payments -------------------------------------------------------------
 export const stripePublicKey=id=>post('/billing/stripe-public-key',{id});
+
+// Wallet top-ups require a UUID idempotency key; a checkout response is never
+// proof of payment. Only the server's recharge status can confirm funds.
+export const rechargeMethods=()=>get('/billing/recharge-payment-methods');
+export async function createRecharge(amountMinor,paymentMethodId,idempotencyKey){
+  if(!Number.isSafeInteger(amountMinor)||amountMinor<100||amountMinor>500000||
+     !Number.isSafeInteger(paymentMethodId)||paymentMethodId<1||
+     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idempotencyKey))
+    throw Error('充值金额、支付方式或幂等凭据不合法');
+  return api('/billing/recharges',{method:'POST',body:{amount_minor:amountMinor,payment_method_id:paymentMethodId},headers:{'Idempotency-Key':idempotencyKey}});
+}
+export const rechargeStatus=tradeNo=>get('/billing/recharges/'+encodeURIComponent(tradeNo));
+export const rechargeCheckout=(tradeNo,token)=>post('/billing/recharges/'+encodeURIComponent(tradeNo)+'/checkout',token?{token}:{});
+export async function rechargeHistory(page=1){
+  const result=await api('/billing/recharges?'+new URLSearchParams({page:String(page),per_page:'20'}),{preserveEnvelope:true});
+  if(!result||!Array.isArray(result.data)||!Number.isSafeInteger(result.meta?.last_page))throw Error('充值记录响应格式异常');
+  return {rows:result.data,meta:result.meta};
+}
 
 export const safeExternal=(value)=>safeWebUrl(value,{origin:typeof location!=='undefined'?location.origin:'https://example.test',allowHttpLoopback:typeof location!=='undefined'&&['localhost','127.0.0.1','::1'].includes(location.hostname)});

@@ -102,7 +102,7 @@ test('checkout errors are retryable, safe external link remains available and st
     return;
    }
    paidAt=Date.now();
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({type:1,data:'https://pay.example.test/order',request_id:'req-redirect'})});
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap({type:1,data:'https://pay.example.test/order'},'req-redirect'))});
    return;
   }
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(wrap(result))});

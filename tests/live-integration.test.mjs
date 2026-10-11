@@ -35,7 +35,7 @@ test('API errors fail closed and never invent success payloads',async()=>{
 });
 
 test('checkout preserves TXBoard type discriminant for QR/redirect payments',async()=>{
- globalThis.fetch=async()=>reply({type:1,data:'https://pay.example.com/order',request_id:'req-4'});
+ globalThis.fetch=async()=>reply({data:{type:1,data:'https://pay.example.com/order'},request_id:'req-4'});
  try{const r=await checkout('TN123',9);assert.equal(r.type,1);assert.equal(r.data,'https://pay.example.com/order')}
  finally{globalThis.fetch=originalFetch}
 });
@@ -113,4 +113,27 @@ test('a stale 401 from the previous account cannot invalidate a newer login toke
   await assert.rejects(pending,/Token expired/);
   assert.equal(getToken(),'Bearer new-account');
  }finally{clearToken();globalThis.fetch=originalFetch}
+});
+
+test('native checkout handles QR and free payment inside the TXAPI data envelope',async()=>{
+ const original=globalThis.fetch;
+ try{
+  for(const value of [{type:0,data:'https://pay.example.test/qr'},{type:-1,data:true}]){
+   globalThis.fetch=async()=>reply({data:value,request_id:'req-pay'});
+   assert.deepEqual(await checkout('TN1'),value);
+  }
+ }finally{globalThis.fetch=original}
+});
+test('native paged lists fetch every page instead of silently truncating after 20',async()=>{
+ const original=globalThis.fetch,urls=[];
+ globalThis.fetch=async url=>{
+  urls.push(url);
+  const n=Number(new URL(url,'https://test.local').searchParams.get('page'));
+  return reply({data:[{trade_no:'TN'+n,status:0}],meta:{page:n,per_page:100,total:2,last_page:2},request_id:'req-'+n});
+ };
+ try{
+  const {orders}=await import('../src/live/api.js');
+  assert.deepEqual((await orders()).map(x=>x.trade_no),['TN1','TN2']);
+  assert.equal(urls.length,2);
+ }finally{globalThis.fetch=original}
 });

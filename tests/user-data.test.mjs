@@ -25,6 +25,8 @@ test('knowledge validates the paged collection and strips executable markup rath
  assert.equal(result.length,2);
  assert.equal(knowledgePlainText('<script>alert(1)</script><p>安全 &amp; 有效</p><img src=x onerror=alert(1)>'),'安全 & 有效');
  assert.equal(knowledgePlainText('<p>订阅链接 https://panel.example.test/api/v1/client/subscribe?token=abc%2B1 结束</p>'),'订阅链接 [订阅链接已隐藏] 结束');
+ const secret='4a675c01e32a411dbc4243eef400fe02';
+ assert.equal(knowledgePlainText('订阅 https://cdn.example.test/s/'+secret+' 与教程 https://docs.example.test','https://panel.example.test/s/'+secret),'订阅 [订阅链接已隐藏] 与教程 https://docs.example.test');
  assert.throws(()=>knowledgeRows(null),/帮助中心接口响应格式异常/);
 });
 test('feature switches only disable on explicit backend zero/false, with missing legacy flags supported',()=>{
@@ -56,7 +58,7 @@ test('Luma menu reads authenticated TXBoard paths without original SPA redirects
   assert.equal((await knowledgeArticles('zh-CN'))[0].id,9);
   assert.equal((await userCommConfig()).knowledge_enable,1);
   assert.deepEqual(seen.map(x=>x.url),[
-   '/txapi/me/nodes','/txapi/traffic/logs',
+   '/txapi/me/nodes','/txapi/traffic/logs?page=1&per_page=100',
    '/txapi/knowledge?language=zh-CN','/txapi/me/site-config'
   ]);
   assert.ok(seen.every(x=>x.options.headers.Authorization==='Bearer menu-token'));

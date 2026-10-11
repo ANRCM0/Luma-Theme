@@ -48,8 +48,8 @@ export function positiveTrafficRate(item){
 // server placeholders and arbitrary markup: never inject HTML into React.
 // The body also carries the account's real subscription URL via the
 // {{subscribeUrl}} placeholder, so it is redacted before rendering.
-export function knowledgePlainText(html){
- return String(html??'')
+export function knowledgePlainText(html,subscriptionUrl=''){
+ let safe=String(html??'')
   .replace(/<(script|style|iframe|object|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'')
   .replace(/<br\s*\/?>/gi,'\n')
   .replace(/<\/(p|div|li|h[1-6])\s*>/gi,'\n')
@@ -59,6 +59,20 @@ export function knowledgePlainText(html){
   .replace(/&#39;|&apos;/gi,"'").replace(/&amp;/gi,'&')
   .replace(/https?:\/\/[^\s/]+\/(?:api\/v1\/client\/subscribe|txapi\/client\/subscribe)\?token=[^\s&]+/gi,'[订阅链接已隐藏]')
   .replace(/\n{3,}/g,'\n\n').trim();
+ // TXBoard expands knowledge placeholders to /{subscribe_path}/{secret}.
+ // Mask canonical links, URL-encoded links and base64url variants.
+ if(subscriptionUrl){
+  try{
+   const url=new URL(subscriptionUrl);
+   const token=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'');
+   const variants=[subscriptionUrl,encodeURIComponent(subscriptionUrl)];
+   if(typeof btoa==='function')variants.push(btoa(subscriptionUrl).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''));
+   for(const value of variants)if(value)safe=safe.split(value).join('[订阅链接已隐藏]');
+   if(token.length>=12)safe=safe.replace(/https?:\/\/[^\s<>"']+/gi,u=>
+     u.includes(token)||u.includes(encodeURIComponent(token))?'[订阅链接已隐藏]':u);
+  }catch{/* malformed subscription metadata must not break the help page */}
+ }
+ return safe;
 }
 export function userFeatureEnabled(key,guest={},userConfig={}){
  const off=v=>v!==undefined&&v!==null&&(v===false||v===0||v==='0'||v==='false');

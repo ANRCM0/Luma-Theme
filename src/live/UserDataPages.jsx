@@ -33,12 +33,12 @@ function NodesContent({rows,onShop,config={}}){
   </div>)}
  </div>:<div className="live-data-empty"><p>当前没有可用节点。节点列表会根据账号订阅权限由服务器返回。</p><button type="button" className="secondary" onClick={onShop}>查看可用套餐 <ArrowRight size={15}/></button></div>;
 }
-function KnowledgeContent({rows,config={}}){
+function KnowledgeContent({rows,config={},subscriptionUrl=''}){
  const [category,setCategory]=useState('all');
  const [keyword,setKeyword]=useState('');
  const categories=useMemo(()=>[...new Set(rows.map(x=>String(x.category||'')).filter(Boolean))], [rows]);
  const filtered=rows.filter(x=>(category==='all'||String(x.category)===category)&&
-  (!keyword.trim()||(String(x.title||'')+' '+knowledgePlainText(x.body)).toLowerCase().includes(keyword.trim().toLowerCase())));
+  (!keyword.trim()||(String(x.title||'')+' '+knowledgePlainText(x.body,subscriptionUrl)).toLowerCase().includes(keyword.trim().toLowerCase())));
  return <>
   {config.showSearch!==false&&<label className="live-data-search"><Search size={17}/><input aria-label="搜索帮助文章" placeholder="搜索帮助文章" value={keyword} onChange={e=>setKeyword(e.target.value)}/></label>}
   {config.showCategories!==false&&categories.length>1&&<div className="live-data-categories" role="group" aria-label="帮助分类">
@@ -47,11 +47,11 @@ function KnowledgeContent({rows,config={}}){
   </div>}
   {filtered.length>0?<div className="live-knowledge-list">{filtered.map((item,i)=><details key={item.id??i}>
    <summary><BookOpen size={16}/><span>{String(item.title||'未命名文章')}</span><span className="live-knowledge-arrow">⌄</span></summary>
-   <div className="live-knowledge-body">{knowledgePlainText(item.body)||'暂无正文'}</div>
+   <div className="live-knowledge-body">{knowledgePlainText(item.body,subscriptionUrl)||'暂无正文'}</div>
   </details>)}</div>:<p className="live-data-empty">{rows.length?'没有匹配的文章。':'暂无帮助文章。'}</p>}
  </>;
 }
-export default function UserDataPage({page,onShop,atomic={}}){
+export default function UserDataPage({page,onShop,subscriptionUrl='',atomic={}}){
  const config=pages[page];
  const [rows,setRows]=useState([]);
  const [loading,setLoading]=useState(true);
@@ -75,7 +75,7 @@ export default function UserDataPage({page,onShop,atomic={}}){
    <button type="button" className="secondary" disabled={loading} onClick={()=>setRevision(n=>n+1)}><RefreshCcw size={16}/>刷新</button>
   </div>
   <div className="card live-data-card">
-   {loading?<p role="status" className="live-data-empty">正在加载{config.title}…</p>:error?<div role="alert" className="live-data-error">加载失败：{error} <button className="secondary" type="button" onClick={()=>setRevision(n=>n+1)}>重试</button></div>:page==='traffic'?<TrafficContent rows={rows} config={atomic.traffic}/>:page==='nodes'?<NodesContent rows={rows} onShop={onShop} config={atomic.nodes}/>:<KnowledgeContent rows={rows} config={atomic.knowledge}/>}
+   {loading?<p role="status" className="live-data-empty">正在加载{config.title}…</p>:error?<div role="alert" className="live-data-error">加载失败：{error} <button className="secondary" type="button" onClick={()=>setRevision(n=>n+1)}>重试</button></div>:page==='traffic'?<TrafficContent rows={rows} config={atomic.traffic}/>:page==='nodes'?<NodesContent rows={rows} onShop={onShop} config={atomic.nodes}/>:<KnowledgeContent rows={rows} subscriptionUrl={subscriptionUrl} config={atomic.knowledge}/>}
   </div>
  </section>;
 }
