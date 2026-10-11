@@ -44,6 +44,7 @@ test('mobile authentication keeps input text visible in light and dark themes',a
  await expect(password).toHaveCSS('color','rgb(33, 49, 60)');
  await expect(email).toHaveCSS('-webkit-text-fill-color','rgb(33, 49, 60)');
  await expect(email).toHaveCSS('font-size','16px');
+ await expect(page.locator('.live-auth-input-wrap').first()).toHaveCSS('background-color','rgb(248, 251, 252)');
  await page.getByRole('button',{name:'显示密码'}).click();
  await expect(page.getByLabel('登录密码')).toHaveAttribute('type','text');
  await page.getByRole('button',{name:'隐藏密码'}).click();
@@ -51,6 +52,8 @@ test('mobile authentication keeps input text visible in light and dark themes',a
  await page.getByRole('button',{name:'切换主题'}).click();
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
  await expect(email).toHaveCSS('color','rgb(242, 247, 250)');
+ await expect(page.locator('.live-auth-input-wrap').first()).toHaveCSS('background-color','rgb(21, 35, 43)');
+ await expect(page.locator('.live-login .login-card')).toHaveCSS('background-color','rgb(29, 43, 52)');
  await expect(email).toHaveCSS('-webkit-text-fill-color','rgb(242, 247, 250)');
  await expect(password).toHaveCSS('color','rgb(242, 247, 250)');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
@@ -85,6 +88,7 @@ test('latest TXBoard public theme_config controls live colors and login backgrou
  await expect(page.locator('html')).toHaveAttribute('data-vv-accent','black');
  await expect(page.locator('.live-login')).toHaveCSS('background-image',/welcome[.]webp/);
  await expect(page.locator('.live-auth-submit')).toHaveCSS('background-color','rgb(38, 55, 70)');
+ await expect(page.locator('.live-auth-submit')).toHaveCSS('color','rgb(255, 255, 255)');
  await expect(page.getByText('新版 TXBoard',{exact:true}).first()).toBeVisible();
 });
 

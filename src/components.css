@@ -3515,6 +3515,42 @@
   -webkit-backdrop-filter: none;
 }
 
+/* Match login surfaces and form controls when the live theme is dark. */
+[data-theme="dark"] .live-login {
+  --vv-auth-surface: #1d2b34;
+  --vv-auth-text: #f2f7fa;
+  --vv-auth-muted: #a3b5bf;
+  --vv-auth-input: #15232b;
+  --vv-auth-input-text: #f2f7fa;
+  --vv-auth-border: #405562;
+  --vv-auth-outline: #56c9d0;
+  --vv-auth-icon: #a3b5bf;
+  background:
+    radial-gradient(ellipse 48% 30% at 5% 17%, rgba(86, 201, 208, 0.09), transparent 100%),
+    linear-gradient(150deg, #12232c, #1c303a);
+}
+
+[data-theme="dark"] .live-login .top {
+  background: rgba(21, 35, 43, 0.92);
+  border-bottom-color: var(--vv-auth-border);
+}
+
+[data-theme="dark"] .live-login .head-actions > button {
+  color: var(--vv-auth-text);
+  background: var(--vv-auth-input);
+  border-color: var(--vv-auth-border);
+}
+
+[data-theme="dark"] .live-login .head-actions > button:hover {
+  background: #223b46;
+  border-color: var(--vv-auth-outline);
+}
+
+[data-theme="dark"] .live-login .login-card {
+  border-color: var(--vv-auth-border);
+  box-shadow: 0 22px 75px rgba(0, 0, 0, 0.24);
+}
+
 .live-login .live-auth-intro {
   margin-bottom: 26px;
 }
@@ -3717,8 +3753,8 @@
   padding: 13px 18px;
   border: 0;
   border-radius: var(--radius-md);
-  background: var(--color-accent-bright, #84eaee);
-  color: var(--color-accent-contrast, #14565c);
+  background: var(--vv-live-brand);
+  color: var(--vv-live-contrast);
   font-size: 16px;
   font-weight: var(--font-weight-bold);
   box-shadow: 0 9px 25px rgba(51, 157, 171, 0.15);
@@ -4283,6 +4319,10 @@
   font-size: 22px;
 }
 
+.live-portal .dashboard-grid + .live-subscription-center {
+  margin-top: 10px;
+}
+
 .live-portal .live-subscription-center {
   display: block;
   scroll-margin-top: 110px;
@@ -4709,4 +4749,3 @@
   transition: transform 0.18s var(--motion-ease), box-shadow 0.18s ease;
 }
 
-.live-auth-submit
