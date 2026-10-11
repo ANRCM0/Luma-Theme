@@ -1380,6 +1380,7 @@
   letter-spacing: -0.03em;
   min-width: 0;
   flex: 0 1 auto;
+  max-width: 360px;
 }
 
 /* Keep the logo and header actions visible when administrators set a long site name. */
