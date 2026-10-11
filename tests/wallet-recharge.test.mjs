@@ -33,6 +33,6 @@ test('wallet native requests retain bearer and UUID idempotency headers',async()
   assert.deepEqual(await rechargeCheckout('WR123'),{type:1,data:'https://pay.example.test/checkout'});
   assert.equal((await rechargeStatus('WR123')).status,0);
   assert.equal((await rechargeHistory(1)).rows[0].trade_no,'WR123');
-  assert.throws(()=>createRecharge(0,3,uuid));
+  await assert.rejects(()=>createRecharge(0,3,uuid));
  }finally{clearToken();globalThis.fetch=oldFetch;globalThis.localStorage=oldStorage}
 });

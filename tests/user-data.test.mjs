@@ -58,7 +58,7 @@ test('Luma menu reads authenticated TXBoard paths without original SPA redirects
   assert.equal((await knowledgeArticles('zh-CN'))[0].id,9);
   assert.equal((await userCommConfig()).knowledge_enable,1);
   assert.deepEqual(seen.map(x=>x.url),[
-   '/txapi/me/nodes','/txapi/traffic/logs',
+   '/txapi/me/nodes','/txapi/traffic/logs?page=1&per_page=100',
    '/txapi/knowledge?language=zh-CN','/txapi/me/site-config'
   ]);
   assert.ok(seen.every(x=>x.options.headers.Authorization==='Bearer menu-token'));
