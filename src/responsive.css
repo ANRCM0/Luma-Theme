@@ -381,7 +381,7 @@
   }
 
   .mobile-nav button span {
-    font-size: 10px;
+    font-size: 11px;
     white-space: nowrap;
   }
 
@@ -452,8 +452,8 @@
   }
 
   .live-portal .top .head-actions > button {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
   }
 
   .live-portal .dashboard-grid {
@@ -992,7 +992,7 @@
   }
 
   .mobile-nav button span {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .welcome-actions {
