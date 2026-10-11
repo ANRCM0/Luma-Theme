@@ -1378,6 +1378,26 @@
   font-size: 21px;
   gap: 8px;
   letter-spacing: -0.03em;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+/* Keep the logo and header actions visible when administrators set a long site name. */
+.live-portal .top .brand-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-portal .top .brand > img,
+.live-portal .top .brand > svg {
+  flex: 0 0 auto;
+}
+
+.live-portal .top .head-actions {
+  flex: 0 0 auto;
 }
 
 .live-portal .top .brand img {
