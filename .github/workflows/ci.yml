@@ -44,8 +44,21 @@ jobs:
         run: npm run build
         env:
           TXBOARD_THEME: 'true'
+      # WHY THIS STEP EXISTS: dist/ is gitignored, but its derived artifacts
+      # (theme-package/dashboard.blade.php, config.json and assets/) are
+      # COMMITTED. Vite content-hashes change on any source edit, so a commit
+      # that forgets to re-run the packaging script leaves HEAD referencing an
+      # asset hash that is not in the tree, and guests would load a 404 bundle.
+      # The release workflow only runs on tags, so this is the only gate that
+      # can catch the drift before it is published. Run the identical check
+      # locally with `npm run check:theme-package`.
       - name: Stage and validate theme settings manifest
         run: |
+          # THEME_VERSION must match the version already committed, otherwise
+          # config.json would differ on every run for reasons unrelated to
+          # asset drift. The tag release re-derives it from the tag instead.
+          export THEME_VERSION="$(node -p "require('./theme-package/config.json').version")"
+          echo "Verifying committed theme package for version $THEME_VERSION"
           node scripts/package-txboard.mjs
           node --input-type=module -e '
             import { readFileSync } from "node:fs";
@@ -57,6 +70,15 @@ jobs:
             if (config.name !== "vv-theme") throw Error("Theme identifier changed unexpectedly");
             if (names.size !== config.configs.length) throw Error("Duplicate theme setting name");
           '
+      - name: Fail if committed derived artifacts are stale
+        shell: bash
+        run: |
+          if ! git diff --exit-code -- theme-package/; then
+            echo "::error::Committed theme-package/ is stale. Run 'npm run check:theme-package' locally and commit the regenerated dashboard.blade.php, config.json and assets/."
+            git --no-pager diff --stat -- theme-package/
+            exit 1
+          fi
+          echo "Committed theme package matches a fresh build."
       - name: Build live TXBoard theme bundle
         run: npm run build
         env:
