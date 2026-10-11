@@ -49,6 +49,10 @@ async function authenticate(page,{layout='top'}={}){
  await expect(page.getByRole('region',{name:'账户欢迎卡片'})).toBeVisible();
 }
 async function snapshot(page,name){
+ // Wait for transient login/order notifications and CSS entry frames: captures
+ // must show the actual settled UI, not an animation mid-frame.
+ await expect(page.locator('.toast')).toHaveCount(0,{timeout:8_000});
+ await page.waitForTimeout(350);
  mkdirSync(output,{recursive:true});
  await page.screenshot({path:`${output}/${name}.png`,animations:'disabled',fullPage:false});
 }
@@ -142,6 +146,7 @@ for(const width of [320,390,768,1024,1440]){
   await authenticate(page,{layout:'sidebar'});
   await page.getByRole('button',{name:'切换主题'}).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+  await expect(page.getByRole('region',{name:'账户欢迎卡片'}).locator('h1')).toHaveCSS('color','rgb(23, 61, 70)');
   if(width>720){
    const toggle=page.getByRole('button',{name:'收起侧边栏'});
    await toggle.click();
