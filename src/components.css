@@ -1150,7 +1150,8 @@
 }
 
 .dialog h2 {
-  padding-right: 35px;
+  padding-right: 38px;
+  overflow-wrap: anywhere;
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.02em;
@@ -1158,10 +1159,10 @@
 
 .dialog .close {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  min-width: 36px;
-  min-height: 36px;
+  top: 8px;
+  right: 8px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-sm);
 }
 
@@ -1178,7 +1179,7 @@
 }
 
 @keyframes dialog-enter {
-  from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
@@ -1653,6 +1654,28 @@
 .live-portal .live-welcome-welcome {
   background: linear-gradient(117deg, #d9f5ef 0%, #f3fffd 80%);
   border: 1px solid #c5ebe4;
+}
+
+/* All welcome-tone cards retain PALE backgrounds in dark mode. Dark-theme
+   near-white text tokens would wash out the heading and description here. */
+.live-portal .live-welcome-state h1 {
+  color: #173d46;
+}
+
+.live-portal .live-welcome-state .welcome-text > p {
+  color: #405e66;
+}
+
+.live-portal .live-welcome-state .eyebrow {
+  color: #176f79;
+}
+
+.live-portal .live-welcome-warning .eyebrow {
+  color: #89571e;
+}
+
+[data-theme="dark"] .live-portal .top .brand {
+  color: #147581;
 }
 
 .live-portal .live-welcome-side {
@@ -3982,7 +4005,7 @@
 .live-dialog-wide {
   width: min(660px, 94vw);
   max-width: 660px;
-  max-height: 85vh;
+  max-height: min(85dvh, calc(100dvh - 28px));
   overflow-y: auto;
 }
 
