@@ -1,10 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,existsSync,mkdirSync,rmSync,readdirSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 
 // P1: The packaging script must validate BEFORE any destructive step.
 // A failed run must leave theme-package/ byte-identical.
+
+const rootDir = fileURLToPath(new URL('..', import.meta.url));
+const distDir = fileURLToPath(new URL('../dist', import.meta.url));
+const distHtmlPath = fileURLToPath(new URL('../dist/index.html', import.meta.url));
+const themePackage = new URL('../theme-package/', import.meta.url);
+
+// A dist whose asset paths are NOT under /theme/vv-theme/assets/. The guard
+// must reject this before it copies or removes anything.
+const BAD_DIST_HTML =
+  '<!doctype html><html lang="zh-CN"><head>' +
+  '<script type="module" crossorigin src="/assets/index-DEADBEEF.js"></script>' +
+  '<link rel="stylesheet" crossorigin href="/assets/index-DEADBEEF.css">' +
+  '</head><body><div id="root"></div></body></html>';
 
 test('package-txboard.mjs validates asset paths before any destructive step', () => {
   const source = readFileSync(new URL('../scripts/package-txboard.mjs', import.meta.url), 'utf8');
@@ -23,32 +37,47 @@ test('package-txboard.mjs uses atomic staging (no direct write to theme-package/
   assert.doesNotMatch(source, /writeFileSync\(join\(out,/, 'must not write directly to output dir');
 });
 
-test('package-txboard.mjs leaves theme-package/ byte-identical when guard fires', async () => {
-  const distPath = new URL('../dist/index.html', import.meta.url);
-  const originalHtml = readFileSync(distPath, 'utf8');
-  const badHtml = originalHtml.replace(/\/theme\/vv-theme\/assets\//g, '/assets/');
-
+// This test must be hermetic: CI runs `npm test` on a clean checkout BEFORE
+// `npm run build`, so dist/ does not exist. It synthesises its own bad dist
+// instead of depending on a prior build, and restores whatever it found.
+test('package-txboard.mjs leaves theme-package/ byte-identical when guard fires', () => {
   const files = ['dashboard.blade.php', 'config.json', 'assets/index-CwYnklBj.js', 'assets/index-CzLWBJgw.css'];
   const before = {};
   for (const f of files) {
-    before[f] = readFileSync(new URL('../theme-package/' + f, import.meta.url), 'utf8');
+    before[f] = readFileSync(new URL(f, themePackage), 'utf8');
   }
 
+  const hadDistDir = existsSync(distDir);
+  const hadDistHtml = existsSync(distHtmlPath);
+  const originalHtml = hadDistHtml ? readFileSync(distHtmlPath, 'utf8') : null;
+
   try {
-    writeFileSync(distPath, badHtml);
+    mkdirSync(distDir, {recursive: true});
+    writeFileSync(distHtmlPath, BAD_DIST_HTML);
+
     let threw = false;
     try {
-      execFileSync('node', ['scripts/package-txboard.mjs'], {cwd: new URL('..', import.meta.url), stdio: 'pipe'});
+      execFileSync('node', ['scripts/package-txboard.mjs'], {cwd: rootDir, stdio: 'pipe'});
     } catch {
       threw = true;
     }
     assert.ok(threw, 'script must throw on bad dist');
 
     for (const f of files) {
-      const after = readFileSync(new URL('../theme-package/' + f, import.meta.url), 'utf8');
+      const after = readFileSync(new URL(f, themePackage), 'utf8');
       assert.equal(after, before[f], `theme-package/${f} must be byte-identical after failed run`);
     }
+
+    const strays = readdirSync(rootDir).filter(
+      (name) => name.startsWith('.staging-') || name.startsWith('.theme-package.backup-'),
+    );
+    assert.deepEqual(strays, [], 'a failed run must not leave staging/backup directories behind');
   } finally {
-    writeFileSync(distPath, originalHtml);
+    if (originalHtml !== null) {
+      writeFileSync(distHtmlPath, originalHtml);
+    } else {
+      rmSync(distHtmlPath, {force: true});
+      if (!hadDistDir) rmSync(distDir, {recursive: true, force: true});
+    }
   }
 });
