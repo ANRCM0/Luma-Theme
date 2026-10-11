@@ -150,7 +150,7 @@
 /* --- Tablet header: reserve room for the full primary navigation --- */
 @media (min-width: 721px) and (max-width: 1100px) {
   .live-portal .top .brand {
-    max-width: clamp(132px, calc(70vw - 405px), 350px);
+    max-width: clamp(132px, calc(70vw - 421px), 350px);
   }
 }
 
