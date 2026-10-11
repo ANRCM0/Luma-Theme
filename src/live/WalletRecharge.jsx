@@ -23,37 +23,57 @@ export default function WalletRecharge({onUpdated}){
   return()=>{active=false};
  },[reload]);
  useEffect(()=>{
-  if(!pending||pending.status===1)return;
+  // Only server-pending recharges are pollable; no checkout/order creation here.
+  if(!pending||pending.status!==0||!pending.trade_no)return;
   const token=tx.getToken(),trade=pending.trade_no;
-  let active=true,inFlight=false,attempts=0;
+  let active=true,inFlight=false,attempts=0,settled=false;
+  const stop=()=>clearInterval(timer);
   const poll=async()=>{
    if(inFlight||!active)return;
-   inFlight=true;attempts++;
+   if(tx.getToken()!==token){stop();return}
+   if(attempts>=20){stop();setInfo('自动查询已暂停，可手动刷新充值状态');return}
+   attempts++;inFlight=true;
    try{
     const current=await tx.rechargeStatus(trade);
-    if(!active||tx.getToken()!==token)return;
-    setPending(current);
+    if(!active||tx.getToken()!==token||current?.trade_no!==trade)return;
     if(current.status===1){
+     settled=true;stop();
      setInfo('后端已确认充值到账');setPaymentUrl('');setQr('');
-     await reload(page);await onUpdated?.();
-    }else if(attempts>=20){setInfo('自动查询已暂停，可手动刷新充值状态');clearInterval(timer)}
-   }catch{/* Temporary failures must never trigger another payment. */}
-   finally{inFlight=false}
+     // Start both server-backed refreshes before the paid status unmounts
+     // this poll effect. Neither refresh can award credit on the client.
+     const updates=Promise.allSettled([reload(page),onUpdated?.()]);
+     setPending(prev=>prev?.trade_no===trade?current:prev);
+     await updates;
+    }else setPending(prev=>prev?.trade_no===trade?current:prev);
+   }catch{
+    // Network failure is an unknown state, NOT a failed payment.
+   }finally{
+    inFlight=false;
+    // Count failed calls too. The old cap only ran on successful responses,
+    // leaving a broken gateway polled forever.
+    if(active&&!settled&&attempts>=20){
+     stop();
+     if(tx.getToken()===token)setInfo('自动查询已暂停，可手动刷新充值状态');
+    }
+   }
   };
   const timer=setInterval(()=>void poll(),4000);
-  return()=>{active=false;clearInterval(timer)};
+  return()=>{active=false;stop()};
  },[pending?.trade_no,pending?.status,page,reload,onUpdated]);
  const refresh=async(n=page)=>{
   setLoading(true);setError('');
   try{await reload(n)}catch(e){setError(e.message||'刷新失败')}finally{setLoading(false)}
  };
  const check=async()=>{
-  if(!pending)return;
+  if(!pending?.trade_no)return;
+  const token=tx.getToken(),trade=pending.trade_no;
   try{
-   const item=await tx.rechargeStatus(pending.trade_no);setPending(item);
-   if(item.status===1){setInfo('后端已确认充值到账');setPaymentUrl('');setQr('');await reload(page);await onUpdated?.()}
+   const item=await tx.rechargeStatus(trade);
+   if(tx.getToken()!==token||item?.trade_no!==trade)return;
+   setPending(prev=>prev?.trade_no===trade?item:prev);
+   if(item.status===1){setInfo('后端已确认充值到账');setPaymentUrl('');setQr('');await reload(page);if(tx.getToken()===token)await onUpdated?.()}
    else setInfo('充值尚未到账，请等待支付平台确认');
-  }catch(e){setError(e.message||'订单查询失败')}
+  }catch(e){if(tx.getToken()===token)setError(e.message||'订单查询失败')}
  };
  const pay=async item=>{
   setPending(item);setPaymentUrl('');setQr('');
