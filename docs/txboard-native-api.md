@@ -202,8 +202,9 @@ stat 是数组，索引 4 是可用佣金（单位：分）。
 
 ## 时间处理
 - 所有 ISO 字符串用 `tx.epochMs(v)` 转毫秒、`tx.dateTime(v)` 转本地字符串、`tx.dateOnly(v)` 转日期。
-- **例外**：`/traffic/logs` 的 `record_at` 是整数秒，要 `record_at*1000`。
-- 绝不要再写 `new Date(Number(v)*1000)`（对 ISO 字符串会得到 Invalid Date）。
+- **例外 1**：`/traffic/logs` 的 `record_at` 是整数 Unix 秒，要先乘以 1000。
+- **例外 2（已对照 TXBoard 后端源码）**：`/billing/recharges` 的 `created_at` 和 `paid_at` 由 `WalletRechargeController::dto()` 显式返回整数 Unix 秒（`(int) $recharge->created_at`）；不可直接交给只处理 ISO 的 `tx.dateTime`。`rechargeDate` 使用秒数优先，并兼容带明确时区的 ISO 8601 字符串。
+- **不要**对普通 ISO 时间字段使用 `new Date(Number(v)*1000)`，这会产生 Invalid Date。必须逐个核对对应 DTO 的时间格式。
 
 ## 金额处理
 - 全部字段带 `_minor` 后缀，单位分。`tx.money(minor)` 直接可用。

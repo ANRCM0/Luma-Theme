@@ -7,7 +7,18 @@ export function moneyToMinor(input){
  if(!Number.isSafeInteger(minor)||minor<100||minor>500000)throw Error('单次充值金额应在 ¥1 至 ¥5,000 之间');
  return minor;
 }
-export function rechargeDate(seconds){
- const n=Number(seconds);
- return Number.isFinite(n)&&n>0?new Date(n*1000).toLocaleString('zh-CN'):'—';
+// TXBoard's WalletRechargeController::dto() returns Unix *seconds* for
+// created_at/paid_at, unlike most native ISO timestamps. Accept explicit
+// timezone-bearing ISO values too for backwards/forwards compatibility.
+export function rechargeDate(value){
+ if(value===null||value===undefined||value==='')return '—';
+ let ms=NaN;
+ if((typeof value==='number'&&Number.isSafeInteger(value))||
+    (typeof value==='string'&&/^[0-9]{1,12}$/.test(value))){
+  const seconds=Number(value);
+  if(Number.isSafeInteger(seconds)&&seconds>0)ms=seconds*1000;
+ }else if(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.test(value)){
+  ms=Date.parse(value);
+ }
+ return Number.isFinite(ms)&&ms>0&&ms<=8.64e15?new Date(ms).toLocaleString('zh-CN'):'—';
 }
