@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # TEMPORARY branch-local packaging sync; reverted after generated assets committed
+  contents: read
 
 concurrency:
   group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -72,19 +70,6 @@ jobs:
             if (config.name !== "vv-theme") throw Error("Theme identifier changed unexpectedly");
             if (names.size !== config.configs.length) throw Error("Duplicate theme setting name");
           '
-      # One-time branch-local sync: the hash-addressed theme-package assets
-      # must be generated with Node 22, not hand-edited. Revert after it lands.
-      - name: Temporary sync generated TXBoard assets
-        if: github.event_name == 'pull_request' && github.head_ref == 'fix/txapi-native-finalize-20261011'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- theme-package/
-          if ! git diff --cached --quiet; then
-            git commit -m "build(theme): sync generated TXBoard theme assets"
-            git push origin HEAD:refs/heads/fix/txapi-native-finalize-20261011
-          fi
       - name: Fail if committed derived artifacts are stale
         shell: bash
         run: |
