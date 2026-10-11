@@ -80,7 +80,7 @@ test('short mobile viewport: long plan purchase and order dialogs remain operabl
  test.setTimeout(90_000);
  await page.setViewportSize({width:375,height:667});
  await authenticate(page);
- await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
+ await page.getByRole('navigation',{name:'移动端导航'}).getByRole('button',{name:'购买套餐'}).click();
  await expect(page.locator('[data-plan-id="88"]')).toBeVisible();
  const buy=page.locator('[data-plan-id="88"]').getByRole('button',{name:/立即购买/});
  await buy.click();
@@ -107,7 +107,7 @@ test('very short viewport and reduced motion keep purchase form scrollable',asyn
  await page.setViewportSize({width:320,height:480});
  await page.emulateMedia({reducedMotion:'reduce'});
  await authenticate(page);
- await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'购买套餐'}).click();
+ await page.getByRole('navigation',{name:'移动端导航'}).getByRole('button',{name:'购买套餐'}).click();
  await page.locator('[data-plan-id="88"]').getByRole('button',{name:/立即购买/}).click();
  const dialog=page.getByRole('dialog',{name:'购买 '+planTitle});
  await dialogFits(page,dialog);
@@ -122,7 +122,7 @@ test('mobile ticket dialog stays scrollable, keyboard-trapped and supports Escap
  test.setTimeout(90_000);
  await page.setViewportSize({width:375,height:480});
  await authenticate(page);
- await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'服务工单'}).click();
+ await page.getByRole('navigation',{name:'移动端导航'}).getByRole('button',{name:'服务工单'}).click();
  const create=page.getByRole('button',{name:/创建工单/});
  await create.click();
  const dialog=page.getByRole('dialog',{name:'创建工单'});
