@@ -52,6 +52,7 @@ async function pendingRecharge(page,{paidAfter=Infinity}={}){
  await wallet.getByLabel('充值金额（元）').fill('25.00');
  await wallet.getByRole('button',{name:'创建充值订单并支付'}).click();
  await expect(wallet.locator('.live-extra-stack')).toContainText('WRPOLL123');
+ await expect(wallet.getByRole('status')).toContainText('正在等待后台确认');
  expect(calls.create).toBe(1);expect(calls.checkout).toBe(1);
  return {wallet,calls};
 }
@@ -60,7 +61,13 @@ test('recharge polling stops after 20 consecutive network errors and manual chec
  test.setTimeout(90_000);
  await page.clock.install();
  const {wallet,calls}=await pendingRecharge(page);
- await page.clock.runFor(4_000*23);
+ // Advance each interval separately so intercepted fetch promises settle
+ // between ticks; a single 92-second clock leap can skip in-flight polls.
+ for(let n=1;n<=20;n++){
+  await page.clock.runFor(4_000);
+  await expect.poll(()=>calls.status).toBe(n);
+  await page.clock.runFor(50);
+ }
  await expect(wallet.getByText('自动查询已暂停，可手动刷新充值状态')).toBeVisible();
  expect(calls.status).toBe(20);
  await page.clock.runFor(4_000*5);
@@ -89,8 +96,11 @@ test('recharge watcher stops after leaving the wallet screen',async({page})=>{
  test.setTimeout(60_000);
  await page.clock.install();
  const {wallet,calls}=await pendingRecharge(page);
- await page.clock.runFor(4_000*2);
- expect(calls.status).toBe(2);
+ await page.clock.runFor(4_000);
+ await expect.poll(()=>calls.status).toBe(1);
+ await page.clock.runFor(50);
+ await page.clock.runFor(4_000);
+ await expect.poll(()=>calls.status).toBe(2);
  await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'我的面板'}).click();
  await expect(wallet).toHaveCount(0);
  await page.clock.runFor(4_000*5);
