@@ -49,7 +49,7 @@ async function setup(page){
 test('TXBoard native wallet creates one idempotent recharge and unwraps provider redirect',async({page})=>{
  const calls=await setup(page);
  await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'账号设置'}).click();
- await page.getByRole('button',{name:'财务记录'}).click();
+ await page.getByRole('button',{name:'财务记录',exact:true}).click();
  const wallet=page.getByRole('region',{name:'钱包充值'});
  await expect(wallet).toBeVisible();
  await wallet.getByLabel('充值金额（元）').fill('25.00');
