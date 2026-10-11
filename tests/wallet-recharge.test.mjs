@@ -8,8 +8,17 @@ test('wallet amount parser handles decimal cents and rejects overflows',()=>{
  assert.equal(moneyToMinor('25.60'),2560);
  assert.equal(moneyToMinor('5000.00'),500000);
  for(const value of ['0.5','0','5000.01','-1','1.999','1e3'])assert.throws(()=>moneyToMinor(value));
- assert.notEqual(rechargeDate(1760000000),'—');
 });
+test('recharge timestamps preserve native Unix seconds and accept explicit ISO offsets',()=>{
+ const seconds=1760000000;
+ assert.equal(rechargeDate(seconds),new Date(seconds*1000).toLocaleString('zh-CN'));
+ assert.equal(rechargeDate(String(seconds)),rechargeDate(seconds));
+ assert.equal(rechargeDate('2026-10-11T12:00:00+08:00'),new Date('2026-10-11T12:00:00+08:00').toLocaleString('zh-CN'));
+ assert.equal(rechargeDate('2026-10-11T04:00:00Z'),rechargeDate('2026-10-11T12:00:00+08:00'));
+ for(const bad of [null,undefined,'',0,-5,'oops','2026-10-11','2026-99-99T12:00:00Z',Infinity])
+  assert.equal(rechargeDate(bad),'—');
+});
+
 test('wallet native requests retain bearer and UUID idempotency headers',async()=>{
  const oldFetch=globalThis.fetch,oldStorage=globalThis.localStorage,store=new Map(),calls=[];
  globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
