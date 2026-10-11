@@ -1,0 +1,34 @@
+name: Temporary Visual QA Asset Sync
+on:
+  push:
+    branches:
+      - 'qa/luma-modal-visual-acceptance-20261011'
+permissions:
+  contents: write
+jobs:
+  bundle:
+    if: github.repository == 'ANRCM0/Luma-Theme' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+        env:
+          TXBOARD_THEME: 'true'
+      - name: Regenerate installable theme
+        run: |
+          export THEME_VERSION="$(node -p "require('./theme-package/config.json').version")"
+          node scripts/package-txboard.mjs
+      - name: Sync only feature branch assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add theme-package/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "build(theme): sync visual-dialog QA changes"
+          git push origin "HEAD:$GITHUB_REF_NAME"
