@@ -41,7 +41,18 @@ test('package-txboard.mjs uses atomic staging (no direct write to theme-package/
 // `npm run build`, so dist/ does not exist. It synthesises its own bad dist
 // instead of depending on a prior build, and restores whatever it found.
 test('package-txboard.mjs leaves theme-package/ byte-identical when guard fires', () => {
-  const files = ['dashboard.blade.php', 'config.json', 'assets/index-CwYnklBj.js', 'assets/index-CzLWBJgw.css'];
+  // Discover the tracked artifacts from the tree instead of hard-coding
+  // content hashes: Vite renames them on any source edit, so a literal list
+  // turns a legitimate rebuild into a test failure.
+  const assetsDir = fileURLToPath(new URL('../theme-package/assets', import.meta.url));
+  const files = [
+    'dashboard.blade.php',
+    'config.json',
+    ...readdirSync(assetsDir).map((name) => 'assets/' + name),
+  ];
+  assert.ok(files.some((f) => f.endsWith('.js')), 'theme-package must ship a JS bundle');
+  assert.ok(files.some((f) => f.endsWith('.css')), 'theme-package must ship a CSS bundle');
+
   const before = {};
   for (const f of files) {
     before[f] = readFileSync(new URL(f, themePackage), 'utf8');
