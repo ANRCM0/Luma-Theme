@@ -25,6 +25,8 @@ test('knowledge validates the paged collection and strips executable markup rath
  assert.equal(result.length,2);
  assert.equal(knowledgePlainText('<script>alert(1)</script><p>安全 &amp; 有效</p><img src=x onerror=alert(1)>'),'安全 & 有效');
  assert.equal(knowledgePlainText('<p>订阅链接 https://panel.example.test/api/v1/client/subscribe?token=abc%2B1 结束</p>'),'订阅链接 [订阅链接已隐藏] 结束');
+ const secret='4a675c01e32a411dbc4243eef400fe02';
+ assert.equal(knowledgePlainText('订阅 https://cdn.example.test/s/'+secret+' 与教程 https://docs.example.test','https://panel.example.test/s/'+secret),'订阅 [订阅链接已隐藏] 与教程 https://docs.example.test');
  assert.throws(()=>knowledgeRows(null),/帮助中心接口响应格式异常/);
 });
 test('feature switches only disable on explicit backend zero/false, with missing legacy flags supported',()=>{
