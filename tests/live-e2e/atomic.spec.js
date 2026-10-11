@@ -122,7 +122,7 @@ test('desktop header is slimmer, dashboard cards meet without the redundant subs
  const upper=await page.locator('.dashboard-grid').boundingBox();
  const subscription=page.locator('.live-subscription-center');
  // Check the exact CSS spacing, allowing fractional rendering during transitions.
- await expect(subscription).toHaveCSS('margin-top','10px');
+ await expect(subscription).toHaveCSS('margin-top','18px');
  const lower=await subscription.boundingBox();
  const visualGap=lower.y-(upper.y+upper.height);
  expect(visualGap).toBeGreaterThanOrEqual(8);
