@@ -12,7 +12,7 @@
   font-weight: var(--font-weight-bold);
   font-size: var(--text-sm);
   box-shadow: var(--shadow-accent);
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .primary:hover {
@@ -33,7 +33,7 @@
   font-weight: var(--font-weight-semibold);
   font-size: var(--text-sm);
   border: 1px solid var(--color-border);
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .secondary:hover {
@@ -1413,8 +1413,8 @@
 }
 
 .live-portal .top .head-actions > button {
-  width: 35px;
-  height: 35px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
 }
 
@@ -4126,8 +4126,8 @@
 
 .live-portal .live-subscription-link button {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
 }
 
 .live-portal .live-client-guide {
@@ -4147,9 +4147,9 @@
 }
 
 .live-portal .live-client-platforms button {
-  padding: 5px 10px;
-  min-height: 32px;
-  font-size: 11px;
+  padding: 8px 12px;
+  min-height: 44px;
+  font-size: 12px;
 }
 
 .live-portal .live-client-list {
