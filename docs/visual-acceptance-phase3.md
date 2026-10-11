@@ -13,9 +13,11 @@ Issue: #15. Prior frontend PRs: #14 and #16. This pass exercises Chromium produc
 
 ## UI changes
 
-- Raise modal close target to 44px; wrap overly long modal headings.
+- Raise modal close target to 44px; wrap overly long modal headings. Avoid scale animations that temporarily shrink the pointer hit rectangle.
 - Set wide-dialog maximum heights in dvh units for short-screen access.
 - Properly link ticket creation labels to their form fields.
+- Keep welcome-card title, description and eyebrows in dark readable colors over the intentionally pale gradient, even when dark mode is active; add a computed-color assertion.
+- Capture screenshots after transient success toast and CSS entry animation finish, preventing misleading mid-frame images.
 - Do not alter checkout or session business behavior.
 
 ## Explicit boundaries
